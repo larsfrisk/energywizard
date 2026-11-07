@@ -1325,6 +1325,13 @@ async def api_consumption():
             "SELECT total_w, ev_w, pump_w, spa_w, unexplained_w FROM load_breakdown ORDER BY timestamp DESC LIMIT 1"
         )).mappings().first()
         cfg = _settings_row(c, ("peak_shaving_enabled", "power_limit_kw", "fuse_size_a"))
+    extra = []                                        # egna laster (loads:) ur senaste minutloggen
+    try:
+        with ENGINE.connect() as c2:
+            raw = c2.execute(text("SELECT extra_w FROM load_breakdown ORDER BY timestamp DESC LIMIT 1")).scalar()
+        extra = [{"name": k, "w": _n(v)} for k, v in (json.loads(raw) if raw else {}).items()]
+    except Exception:                                 # kolumnen skapas av motorn första gången en egen last loggas
+        extra = []
     # avg_w_l1..3 är (trots namnet) fasströmmar i ampere ur elmätaren - visas i A mot huvudsäkringen (#130)
     return {"ok": True, "fuse_size_a": _n(cfg.get("fuse_size_a")),
             "avg_w_l1": _n(row.get("avg_w_l1")), "avg_w_l2": _n(row.get("avg_w_l2")),
@@ -1333,7 +1340,7 @@ async def api_consumption():
             "power_computer_w": _n(row.get("power_computer_w")), "peak_shaving_active": bool(row.get("peak_shaving_active")),
             "predicted_base_load_kw": _n(row.get("predicted_base_load_kw")),
             "peak_shaving_enabled": bool(cfg.get("peak_shaving_enabled")), "power_limit_kw": _n(cfg.get("power_limit_kw")),
-            "breakdown": {k: _n(lb[k]) for k in ("total_w", "ev_w", "pump_w", "spa_w", "unexplained_w")} if lb else None}
+            "breakdown": ({**{k: _n(lb[k]) for k in ("total_w", "ev_w", "pump_w", "spa_w", "unexplained_w")}, "extra": extra} if lb else None)}
 
 
 @app.get("/api/spa")

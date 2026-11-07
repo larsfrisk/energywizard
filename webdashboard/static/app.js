@@ -869,6 +869,7 @@ async function renderElforbrukning() {
       ${barRow("🚗 Elbil", b.ev_w / maxW * 100, fmt(b.ev_w, 0, " W"))}
       ${barRow("♨️ Värmepump", b.pump_w / maxW * 100, fmt(b.pump_w, 0, " W"))}
       ${barRow("🛁 Spabad", b.spa_w / maxW * 100, fmt(b.spa_w, 0, " W"))}
+      ${(b.extra || []).map((x) => barRow("🔌 " + esc(x.name), (x.w || 0) / maxW * 100, fmt(x.w, 0, " W"))).join("")}
       ${barRow("❓ Oförklarat", b.unexplained_w / maxW * 100, fmt(b.unexplained_w, 0, " W"))}
       ${barRow("Σ Totalt", 100, fmt(b.total_w, 0, " W"))}
     </div>` : `<div class="note">Ingen uppdelning loggad än.</div>`}

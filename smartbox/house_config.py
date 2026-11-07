@@ -92,6 +92,28 @@ def load_house_config(path: str) -> dict:
     return cfg
 
 
+def extra_loads(cfg: dict) -> list:
+    """Egna laster ur installationen (`loads:`): vilken pryl som helst med en effektsensor (smartplugg, mätare ...).
+    [{"name", "entities": [entity, ...]}]. `power` är en entitet eller en lista (effekterna summeras, t.ex. en pryl på
+    flera plugg). Poster utan namn och sensor, och dubbletter av namn, hoppas över. Visas i 'Vad drar strömmen' och
+    räknas bort från 'Oförklarat'."""
+    out, seen = [], set()
+    for item in (cfg or {}).get("loads") or []:
+        if not isinstance(item, dict):
+            continue
+        ents = item.get("power")
+        ents = [ents] if isinstance(ents, str) else list(ents) if isinstance(ents, (list, tuple)) else []
+        ents = [e.strip() for e in ents if isinstance(e, str) and e.strip()]
+        if not ents:
+            continue
+        name = str(item.get("name") or ents[0]).strip()
+        if name in seen:
+            continue
+        seen.add(name)
+        out.append({"name": name, "entities": ents})
+    return out[:20]
+
+
 def build_car_drivers(cfg: dict) -> list:
     """En CarDriver per konfigurerad bil, i samma ordning som evs-listan. Tom lista
     på ett hus utan elbil (t.ex. husdata.example.yaml i grundläge)."""

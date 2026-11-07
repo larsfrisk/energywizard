@@ -191,6 +191,17 @@ spa:
 #     import_w: sensor.p1_power_consumed
 #     export_w: sensor.p1_power_produced
 
+# --- Egna laster (valfri) ---
+# Vilken pryl som helst med en effektsensor, t.ex. en smartplugg: visas som egen rad i "Vad drar strömmen" och
+# räknas bort från "Oförklarat". `power` är en entitet (W eller kW) eller en lista som summeras.
+# loads:
+#   - name: Tvättmaskin
+#     power: sensor.tvattmaskin_power
+#   - name: Torktumlare
+#     power: sensor.torktumlare_power
+#   - name: Bastu
+#     power: [sensor.bastu_l1_power, sensor.bastu_l2_power]
+
 # --- Huvudsäkring ---
 fuse:
   main_fuse_a: 25

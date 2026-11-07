@@ -580,10 +580,16 @@ def log_spa_phase(phase_a_w, phase_b_w, phase_c_w, activities: dict):
         return False
 
 
-def log_load_breakdown(total_w, ev_w, pump_w, spa_w, unexplained_w):
+_load_breakdown_has_extra = False
+
+
+def log_load_breakdown(total_w, ev_w, pump_w, spa_w, unexplained_w, extra_w=None):
     """Loggar last-nedbrytningen varje minut → dashboarden visar 'vad drar just nu' + historik,
-    och den oförklarade lasten kan larmas på. Skapar tabellen vid behov, sväljer fel tyst."""
+    och den oförklarade lasten kan larmas på. Skapar tabellen vid behov, sväljer fel tyst.
+    extra_w: {namn: watt} för egna laster ur installationen (`loads:`), sparas som JSON i kolumnen extra_w."""
+    global _load_breakdown_has_extra
     try:
+        import json as _json
         with get_db() as conn, conn.cursor() as cur:
             cur.execute("""
                 CREATE TABLE IF NOT EXISTS load_breakdown (
@@ -592,10 +598,14 @@ def log_load_breakdown(total_w, ev_w, pump_w, spa_w, unexplained_w):
                     total_w REAL, ev_w REAL, pump_w REAL, spa_w REAL, unexplained_w REAL
                 )
             """)
+            if not _load_breakdown_has_extra:
+                cur.execute("ALTER TABLE load_breakdown ADD COLUMN IF NOT EXISTS extra_w TEXT")
+                _load_breakdown_has_extra = True
             cur.execute("""
-                INSERT INTO load_breakdown (total_w, ev_w, pump_w, spa_w, unexplained_w)
-                VALUES (%s,%s,%s,%s,%s)
-            """, (total_w, ev_w, pump_w, spa_w, unexplained_w))
+                INSERT INTO load_breakdown (total_w, ev_w, pump_w, spa_w, unexplained_w, extra_w)
+                VALUES (%s,%s,%s,%s,%s,%s)
+            """, (total_w, ev_w, pump_w, spa_w, unexplained_w,
+                  _json.dumps({k: round(float(v), 1) for k, v in (extra_w or {}).items()}, ensure_ascii=False) if extra_w else None))
             conn.commit()
         return True
     except Exception as e:
