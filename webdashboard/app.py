@@ -1325,8 +1325,10 @@ async def api_consumption():
             "SELECT total_w, ev_w, pump_w, spa_w, unexplained_w FROM load_breakdown ORDER BY timestamp DESC LIMIT 1"
         )).mappings().first()
         cfg = _settings_row(c, ("peak_shaving_enabled", "power_limit_kw", "fuse_size_a"))
+    cars, has_spa, has_heat = _house_parts()          # bara det huset har visas i "Vad drar strömmen" (None = okänt, visa allt)
     # avg_w_l1..3 är (trots namnet) fasströmmar i ampere ur elmätaren - visas i A mot huvudsäkringen (#130)
     return {"ok": True, "fuse_size_a": _n(cfg.get("fuse_size_a")),
+            "has_spa": has_spa, "has_heat": has_heat, "has_ev": None if cars is None else bool(cars),
             "avg_w_l1": _n(row.get("avg_w_l1")), "avg_w_l2": _n(row.get("avg_w_l2")),
             "avg_w_l3": _n(row.get("avg_w_l3")), "avg_w_tot": _n(row.get("avg_w_tot")),
             "house_consumption_w": _n(row.get("house_consumption_w")), "power_oven_w": _n(row.get("power_oven_w")),
