@@ -743,19 +743,46 @@ def press_button(entity_id: str, timeout: float = 5):
         print(f"❌ Kunde inte trycka på {entity_id}: {e}")
         return False
 
+# Bilens klimatkommando kan ta lång tid: HA väcker bilen (Tesla m.fl.) och svarar först när bilen har tagit
+# emot kommandot, ofta 15-40 s. 10 s räckte inte - anropet gav "Read timed out" och ett felmeddelande trots
+# att kommandot gick igenom (2026-11-06 21:55 och 2026-11-07 08:30).
+CAR_CLIMATE_TIMEOUT_S = 60
+
+
+def _fresh_state(entity_id: str):
+    """Entitetens aktuella läge direkt från HA (inte ur cachen), eller None."""
+    try:
+        r = requests.get(f"{_BASE}/states/{entity_id}", headers=_HEADERS, verify=_VERIFY, timeout=10)
+        r.raise_for_status()
+        return str(r.json().get("state") or "").lower()
+    except Exception:
+        return None
+
+
 def set_car_climate(entity_id: str, hvac_mode: str, temperature: float = None):
-    """Startar eller stoppar klimatanläggningen i bilen."""
+    """Startar eller stoppar klimatanläggningen i bilen.
+
+    Lång timeout eftersom bilen väcks. Uteblir svaret ändå kontrolleras entitetens läge: står den på önskat
+    läge räknas kommandot som lyckat i stället för att visa ett falskt fel."""
     try:
         url = f"{_BASE}/services/climate/set_hvac_mode"
         # FIX #7: fånga responsen och anropa raise_for_status så att HTTP 4xx/5xx
         # (t.ex. okänd entity) propageras och funktionen returnerar False vid fel.
-        r = requests.post(url, headers=_HEADERS, json={"entity_id": entity_id, "hvac_mode": hvac_mode}, verify=_VERIFY, timeout=10)
-        r.raise_for_status()
+        try:
+            r = requests.post(url, headers=_HEADERS, json={"entity_id": entity_id, "hvac_mode": hvac_mode},
+                              verify=_VERIFY, timeout=CAR_CLIMATE_TIMEOUT_S)
+            r.raise_for_status()
+        except requests.exceptions.Timeout:
+            time.sleep(3)
+            if _fresh_state(entity_id) != hvac_mode:
+                raise
+            print(f"🚗 Klimat: {entity_id} svarade inte i tid men står på {hvac_mode} - kommandot gick igenom")
 
         if temperature is not None and hvac_mode != "off":
             url_temp = f"{_BASE}/services/climate/set_temperature"
             # FIX #7: samma felkontroll för temperatur-anropet.
-            r_temp = requests.post(url_temp, headers=_HEADERS, json={"entity_id": entity_id, "temperature": temperature}, verify=_VERIFY, timeout=10)
+            r_temp = requests.post(url_temp, headers=_HEADERS, json={"entity_id": entity_id, "temperature": temperature},
+                                   verify=_VERIFY, timeout=CAR_CLIMATE_TIMEOUT_S)
             r_temp.raise_for_status()
 
         print(f"🚗 Klimat: {entity_id} satt till {hvac_mode} ({temperature}°C)")
