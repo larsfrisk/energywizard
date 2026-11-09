@@ -359,7 +359,9 @@ function driver_poll()
 
     -- Energy headroom (Wh) — operator SoC band + capacity, dispatchable.
     local chg_eh_wh, dis_eh_wh = 0, 0
-    if battery_capacity_wh > 0 then
+    -- Guard: vid misslyckad poll är bat_soc nil → LuaError (nil-aritmetik).
+    -- Samma guard som i 50-125k-svk.lua / 50-125k-svk-ac-slew.lua / 50-125k-svk-slew.lua.
+    if battery_capacity_wh > 0 and bat_soc then
         local soc_pct_int = math.floor(bat_soc * 100 + 0.5)
         local span = soc_max_pct - soc_min_pct
         if span > 0 then
