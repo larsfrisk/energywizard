@@ -182,3 +182,21 @@ def fast_trip_limits(model, fuse_a, sent_limits, margin_a=0.0, min_charge_a=6, t
     if out:
         model.mark_cut(ts)
     return out
+
+
+# ---------- flera mätpunkter (valfri lastsida, se house_config.example.yaml: load_meter) ----------
+
+def combine_caps(*caps):
+    """Lägsta av flera tak för bilarnas ström. None (ingen färsk data) hoppas över; None om alla är None."""
+    known = [c for c in caps if c is not None]
+    return min(known) if known else None
+
+
+def merge_trip_limits(*trips):
+    """Slår ihop nödbromsresultat från flera mätpunkter: per bil gäller den LÄGSTA nya gränsen
+    (inte summan av avdragen - båda mätpunkterna ser samma överlast)."""
+    out = {}
+    for trip in trips:
+        for car_id, limit in (trip or {}).items():
+            out[car_id] = limit if car_id not in out else min(out[car_id], limit)
+    return out

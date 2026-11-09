@@ -109,6 +109,27 @@ def configure_power_meter(entities: dict | None):
     POWER_METER.clear()
     POWER_METER.update({k: v for k, v in (entities or {}).items() if v not in (None, "")})
 
+
+# Valfri andra mätpunkt: LASTSIDAN (det som en säkring/brytare bakom batteri/sol-anslutningen ser).
+# Bara fasströmmar behövs (current_l1..3, alltid positiva) - nettoeffekt och export hanteras av power_meter.
+LOAD_METER = {}
+
+
+def configure_load_meter(entities: dict | None):
+    LOAD_METER.clear()
+    LOAD_METER.update({k: v for k, v in (entities or {}).items() if v not in (None, "")})
+
+
+def read_load_meter():
+    """{'l1_a','l2_a','l3_a'} från lastsidans mätpunkt, None om den inte är konfigurerad eller inte svarar."""
+    e = LOAD_METER
+    if not all(e.get(k) for k in ("current_l1", "current_l2", "current_l3")):
+        return None
+    cur = [_get_numeric_state(e[k]) for k in ("current_l1", "current_l2", "current_l3")]
+    if None in cur:
+        return None
+    return {"l1_a": cur[0], "l2_a": cur[1], "l3_a": cur[2]}
+
 # --- SOLAREDGE / GECKO ---
 # Entiteterna kommer ur installationen (solar.entities / spa.entities i house_config.yaml) - inga husspecifika
 # namn här. För SolarEdge finns bara de officiella integrationernas egna standardnamn som reserv.

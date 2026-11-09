@@ -191,6 +191,19 @@ spa:
 #     import_w: sensor.p1_power_consumed
 #     export_w: sensor.p1_power_produced
 
+# --- Andra mätpunkten: lastsidan (valfri) ---
+# För installationer där batteri/sol är kopplade bakom nätmätarens CT:er: då ser nätmätaren inte hela
+# lasten, och en säkring/brytare efter anslutningspunkten kan lösa ut fast nätströmmen ser lugn ut.
+# Ange fasströmmarna för det som den säkringen/brytaren faktiskt bär (alltid positiva, A) och dess
+# märkvärde. Då kör säkringsskyddet två termiska modeller (en per mätpunkt) och bilarna får det LÄGSTA
+# taket. Utan load_meter OCH fuse.load_side_a är beteendet exakt som förut.
+# load_meter:
+#   entities:
+#     current_l1: sensor.husets_last_strom_l1
+#     current_l2: sensor.husets_last_strom_l2
+#     current_l3: sensor.husets_last_strom_l3
+
 # --- Huvudsäkring ---
 fuse:
   main_fuse_a: 25
+#  load_side_a: 20     # märkvärde för lastsidans säkring/brytare (kräver load_meter ovan)

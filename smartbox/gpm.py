@@ -463,7 +463,10 @@ class GlobalPriorityManager:
                     house_excluding_ev = max(0, int(house_load_a) - int(ev_actual_a))
                     # BUGFIX: Ignorera säkringsbegränsning om vi exporterar mycket solel
                     if avg_net < -500:
-                        available_amps_realtime = max(0, state.get('max_fuse_a', 16))
+                        # Export = utgående solel: nätsidans tak behövs inte. Lastsidans tak (om en andra mätpunkt är
+                        # konfigurerad) gäller ändå - exporten minskar inte strömmen genom en säkring bakom batteri/sol.
+                        _load_cap = state.get('ev_load_cap_a')
+                        available_amps_realtime = max(0, int(_load_cap)) if _load_cap is not None else max(0, state.get('max_fuse_a', 16))
                     else:
                         available_amps_realtime = _ev_fuse_room(state, house_excluding_ev)
                     final_ev_amps = min(self.ev_solar_target_amps, available_amps_realtime)

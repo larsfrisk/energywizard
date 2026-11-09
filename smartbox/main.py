@@ -179,6 +179,17 @@ config_watch.start(_ew_settings.PATH, signature=lambda _p: (_ew_settings.get("ha
 _battery_to_auto("uppstart")
 print(f"🔋 Batteri: läge '{battery_cfg['control']}', styrbara lägen {sorted(battery_driver.supported_intents()) or '-'}")
 homeassistant.configure_power_meter(house_config.power_meter_entities(house_cfg))
+# Valfri andra mätpunkt (lastsidan): load_meter.entities.current_l1..3 + fuse.load_side_a i house_config.yaml.
+# Utan båda är beteendet exakt som förut.
+_load_cfg = house_cfg.get("load_meter") or {}
+homeassistant.configure_load_meter(_load_cfg.get("entities"))
+LOAD_FUSE_A = float((house_cfg.get("fuse") or {}).get("load_side_a") or 0)
+LOAD_GUARD = LOAD_FUSE_A > 0 and all(homeassistant.LOAD_METER.get(_k) for _k in ("current_l1", "current_l2", "current_l3"))
+if _load_cfg or LOAD_FUSE_A:
+    if LOAD_GUARD:
+        print(f"🛡️ Säkringsskydd: lastsidans mätpunkt aktiv (säkring {LOAD_FUSE_A:g} A) - nät- och lastsida räknas var för sig, lägsta taket gäller.")
+    else:
+        print("⚠️ Lastsidans mätpunkt är bara delvis konfigurerad (kräver load_meter.entities.current_l1..3 OCH fuse.load_side_a) - ignoreras.")
 car_ids = [c.id for c in car_drivers]
 CAR_SPECS = house_config.car_specs(house_cfg)
 # Inlärda faser/maxström per bil (ev_limits.py) - bara där installationen inte själv anger dem
@@ -684,6 +695,7 @@ fast_hl1, fast_hl2, fast_hl3 = [], [], []
 # Säkringsstorlek/marginal och laddar-ID:n uppdateras i minutloopen; nödbromsen i 10-sekunders-
 # loopen använder senast kända värden (före första minuten: decisions.MAX_FUSE_A, inga laddare).
 fuse_model = fuse_guard.FuseThermalModel()
+load_model = fuse_guard.FuseThermalModel() if LOAD_GUARD else None   # lastsidans mätpunkt (valfri), samma modell
 _sun_cache = {"t": 0.0, "soon": None, "day": None}
 _climate_watch = {}             # bil-id -> car_climate_watch.ClimateWatch
 _fuse_cfg = {"fuse_a": decisions.MAX_FUSE_A, "margin_a": 0.0}
@@ -715,6 +727,7 @@ while True:
         # ============================================================
         homeassistant.update_states()
 
+        _trip_grid = {}
         tibber = homeassistant.read_power_meter()
         if tibber is not None and not _bat_meter_freeze.update(tibber["net_power_w"], time.time()):
             _meter_ok_at["t"] = time.time()
@@ -735,18 +748,38 @@ while True:
             if _hour_import["t"] is not None:
                 _hour_import["wh"] += max(0.0, tibber["net_power_w"]) * min(60.0, _t - _hour_import["t"]) / 3600.0
             _hour_import["t"] = _t
-            # Nödbroms: en fas över 1,2 × säkringen stryper bilarna direkt, inte först nästa minut.
+            # Nödbroms, nätsidan: en fas över 1,2 × säkringen. Beräknas här men skickas först efter lastsidans
+            # kontroll nedan, så att båda mätpunkterna ger ETT beslut (lägsta gränsen per bil), inte två avdrag.
             try:
-                _trip = fuse_guard.fast_trip_limits(fuse_model, _fuse_cfg["fuse_a"],
-                                                    {c: v for c, v in last_sent_ev_limit.items() if c in _fuse_charger_ids},
-                                                    margin_a=_fuse_cfg["margin_a"], min_charge_a=EV_MIN_CHARGE_AMPS)
-                for _car, _amps in _trip.items():
-                    _reason = f"Säkringsskydd: fas över {fuse_guard.TRIP_FACTOR} × {_fuse_cfg['fuse_a']} A"
-                    if charger_set_limit(_fuse_charger_ids[_car], _amps, reason=_reason):
-                        last_sent_ev_limit[_car] = _amps
-                        print(f"🚨 {_reason} - stryper {_car} till {_amps} A direkt.")
+                _trip_grid = fuse_guard.fast_trip_limits(fuse_model, _fuse_cfg["fuse_a"],
+                                                         {c: v for c, v in last_sent_ev_limit.items() if c in _fuse_charger_ids},
+                                                         margin_a=_fuse_cfg["margin_a"], min_charge_a=EV_MIN_CHARGE_AMPS)
             except Exception as _fe:
-                print(f"⚠️ Säkringsskyddets nödbroms hoppade över: {_fe}")
+                print(f"⚠️ Säkringsskyddets nödbroms (nät) hoppade över: {_fe}")
+
+        # Lastsidans mätpunkt (valfri). Körs oberoende av nätmätaren; en tyst/frusen lastmätare ger ingen nödbroms
+        # (bara en färsk avläsning används) och minutloopen faller då tillbaka på ett försiktigt tak.
+        _trip_load = {}
+        if load_model is not None:
+            try:
+                _lm = homeassistant.read_load_meter()
+                if _lm is not None:
+                    load_model.update([_lm["l1_a"], _lm["l2_a"], _lm["l3_a"]])
+                    _trip_load = fuse_guard.fast_trip_limits(load_model, LOAD_FUSE_A,
+                                                             {c: v for c, v in last_sent_ev_limit.items() if c in _fuse_charger_ids},
+                                                             margin_a=_fuse_cfg["margin_a"], min_charge_a=EV_MIN_CHARGE_AMPS)
+            except Exception as _le:
+                print(f"⚠️ Säkringsskyddets nödbroms (last) hoppade över: {_le}")
+
+        # Gemensam nödbroms för båda mätpunkterna.
+        try:
+            for _car, _amps in fuse_guard.merge_trip_limits(_trip_grid, _trip_load).items():
+                _reason = f"Säkringsskydd: fas över {fuse_guard.TRIP_FACTOR} × säkringen"
+                if charger_set_limit(_fuse_charger_ids[_car], _amps, reason=_reason):
+                    last_sent_ev_limit[_car] = _amps
+                    print(f"🚨 {_reason} - stryper {_car} till {_amps} A direkt.")
+        except Exception as _fe:
+            print(f"⚠️ Säkringsskyddets nödbroms hoppade över: {_fe}")
 
         # ============================================================
         # 📝 1-MINUTS-TASK – Samla och Spara data
@@ -1687,6 +1720,20 @@ while True:
                 ai_thoughts.append(f"⚡ Säkringsmodell: termisk ström {'/'.join(f'{x:.1f}' for x in _filt)} A, bilarna får {ev_fuse_cap_a} A"
                                    + (" (håller, nyss strypt)" if fuse_model.in_recovery() else "") + ".")
 
+            # Lastsidans mätpunkt (valfri): eget tak mot lastsidans säkring. Bilarna ligger bakom båda
+            # mätpunkterna, så samma _ev_phase_a gäller; det lägsta av de två taken används.
+            ev_load_cap_a = None
+            if load_model is not None:
+                ev_load_cap_a = load_model.ev_cap_a(LOAD_FUSE_A, _ev_phase_a, margin_a=_fuse_cfg["margin_a"])
+                if ev_load_cap_a is None:
+                    # Lastmätaren svarar inte: samma försiktiga reserv som för nätmätaren, mot lastsidans säkring.
+                    ev_load_cap_a = fuse_guard.stale_ev_cap_a(LOAD_FUSE_A, learning.predict_base_load(now, dynamic_base_load_profile),
+                                                              _fuse_cfg["margin_a"])
+                    ai_thoughts.append(f"⚡ Lastsidans mätare svarar inte: bilarna får högst {ev_load_cap_a} A tills mätdata finns igen.")
+                else:
+                    ai_thoughts.append(f"⚡ Lastsidan: termisk ström {'/'.join(f'{x:.1f}' for x in load_model.filtered_a())} A, taket {ev_load_cap_a} A.")
+                ev_fuse_cap_a = fuse_guard.combine_caps(ev_fuse_cap_a, ev_load_cap_a)
+
             # Dynamisk Peak Shaving
             minutes_left_burn = 60 - now.minute
             historical_base_load_kw = learning.predict_base_load(now, dynamic_base_load_profile)
@@ -1781,7 +1828,7 @@ while True:
                 'hysteresis': strategy.get("hysteresis", 0.10), 'dynamic_limit': dynamic_limit if dynamic_limit else 99.0,
                 'all_prices_tou': strategy.get("prices_tou"),    # spot + tidstariff per kvart (#179), för pumpens prisval
                 'max_fuse_a': cfg.get('fuse_size_a', decisions.MAX_FUSE_A), 'house_load_a': house_load_excluding_ev_a, 'ev_actual_a': 0,
-                'ev_fuse_cap_a': ev_fuse_cap_a,
+                'ev_fuse_cap_a': ev_fuse_cap_a, 'ev_load_cap_a': ev_load_cap_a,
                 'current_solar_limit_pct': current_solar_limit_pct, 'current_target_limit': current_target_limit,
                 'ev_min_charge_a': EV_MIN_CHARGE_AMPS, 'ev_max_charge_a': EV_MAX_CHARGE_AMPS, 'ev_plan': ev_charge_plan,
                 # Bilarna ur installationen: vilka som finns och deras laddboxars faser/maxström (gpm har inga bilnamn)
