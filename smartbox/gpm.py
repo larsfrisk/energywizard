@@ -230,6 +230,13 @@ class GlobalPriorityManager:
         if now.tzinfo is None:
             now = now.replace(tzinfo=timezone.utc)
         price = state.get('current_price', 0.0)
+        # FIX: current_price kan vara explicit None i state (nordpool.get_price_info
+        # returnerar None när det saknas pris i DB för aktuell kvart; main.py sätter
+        # nyckeln oberoende av det). .get()'s default gäller bara vid SAKNAD nyckel,
+        # så None når sig till jämförelser som `price < 0` nedan (#208) → TypeError.
+        # Normalisera till det avsedda fallback-värdet 0.0.
+        if price is None:
+            price = 0.0
         # EKONOMISKT OPTIMUM vid minuspris: paid_to_import = djupt minuspris där den verkliga
         # köpkostnaden (nordpool.full_buy_cost - moms+nätavgift+skatt, källoberoende formel)
         # blir negativ → maxa nätuttag + strypa solen (importera allt → max betalning).
