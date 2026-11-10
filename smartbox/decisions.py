@@ -16,6 +16,7 @@ import pandas as pd
 import logger
 import weather
 import settings
+import ev_power   # bilens maxeffekt (evs[].max_charge_kw)
 import ev_block   # enkelblock-laddning (evs[].charge_block: single)
 
 # Lastbalansering – Easee elbilsladdare
@@ -296,6 +297,7 @@ def calculate_ev_charge_plan(now, ev_schedule, car_data, cfg):
                                                        car_data.get(f'{cid}_ready_by'), car_data.get(f'{cid}_ready_soc'))
         cars[cid] = {"soc": soc, "plugged": car_data.get(f'{cid}_plugged_in', False), "phases": _phases(cid),
                      "max_a": int(sp.get('max_a') or 16), "battery_kwh": bkwh,
+                     "kw_per_amp": ev_power.kw_per_amp(sp.get('max_charge_kw'), int(sp.get('max_a') or 16), _phases(cid)),
                      "target_dt": t_dt, "target_soc": t_soc, "kwh": kwh, "panic": panic,
                      "single_block": str(sp.get('charge_block', 'split')).lower() == 'single'}
 
@@ -421,7 +423,7 @@ def calculate_ev_charge_plan(now, ev_schedule, car_data, cfg):
     for cid, c in cars.items():
         if c["target_dt"] and c["kwh"] > 0 and c["plugged"]:
             cars_to_plan.append({'id': cid, 'deadline': full_charge_deadline(now, c["target_dt"], c["target_soc"]), 'kwh_needed': c["kwh"],
-                                 'min_kw': 6 * 230 * c["phases"] / 1000.0, 'max_kw': min(c["max_a"], fuse_a) * 230 * c["phases"] / 1000.0,
+                                 'min_kw': 6 * c["kw_per_amp"], 'max_kw': min(c["max_a"], fuse_a) * c["kw_per_amp"],
                                  'panic_mode': c["panic"], 'floor': get_morning_floor(now, c["soc"], c["battery_kwh"], c["target_dt"]),
                                  'single_block': c["single_block"]})
     cars_to_plan.sort(key=lambda x: x['deadline'])
