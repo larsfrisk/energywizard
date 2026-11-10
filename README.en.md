@@ -143,10 +143,11 @@ loads:
 Missing your brand? The generic drivers (`generic_*`) already cover most cases as long as the device works in
 Home Assistant. For brand-specific control, see `smartbox/drivers/*.py` for the interfaces - contributions welcome.
 
-## Telemetry (mandatory)
+## Telemetry (always on in EnergyWizard's builds)
 
-**Telemetry is a condition for using EnergyWizard and cannot be turned off.** If you do not want to share what is
-listed below, do not use EnergyWizard. It helps the developer see which equipment is used and find errors in other installations before people have to report them.
+**Telemetry is always on in EnergyWizard's own builds and has no off switch.** If you do not want to share what is
+listed below, do not use those builds. EnergyWizard is free software under AGPL-3.0: you may modify the code, including
+removing the telemetry, and use and distribute the modified version under the license. It helps the developer see which equipment is used and find errors in other installations before people have to report them.
 Sent once a day and at start, to `https://energywizzard.profitalgos.com/telemetry`:
 
 - **A random installation ID** (created at first start, stored in `/data/energywizard.json`, sent hashed). Nothing that can be tied to you.

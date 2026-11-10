@@ -40,6 +40,7 @@ RUN cp -r /src/smartbox /smartbox \
     && (git -C /src rev-parse --short HEAD > /smartbox/VERSION || true) \
     && cp -r /src/ewapp /ewapp \
     && cp -r /src/webdashboard /webdashboard \
+    && cp /src/LICENSE /LICENSE && cp /src/LICENSE /smartbox/LICENSE \
     && rm -rf /src
 
 # Motorns beroenden + det gränssnitten installerar i sina egna Dockerfiles

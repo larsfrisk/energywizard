@@ -16,6 +16,8 @@ COPY *.py .
 COPY drivers/ ./drivers/
 # Sourcefuls FTW-drivrutiner (driver: ftw, lua_host.py) och översättningarna (notisernas språk)
 COPY ftw_drivers/ ./ftw_drivers/
+# Licensen följer med bilden (AGPL-3.0, #231); FTW-drivrutinernas upstream-licens och notiser ligger i ftw_drivers/
+COPY LICENSE ./LICENSE
 COPY i18n/ ./i18n/
 
 # Kör hjärnan (unbuffered så loggarna syns direkt)

@@ -1,5 +1,13 @@
 # Ändringar
 
+## 1.2.65 (2026-11-10)
+- **Licenser och ursprung förtydligade** (#231): FTW-drivrutinerna från srcfl/device-drivers används enligt deras
+  licens (AGPL-3.0). Upstreams LICENSE, NOTICE, LICENSING och tredjepartsnotiser följer nu med, och ändringen i
+  `deye-svk.lua` (#215) står i `smartbox/ftw_drivers/NOTICE.md`. Påståendet att Sourceful gett ett särskilt OK är
+  struket. Licenstexten följer med i alla bilder.
+- **Telemetrin**: fortfarande alltid på i EnergyWizards byggen och utan avstängning, men den beskrivs inte längre
+  som ett villkor för att använda programmet. AGPL ger alla rätt att ändra koden, även ta bort telemetrin.
+
 ## 1.2.64 (2026-11-08)
 - **Språket följer Home Assistant**: har installationen inget eget valt språk används Home Assistants språk, i appen,
   på webben och i tilläggets logg. Valt språk i EnergyWizard går som förut före. (Idé från Energy Pilot.)

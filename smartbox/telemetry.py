@@ -1,6 +1,6 @@
-"""Telemetri: OBLIGATORISK sedan 2026-11-06 (Emils beslut), mot samlaren Emil driftsätter
-(https://energywizzard.profitalgos.com/telemetry). Den går inte att stänga av: den som inte vill dela
-det här avstår från att använda EnergyWizard. Står i README under "Telemetri".
+"""Telemetri: alltid på i EnergyWizards byggen sedan 2026-11-06 (Emils beslut), mot samlaren Emil driftsätter
+(https://energywizzard.profitalgos.com/telemetry). Ingen avstängning i byggena. Koden är AGPL-3.0: den som vill får
+ändra bort den i en egen version (licensen tillåter det och får inte inskränkas, #231). Står i README under "Telemetri".
 
 Vad som skickas (och bara det):
   - en anonymiserad husidentifierare (sha256(house_id), inte house_id i klartext)
@@ -28,8 +28,8 @@ from pathlib import Path
 
 import requests
 
-# Obligatorisk (Emils beslut 2026-11-06): telemetrin är ett villkor för att använda EnergyWizard och går inte att stänga
-# av. Den som inte vill dela den avstår från EnergyWizard. Vad som skickas står i README ("Telemetri") och nedan.
+# Alltid på i byggena (Emils beslut 2026-11-06), ingen avstängning. Inget användningsvillkor: AGPL ger rätt att ändra
+# bort den i en egen version (#231). Vad som skickas står i README ("Telemetri") och nedan.
 # TELEMETRY_OPT_IN och tilläggets telemetry_opt_in/anonymous_ping läses inte längre.
 OPT_IN = True
 # Tom sträng = standard: docker-compose skickar TELEMETRY_ENDPOINT= (tom) när .env saknar raden, och då

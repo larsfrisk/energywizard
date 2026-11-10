@@ -180,10 +180,11 @@ protokollkod behövs. För riktigt märkesspecifik styrning - se
 
 Se [ROADMAP.md](ROADMAP.md) för vad som är nästa rimliga steg och varför.
 
-## Telemetri (obligatorisk)
+## Telemetri (alltid på i EnergyWizards byggen)
 
-**Telemetrin är ett villkor för att använda EnergyWizard och går inte att stänga av.** Vill du inte dela det som står
-nedan ska du inte använda EnergyWizard. Den hjälper utvecklaren att se vilken utrustning som används och att hitta fel hos andra innan de behöver höra av sig.
+**Telemetrin är alltid påslagen i EnergyWizards egna byggen och har ingen avstängning.** Vill du inte dela det som står
+nedan, använd inte de byggena. EnergyWizard är fri programvara under AGPL-3.0: du får ändra koden, även ta bort
+telemetrin, och använda och sprida den ändrade versionen enligt licensen. Den hjälper utvecklaren att se vilken utrustning som används och att hitta fel hos andra innan de behöver höra av sig.
 Skickas en gång per dygn och vid start, till `https://energywizzard.profitalgos.com/telemetry`:
 
 - **Ett slumpat installations-ID** (skapas vid första start och sparas i `/data/energywizard.json`, skickas hashat). Inget som går att koppla till dig.
