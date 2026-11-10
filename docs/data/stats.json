@@ -1,22 +1,22 @@
 {
-  "generated_at": "2026-11-09T04:20:11.072019Z",
+  "generated_at": "2026-11-10T04:20:08.333317Z",
   "since": "2026-03-25",
-  "days_covered": 223,
-  "total_kwh_bought": 5776.0,
-  "price_timing_saved_kr": 537.0,
+  "days_covered": 224,
+  "total_kwh_bought": 5818.0,
+  "price_timing_saved_kr": 562.0,
   "price_timing_pct_cheaper": 10.0,
   "method": "household_profile_incl_vat",
   "solar": {
-    "value_kr": 3153.0,
-    "kwh": 2488.0
+    "value_kr": 3123.0,
+    "kwh": 2466.0
   },
   "solar_flexible_load": {
     "ev_kwh": 365.0,
     "spa_kwh": 46.0,
     "value_kr": 200.0
   },
-  "total_saved_kr": 3690.0,
-  "saved_kr_per_year_avg": 6039.0,
+  "total_saved_kr": 3685.0,
+  "saved_kr_per_year_avg": 6004.0,
   "heating": {
     "generated_at": "2026-11-08T17:33:13.778642+00:00",
     "days_used": 24,
@@ -39,8 +39,8 @@
     },
     {
       "month": "2026-05",
-      "timing_kr": -24.0,
-      "solar_kr": 467.0
+      "timing_kr": -23.0,
+      "solar_kr": 432.0
     },
     {
       "month": "2026-06",
@@ -69,8 +69,8 @@
     },
     {
       "month": "2026-11",
-      "timing_kr": 201.0,
-      "solar_kr": 267.0
+      "timing_kr": 224.0,
+      "solar_kr": 271.0
     }
   ]
 }
