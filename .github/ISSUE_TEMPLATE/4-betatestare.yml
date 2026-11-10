@@ -1,0 +1,32 @@
+name: Betatestare · Beta tester
+description: Berätta vad du har hemma. Ärendet stängs direkt om du inte rapporterar ett fel. · Tell us what you have. Closed right away unless you report a problem.
+title: "Betatestare: "
+labels: ["betatestare"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Välkommen! Berätta kort om ditt hus. Har du stött på ett fel tar vi det direkt; annars tackar vi och stänger ärendet så att listan bara innehåller sådant som behöver rättas.
+
+        Welcome! Tell us briefly about your house. If you hit a problem we take it right away; otherwise we say thanks and close the issue.
+  - type: textarea
+    id: hus
+    attributes:
+      label: Ditt hus · Your house
+      description: Värmepump, solceller/batteri, elbil och laddbox, vad du kör Home Assistant på. · Heat pump, solar/battery, EV and charger, what you run Home Assistant on.
+    validations:
+      required: true
+  - type: dropdown
+    id: fel
+    attributes:
+      label: Har du stött på något fel? · Have you hit a problem?
+      options:
+        - "Nej · No"
+        - "Ja, beskrivet nedan · Yes, described below"
+    validations:
+      required: true
+  - type: textarea
+    id: felbeskrivning
+    attributes:
+      label: Felet (om ja) · The problem (if yes)
+      description: Vad hände, och gärna loggen (Inställningar → Logg → Ladda ner 2 dygn). · What happened, and ideally the log.

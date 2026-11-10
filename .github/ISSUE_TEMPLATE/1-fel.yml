@@ -1,0 +1,52 @@
+name: Något fungerar inte · Something doesn't work
+description: Ett fel, en krasch eller något som beter sig fel. · A bug, crash or wrong behaviour.
+title: "Fel: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Tack! Ju mer vi vet, desto snabbare går det att rätta.
+        **Skriv aldrig lösenord, tokens eller adresser här – ärenden är offentliga.**
+
+        Thanks! **Never post passwords, tokens or addresses here – issues are public.**
+  - type: dropdown
+    id: del
+    attributes:
+      label: Vad gäller det? · What is it about?
+      options:
+        - Värmepump · Heat pump
+        - Elbil eller laddbox · EV or charger
+        - Husbatteri · Home battery
+        - Solceller eller växelriktare · Solar or inverter
+        - Spabad · Spa
+        - Elpris eller kostnader · Price or costs
+        - Appen eller webben · The app or web view
+        - Installation eller start · Installation or start-up
+        - Annat · Other
+    validations:
+      required: true
+  - type: textarea
+    id: vad
+    attributes:
+      label: Vad hände, och vad hade du väntat dig? · What happened, and what did you expect?
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version (syns i appen eller tillägget) · Version (shown in the app or add-on)
+      placeholder: "t.ex. 1.2.65"
+  - type: dropdown
+    id: skugga
+    attributes:
+      label: Kör du i skuggläge? · Running in shadow mode?
+      options:
+        - "Ja · Yes"
+        - "Nej, EnergyWizard styr · No, EnergyWizard controls"
+        - "Vet inte · Don't know"
+  - type: textarea
+    id: logg
+    attributes:
+      label: Logg · Log
+      description: Inställningar → Logg → *Ladda ner 2 dygn*, dra in filen här. Skärmbilder hjälper också. · Settings → Log → *Download 2 days*, drop the file here. Screenshots help too.

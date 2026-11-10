@@ -1,0 +1,15 @@
+name: Förslag · Feature request
+description: En idé om något EnergyWizard borde kunna. · An idea for something EnergyWizard should do.
+title: "Förslag: "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: ide
+    attributes:
+      label: Vad vill du kunna göra, och varför? · What would you like to do, and why?
+    validations:
+      required: true
+  - type: textarea
+    id: idag
+    attributes:
+      label: Hur gör du idag? · How do you do it today?

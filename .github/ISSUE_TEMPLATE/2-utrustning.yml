@@ -1,0 +1,42 @@
+name: Saknar stöd för min utrustning · My device isn't supported
+description: Värmepump, laddbox, bil, batteri, växelriktare eller elmätare som inte hittas eller inte kan styras. · A device that isn't found or can't be controlled.
+title: "Stöd: "
+labels: ["enhancement", "utrustning"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Berätta vad du har, så vet vi vad som ska byggas härnäst. Vi bygger nytt stöd när någon kan prova det.
+        Tell us what you have. We add support when someone can test it.
+  - type: dropdown
+    id: typ
+    attributes:
+      label: Vilken sorts enhet? · What kind of device?
+      options:
+        - Värmepump · Heat pump
+        - Laddbox · EV charger
+        - Elbil · EV
+        - Husbatteri · Home battery
+        - Växelriktare / solceller · Inverter / solar
+        - Elmätare · Power meter
+        - Spabad · Spa
+        - Annat · Other
+    validations:
+      required: true
+  - type: input
+    id: modell
+    attributes:
+      label: Märke och modell · Brand and model
+      placeholder: "t.ex. NIBE S1255, cFos Power Brain 11 kW"
+    validations:
+      required: true
+  - type: input
+    id: integration
+    attributes:
+      label: Integration i Home Assistant · Home Assistant integration
+      placeholder: "t.ex. myUplink, OCPP, Solarman, HACS: ..."
+  - type: textarea
+    id: entiteter
+    attributes:
+      label: Entiteter (namn och värde) · Entities (name and value)
+      description: Vilka sensorer, switchar och nummer enheten har i HA. Skärmbild på enhetens sida går bra. · Which sensors, switches and numbers the device has in HA. A screenshot of the device page works.
