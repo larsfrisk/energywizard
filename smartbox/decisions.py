@@ -57,9 +57,17 @@ def is_price_low(current_price):
 
 def check_spa_schedule_plan(now, target_dt, curr_temp, target_temp, model_intercept, model_slope_out, model_slope_spa, cooling_k, spa_max_temp, outdoor_temp, spa_low_temp=15.0):  # FIX: tog bort oanvänd param spa_normal_temp
     """Kollar om nuvarande timme är vald för uppvärmning baserat på pris och framtida solprognos."""
+    # Spa drivers return None while the water-temperature sensor is unavailable (#230).
+    # A schedule needs a measured starting temperature; wait for the next valid reading.
+    try:
+        curr_temp = float(curr_temp)
+    except (TypeError, ValueError):
+        return False, False
+    if not math.isfinite(curr_temp):
+        return False, False
+
     try:
         import pandas as pd
-        import math
         import logger as sm_logger
         import weather
 
