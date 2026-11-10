@@ -19,6 +19,8 @@ evs: []
 #       soc: sensor.min_bil_batteri        # valfri - saknas den, mata in SOC manuellt i appen istället
 #       plugged_in: binary_sensor.min_bil_kabel
 #       climate: climate.min_bil            # valfri
+#     charge_block: split              # split (standard: billigaste kvartarna var för sig) | single (ETT sammanhängande
+#                                      # laddfönster före avresan - färre start/stopp, något dyrare än split)
 #     charger:
 #       id: min_laddare
 #       driver: generic_charger      # eller t.ex. easee om du har en Easee-box
