@@ -1078,7 +1078,7 @@ function esc(s) { return String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<"
 let _toastT = null;
 function toast(msg) {
   const t = document.getElementById("toast");
-  t.textContent = msg;
+  t.textContent = window.I18N ? I18N.tr(msg) : msg;
   t.classList.add("show");
   clearTimeout(_toastT);
   _toastT = setTimeout(() => t.classList.remove("show"), 3200);
@@ -1772,7 +1772,7 @@ async function renderInstallningar() {
     if (last && last.ok && document.getElementById("discoverResults")) {
       await runDiscovery(null, { d: last });
       const r = document.getElementById("discoverResults"), at = new Date((last.scanned_at || 0) * 1000);
-      if (r) r.insertAdjacentHTML("afterbegin", `<div class="note" style="margin-bottom:8px">Senaste skanningen ${at.toLocaleString("sv-SE", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}. Kryssa i det som stämmer och tryck <b>Spara och starta</b> – det som är sparat är det EnergyWizard använder. Tryck Skanna för att söka igen.</div>`);
+      if (r) r.insertAdjacentHTML("afterbegin", `<div class="note" style="margin-bottom:8px"><span>Senaste skanningen</span> ${at.toLocaleString((window.I18N && I18N.lang) || "sv-SE", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}. <span>Kryssa i det som stämmer och tryck</span> <b>Spara och starta</b> – <span>det som är sparat är det EnergyWizard använder. Tryck Skanna för att söka igen.</span></div>`);
     }
   } catch (e) {}
   document.getElementById("scanmodbusbtn").onclick = runModbusScan;
