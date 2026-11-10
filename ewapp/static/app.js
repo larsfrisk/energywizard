@@ -13,7 +13,7 @@ const buzz = (n = 15) => { try { navigator.vibrate && navigator.vibrate(n); } ca
 // haptik: en liten vibration direkt när fingret nuddar en knapp (Android; iPhone saknar vibrations-API i webbläsaren, där ger tryckeffekten i CSS återkopplingen)
 document.addEventListener("pointerdown", (e) => { if (e.pointerType !== "mouse" && e.target.closest("button, [data-a], [data-v], .tab, .sw")) buzz(8); }, { passive: true });
 const f1 = (x, d = 1) => (x == null ? "–" : Number(x).toFixed(d).replace(".", window.I18N && I18N.lang === "en" ? "." : ","));
-function toast(t, ms = 2600) { const e = $("#toast"); e.textContent = t; e.classList.add("show"); clearTimeout(toast.t); toast.t = setTimeout(() => e.classList.remove("show"), ms); }
+function toast(t, ms = 2600) { const e = $("#toast"); e.textContent = window.I18N ? I18N.tr(t) : t; e.classList.add("show"); clearTimeout(toast.t); toast.t = setTimeout(() => e.classList.remove("show"), ms); }
 ["gesturestart", "gesturechange", "gestureend"].forEach((n) => document.addEventListener(n, (e) => e.preventDefault()));   // iOS: ingen pinch-zoom
 async function api(path, body) {
   const r = await fetch("api/" + path, body !== undefined ? { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) } : {});
