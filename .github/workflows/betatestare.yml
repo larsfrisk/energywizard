@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   stang:
-    if: contains(github.event.issue.labels.*.name, 'betatestare') && github.event.issue.user.type != 'Bot'
+    if: github.event.issue.user.type != 'Bot' && github.event.issue.user.login != 'murre87'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/github-script@v7
@@ -20,9 +20,16 @@ jobs:
           script: |
             const issue = context.payload.issue;
             const body = issue.body || "";
+            const isBeta = (issue.labels || []).some((l) => l.name === "betatestare") ||
+              /^\s*(betatestare|beta[\s-]?test(er|are)?)\b/i.test(issue.title || "");
+            if (!isBeta) return;
             const m = body.match(/Har du stött på något fel\?[^\n]*\n+([^\n]+)/);
-            const svar = m ? m[1].trim() : "";
-            if (!/^Nej/.test(svar)) return;            // fel rapporterat (eller oklart): lämnas öppet
+            if (m) {                                   // från mallen: svaret avgör
+              if (!/^Nej/.test(m[1].trim())) return;   // fel rapporterat: lämnas öppet
+            } else {                                   // utan mallen (gamla länkar, tomt ärende): stäng om inget fel nämns
+              const fel = /(\bfel\b|fungerar inte|funkar inte|kraschar|krasch|hittas inte|identifi|identify|wrong|felaktig|som batteri|as battery|error|bug|crash|doesn.?t work|not work|not identif|not found|fails?|broken)/i;
+              if (fel.test(`${issue.title}\n${body}`)) return;
+            }
             const prose = body.replace(/###[^\n]*\n/g, " ");
             const words = (list) => (prose.match(new RegExp(`(?<!\\p{L})(${list})(?!\\p{L})`, "giu")) || []).length;
             const sv = words("och|jag|har|med|inte|värmepump|det|är|att|som|på|till|kan|vi|min|mitt|tack|solceller|elbil");
