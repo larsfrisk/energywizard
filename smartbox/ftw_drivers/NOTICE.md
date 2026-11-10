@@ -18,7 +18,7 @@ påstod att Sourceful gett sitt OK. Det var en övertolkning av ett vänligt sva
 
 | Fil | Datum | Ändring | Commit |
 |---|---|---|---|
-| `deye-svk.lua` | 2026-11-09 | Skydd mot nil-SoC vid misslyckad poll i energiheadroom-beräkningen (samma skydd som i `50-125k-svk*.lua`). Av lazgeo, #215. Ska skickas som pull request till srcfl/device-drivers. | `101713e` |
+| `deye-svk.lua` | 2026-11-09 | Skydd mot nil-SoC vid misslyckad poll i energiheadroom-beräkningen (samma skydd som i `50-125k-svk*.lua`). Av lazgeo, #215. Skickad till källan: [srcfl/device-drivers#224](https://github.com/srcfl/device-drivers/pull/224). | `101713e` |
 
 Drivrutinerna körs av `smartbox/lua_host.py` och används via `smartbox/drivers/ftw_device.py` (`driver: ftw` för
 batteri och solceller i house_config.yaml). Styrning (laddning, urladdning, exportbegränsning) är avstängd för alla
