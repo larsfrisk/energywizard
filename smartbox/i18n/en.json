@@ -2003,5 +2003,9 @@
  "Det blir ett varmt bad ikväll! 🛁": "The hot tub will be warm tonight! 🛁",
  "Värmepump # kW": "Heat pump # kW",
  "Spa # kW": "Hot tub # kW",
- "Måltemperatur nås kl. #:#": "Target temperature reached at #:#"
+ "Måltemperatur nås kl. #:#": "Target temperature reached at #:#",
+ "Läsning utan styrning föreslås tills lägena har verifierats i Home Assistant": "Monitoring without control is suggested until the modes have been verified in Home Assistant",
+ "Eco-lägenas funktion och effekt-/SOC-gränser måste verifieras för din integration och firmware": "Eco mode behavior and power/SOC limits must be verified for your integration and firmware",
+ "GoodWe: endast lägen som Home Assistant erbjuder föreslås": "GoodWe: only modes offered by Home Assistant are suggested",
+ "GoodWe: lägeslistan eller normalläget general saknas": "GoodWe: the mode list or normal general mode is missing"
 }

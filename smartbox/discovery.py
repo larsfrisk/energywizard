@@ -80,6 +80,7 @@ _TEMPLATE = """{% set ns = namespace(out=[]) %}
       "dc": s.attributes.device_class | default(none),
       "u": s.attributes.unit_of_measurement | default(none),
       "st": s.state,
+      "options": s.attributes.options | default(none) if s.entity_id.startswith('select.') else none,
       "ci": s.attributes.id | default(none) if s.entity_id.startswith('sensor.') and (s.attributes.id | default(none)) is string else none
   }] %}
 {% endfor %}
@@ -401,10 +402,19 @@ def _battery_control_preset(ents, all_ents=None):
     gw = _find(ents, "select", re.compile(r"inverter operation mode$", re.I))
     if gw:
         g = gw["e"]
-        return {"name": "goodwe", "entities": {"mode_select": g},
-                "modes": {"auto": "general", "charge": "eco_charge", "discharge": "eco_discharge"},
-                "note": "GoodWe: eco_charge/eco_discharge använder växelriktarens egna effekt- och SOC-gränser (Eco mode "
-                        "power/SOC). Provad mot källkoden, inte på riktig hårdvara än."}
+        options = gw.get("options")
+        if not isinstance(options, list) or not all(isinstance(x, str) for x in options):
+            options = []
+        # #181: exposed alternatives vary by integration/firmware. Never invent
+        # eco modes, and do not suggest forcing a mode without a known return path.
+        known = {"auto": "general", "charge": "eco_charge", "discharge": "eco_discharge"}
+        modes = {intent: option for intent, option in known.items() if option in options} if "general" in options else {}
+        note = ("GoodWe: endast lägen som Home Assistant erbjuder föreslås. "
+                "Eco-lägenas funktion och effekt-/SOC-gränser måste verifieras för din integration och firmware.")
+        if not modes:
+            note = ("GoodWe: lägeslistan eller normalläget general saknas. "
+                    "Läsning utan styrning föreslås tills lägena har verifierats i Home Assistant.")
+        return {"name": "goodwe", "entities": {"mode_select": g}, "modes": modes, "note": note}
     # SolarEdge med batteri via WillCodeForCats/solaredge-modbus-multi (const.py STORAGE_CONTROL_MODE / STORAGE_MODE):
     # "Storage Control Mode" = Remote Control + "Storage Command Mode". Urladdning = "Discharge to Minimize Import"
     # (säljer aldrig från batteriet). Laddning från nätet kräver att AC Charge Policy tillåter det i växelriktaren.
