@@ -678,11 +678,12 @@ def discover_house(entities: list[dict] | None = None) -> dict:
         # "enhet" per pryl i nätverket döpt efter nätverkskortets tillverkare ("Nibe") - den är ingen värmepump.
         if not any(_is_temperature(x) or x["e"].startswith(("climate.", "water_heater.")) for x in ents):
             continue
-        # #198: NetHome Plus/Innova via Midea AC LAN reports manufacturer "Midea".
-        # Require a climate entity: the same maker also produces fans and appliances.
-        midea_climate = (_has(head.get("m"), re.compile(r"^(midea|innova)\b", re.I))
+        # #198/#221: these HA climate controllers have manufacturer metadata rather
+        # than a heat-pump brand in the device name. Require climate: these makers
+        # also expose fans, air-quality sensors and other non-heating devices.
+        known_climate = (_has(head.get("m"), re.compile(r"^(midea|innova|sensibo)\b", re.I))
                          and any(x["e"].startswith("climate.") for x in ents))
-        if _has(_candidate(head), HEATPUMP) or midea_climate:
+        if _has(_candidate(head), HEATPUMP) or known_climate:
             brand = next((b for b in _HEATPUMP_BRAND_TO_DRIVER if _has(_candidate(head), re.compile(b, re.I))), None)
             driver = _HEATPUMP_BRAND_TO_DRIVER.get(brand)
             heat_pump = {
