@@ -770,17 +770,39 @@ async function renderSolceller() {
       <div class="numfield" style="margin-top:8px"><input type="range" id="solarlimit" min="0" max="100" step="5" value="${d.solar_limit_pct != null ? d.solar_limit_pct : 100}"><span id="solarlimitval" style="min-width:48px;text-align:right;font-weight:700">${d.solar_limit_pct != null ? d.solar_limit_pct.toFixed(0) : 100} %</span></div>
       <button class="icobtn" id="setsolarlimitbtn" style="margin-top:10px">Sätt gräns</button>
     </div>
+    <div class="card" id="solarorder" style="margin-bottom:16px"><h2>☀️ Ordning för solöverskott</h2><div class="note">Laddar…</div></div>
     <div class="card" id="solarforecastsettings" style="margin-bottom:16px"><h2>📈 Källa för solprognosen</h2><div class="note">Läser inställningarna för solprognosen…</div></div>
     <div class="card"><h2>Elpris</h2><div class="note">Styr när exportbegränsningen slår till (minuspris)</div><div id="solarpricechart" style="height:220px;margin-top:10px"></div></div>`);
   if (d && d.price_24h) lineChart("solarpricechart", d.price_24h, { step: "end" });
   if (d) {
     renderSolarForecastSettings();
+    renderSolarOrder();
     const rangeEl = document.getElementById("solarlimit"), valEl = document.getElementById("solarlimitval");
     rangeEl.oninput = () => valEl.textContent = rangeEl.value + " %";
     document.getElementById("setsolarlimitbtn").onclick = () => postAction("api/energy-action/limit", { value: parseInt(rangeEl.value, 10) }).then(renderSolceller);
     document.getElementById("solarauto").onchange = (e) => postAction("api/energy-action/auto", { value: e.target.checked }).then(renderSolceller);
     document.getElementById("solarnotify").onchange = (e) => postAction("api/energy-action/notify", { value: e.target.checked });
   }
+}
+
+async function renderSolarOrder() {                      // #430: i vilken ordning överskottet går till lasterna
+  const box = document.getElementById("solarorder"); if (!box) return;
+  let d; try { d = await api("api/solar-order"); } catch (e) { box.querySelector(".note").textContent = e.message; return; }
+  const ICO = { battery: "🔋", ev: "🚗", spa: "🛁", hotwater: "🚿", house: "🏠" };
+  let order = d.order.slice();
+  const draw = () => {
+    box.innerHTML = `<h2>☀️ Ordning för solöverskott</h2>
+      <div class="note">Överst får överskottet först. En last längre ned startar bara när ingen last ovanför vill ha överskottet eller redan tar sin del. Standard är EnergyWizards inbyggda ordning.</div>
+      <div style="display:grid;gap:6px;margin-top:10px">${order.map((k, i) => `<div style="display:flex;align-items:center;gap:8px;padding:6px 8px;border:1px solid var(--line);border-radius:10px">
+        <span style="width:22px;text-align:right;color:var(--mut)">${i + 1}.</span><span style="flex:1;min-width:0">${ICO[k] || ""} <span>${esc(d.names[k] || k)}</span></span>
+        <button class="icobtn so-up" data-i="${i}" ${i === 0 ? "disabled" : ""} aria-label="Upp">▲</button><button class="icobtn so-dn" data-i="${i}" ${i === order.length - 1 ? "disabled" : ""} aria-label="Ned">▼</button></div>`).join("")}</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px"><button class="icobtn" id="so-save">Spara</button><button class="icobtn" id="so-reset">Standardordning</button></div>`;
+    box.querySelectorAll(".so-up").forEach((b) => b.onclick = () => { const i = +b.dataset.i; [order[i - 1], order[i]] = [order[i], order[i - 1]]; draw(); });
+    box.querySelectorAll(".so-dn").forEach((b) => b.onclick = () => { const i = +b.dataset.i; [order[i + 1], order[i]] = [order[i], order[i + 1]]; draw(); });
+    box.querySelector("#so-reset").onclick = () => { order = d.default.slice(); draw(); };
+    box.querySelector("#so-save").onclick = async () => { try { const r = await postJSON("api/solar-order", { order }); toast(r.message || "Sparat"); } catch (e) { toast(e.message); } };
+  };
+  draw();
 }
 
 async function renderSolarForecastSettings() {

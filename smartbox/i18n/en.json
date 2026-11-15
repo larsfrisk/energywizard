@@ -2731,5 +2731,16 @@
  "Tider vi badar: utanför dem får badet svalna och värms upp i tid före nästa badtid. Inga påslagna dagar = badet hålls varmt som idag.": "Times we bathe: outside them the tub may cool down and is heated in time before the next bathing time. No days switched on = the tub is kept warm as today.",
  "Sparat - {n} dagar med tider utan bad. Då får badet svalna och värms på de billigaste timmarna till badtiden börjar.": "Saved - {n} days with times without bathing. The tub may then cool down and is heated in the cheapest hours until bathing time starts.",
  "Sparat - inga tider utan bad, badet hålls varmt som förut.": "Saved - no times without bathing, the tub is kept warm as before.",
- "Badtid - håller badet varmt.": "Bathing time - keeping the tub warm."
+ "Badtid - håller badet varmt.": "Bathing time - keeping the tub warm.",
+ "☀️ Ordning för solöverskott": "☀️ Order for solar surplus",
+ "Överst får överskottet först. En last längre ned startar bara när ingen last ovanför vill ha överskottet eller redan tar sin del. Standard är EnergyWizards inbyggda ordning.": "The top one gets the surplus first. A load further down only starts when no load above wants the surplus or is already taking its share. The default is EnergyWizard's built-in order.",
+ "Standardordning": "Default order",
+ "Huset": "The house",
+ "Upp": "Up",
+ "Ned": "Down",
+ "Bara ägaren kan ändra ordningen": "Only the owner can change the order",
+ "Ordningen ska innehålla varje last en gång": "The order must contain each load once",
+ "Sparat - gäller från nästa beslut": "Saved - applies from the next decision",
+ "Prio # (SOLAR EV): Överskottet går först till {load} (ordningen för överskott).": "Prio # (SOLAR EV): The surplus goes to {load} first (order for surplus).",
+ "Solöverskottet går till {load} före batteriet (ordningen för överskott), batteriet har {soc} %.": "The solar surplus goes to {load} before the battery (order for surplus), the battery is at {soc} %."
 }

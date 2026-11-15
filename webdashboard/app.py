@@ -320,6 +320,28 @@ def _ev_house_cfg():
         return {}
 
 
+@app.get("/api/solar-order")
+async def api_solar_order():
+    """#430: ordningen för solöverskottet."""
+    import solar_order
+    return {"order": solar_order.normalize(ew_settings.get("solar_order")), "default": solar_order.DEFAULT, "names": solar_order.NAMES}
+
+
+@app.post("/api/solar-order")
+async def api_solar_order_save(request: Request):
+    import solar_order
+    role, _ = AUTH.session(request)
+    if role != "owner":
+        return JSONResponse({"detail": "Bara ägaren kan ändra ordningen"}, status_code=403)
+    body = await request.json()
+    raw = body.get("order")
+    if not isinstance(raw, list) or sorted(set(raw)) != sorted(solar_order.LOADS):
+        return JSONResponse({"detail": "Ordningen ska innehålla varje last en gång"}, status_code=400)
+    order = solar_order.normalize(raw)
+    ew_settings.update(solar_order=None if order == solar_order.DEFAULT else order)
+    return {"ok": True, "order": order, "message": "Sparat - gäller från nästa beslut"}
+
+
 @app.get("/api/ev-rules")
 async def api_ev_rules():
     """Per bil: bara sol / maxpris för laddning från nätet (#427, #429)."""

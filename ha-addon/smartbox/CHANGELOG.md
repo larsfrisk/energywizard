@@ -1,5 +1,12 @@
 # Ändringar
 
+## 1.2.111 (2026-11-15)
+- **Ordning för solöverskott (#430)**, på webbens Solceller-sida (förslag från Emlben, #420): husbatteri, elbil,
+  spabad, varmvatten och huset i den ordning man vill. En last längre ned startar bara när ingen last ovanför vill ha
+  överskottet och kan starta på det. En last som redan går tar sin del, och det som blir över får nästa. Står en last
+  före husbatteriet vilar batteriet medan lasten vill ha överskottet, så att det inte balanserar mot lasten. Utan egen
+  ordning gäller det inbyggda beteendet som förut.
+
 ## 1.2.110 (2026-11-15)
 - **Spabad: tider vi inte badar.** Badtiderna kan nu anges omvänt, som tider då man inte badar, t.ex. 22:00–16:00
   på vardagar (tiden får gå över midnatt). Då får badet svalna, och planeraren värmer det på de billigaste timmarna så

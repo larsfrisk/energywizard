@@ -2731,5 +2731,16 @@
   "Tider vi badar: utanför dem får badet svalna och värms upp i tid före nästa badtid. Inga påslagna dagar = badet hålls varmt som idag.": "Kdy se koupeme: mimo tyto časy může vířivka vychladnout a ohřeje se včas před dalším koupáním. Žádné zapnuté dny = vířivka se udržuje teplá jako dnes.",
   "Sparat - {n} dagar med tider utan bad. Då får badet svalna och värms på de billigaste timmarna till badtiden börjar.": "Uloženo - {n} dní s časy bez koupání. Vířivka pak může vychladnout a ohřeje se v nejlevnějších hodinách do začátku koupání.",
   "Sparat - inga tider utan bad, badet hålls varmt som förut.": "Uloženo - žádné časy bez koupání, vířivka se udržuje teplá jako dřív.",
-  "Badtid - håller badet varmt.": "Čas koupání - vířivka se udržuje teplá."
+  "Badtid - håller badet varmt.": "Čas koupání - vířivka se udržuje teplá.",
+  "☀️ Ordning för solöverskott": "☀️ Pořadí pro solární přebytek",
+  "Överst får överskottet först. En last längre ned startar bara när ingen last ovanför vill ha överskottet eller redan tar sin del. Standard är EnergyWizards inbyggda ordning.": "Nejvýše dostane přebytek první. Zátěž níže se spustí jen tehdy, když žádná zátěž nad ní přebytek nechce nebo už si bere svůj díl. Výchozí je vestavěné pořadí EnergyWizardu.",
+  "Standardordning": "Výchozí pořadí",
+  "Huset": "Dům",
+  "Upp": "Nahoru",
+  "Ned": "Dolů",
+  "Bara ägaren kan ändra ordningen": "Pořadí může měnit jen vlastník",
+  "Ordningen ska innehålla varje last en gång": "Pořadí musí obsahovat každou zátěž jednou",
+  "Sparat - gäller från nästa beslut": "Uloženo - platí od dalšího rozhodnutí",
+  "Prio # (SOLAR EV): Överskottet går först till {load} (ordningen för överskott).": "Prio # (SOLAR EV): Přebytek jde nejdřív do {load} (pořadí pro přebytek).",
+  "Solöverskottet går till {load} före batteriet (ordningen för överskott), batteriet har {soc} %.": "Solární přebytek jde do {load} před baterií (pořadí pro přebytek), baterie má {soc} %."
 }

@@ -530,6 +530,24 @@ def _check_ev_stall(car_id, amps, charger_data, charger_id, phase_switch_active,
                 key="elbil",
             )
 
+def _solar_yield(actions, avg_net_w, battery_w):
+    """#430: namnet på en last som står före husbatteriet i ordningen för överskott och vill ha det (går redan, eller kan
+    starta på överskottet inklusive det batteriet laddar med just nu), annars None. Batteriet vilar då. En högre last som
+    redan går blockerar också: annars balanserar batteriet och lasten mot varandra om samma överskott."""
+    try:
+        import solar_order
+        order, info = actions.get("solar_order"), actions.get("solar_info") or {}
+        potential = max(0.0, -float(avg_net_w or 0.0)) + max(0.0, float(battery_w or 0.0))
+        o = solar_order.normalize(order)
+        for h in o[:o.index("battery")]:
+            i = info.get(h) or {}
+            if i.get("wants") and (i.get("active") or potential >= float(i.get("min_w") or 0)):
+                return solar_order.NAMES[h].lower()
+    except Exception:
+        pass
+    return None
+
+
 def _car_floor(car_id):
     """Bilens morgongolv (#426): inställt per bil, 0 när det är avstängt eller bilen bara laddar på sol (#427)."""
     try:
@@ -2075,6 +2093,7 @@ while True:
                 'spa_max_temp': cfg.get("spa_max_temp", 40.0), 'spa_low_temp': cfg.get("spa_low_temp", 15.0),
                 'spa_target_scheduled': _spa_sched_temp, 'spa_target_scheduled_active': spa_schedule_active,
                 'spa_bath_note': spa_bath_note,
+                'solar_order': _ew_settings.get("solar_order"),           # #430: ordningen för solöverskottet
                 'spa_should_heat_now': spa_should_heat_now, 'away_mode_active': away_mode_enabled,
                 'hw_probability': max_hw_prob, 'away_recovering': away_recovering,
                 'temp_cheap': cfg.get("temp_cheap", 22.0), 'temp_expensive': cfg.get("temp_expensive", 20.0),
@@ -2218,6 +2237,7 @@ while True:
                         "fuse_excess_a": fuse_model.check(_fuse_cfg["fuse_a"], _fuse_cfg["margin_a"])[1] if fuse_model.is_fresh() else 0,
                         "peak_reached": bool(cfg.get("peak_shaving_enabled", True)) and float(consumed_kwh_this_hour) >= float(allowed_kwh_now),
                         "ev_charging_grid": _ev_on and not _ev_sol, "ev_solar_active": _ev_on and _ev_sol,
+                        "solar_yield_to": _solar_yield(gpm_actions, avg_net, battery_state.get("power_w")),     # #430
                         "prices_rest_of_day": (all_prices or [])[_q:],
                         "planned_action": (_bplan or {}).get("action_now"), "plan_saving_kr": (_bplan or {}).get("saving_kr"),
                         "planned_power_w": (_bplan or {}).get("power_now_w"),

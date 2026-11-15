@@ -454,6 +454,36 @@ class GlobalPriorityManager:
         if _start_kw:
             ONE_PHASE_MIN_SURPLUS_W = min(ONE_PHASE_MIN_SURPLUS_W, -1000.0 * float(_start_kw))
         solar_balance_w = float(state.get(f"{_lead}_solar_balance_w") or 0.0) if _lead else 0.0
+        # #430: ordningen för solöverskottet. info per last: vill ha, går redan, sedan när, överskott som krävs.
+        import solar_order
+        s_order = solar_order.normalize(state.get('solar_order'))
+        # Bara en egen ordning styr. Standard (ingen inställning) = det inbyggda beteendet, oförändrat.
+        s_custom = bool(state.get('solar_order')) and s_order != solar_order.DEFAULT
+        surplus_w = max(0.0, -avg_net)
+        _spa_t = state.get('spa_temp')
+        _spa_mx = state.get('spa_max_temp', 40.0)
+        _spa_w = state.get('spa_measured_w') if (state.get('spa_measured_w') or 0) > 1000 else 3000.0
+        _in_cd = bool(self.spa_cooldown_until and now < self.spa_cooldown_until)
+        _ind, _indmax = state.get('indoor_temp'), state.get('indoor_max', 22.5)
+        _summer = state.get('outdoor_avg_5d') is not None and state.get('outdoor_avg_5d') >= state.get('heat_stop_outdoor', 17.0)
+        s_info = {
+            "ev": {"wants": any(solar_needs.values()), "active": bool(self.ev_solar_charge_active),
+                   "since": getattr(self, 'ev_solar_started_at', None), "min_w": -ONE_PHASE_MIN_SURPLUS_W},
+            "spa": {"wants": bool(state.get('has_spa', True)) and _spa_t is not None and _spa_t < _spa_mx - 0.2 and not _in_cd
+                             and not state.get('away_mode_active', False),
+                    "active": self.spa_solar_since is not None, "since": self.spa_solar_since,
+                    "min_w": _spa_w * min(0.95, 0.33 + 0.09 * max(0.0, (_spa_mx - _spa_t) if _spa_t is not None else 0.0))},
+            "hotwater": {"wants": state.get('water_temp') is not None and state.get('water_temp') < 58.0,
+                         "active": getattr(self, 'hw_solar_since', None) is not None, "since": getattr(self, 'hw_solar_since', None),
+                         "min_w": 2000.0},
+            "house": {"wants": _ind is not None and _ind < _indmax - 0.5 and not _summer,
+                      "active": getattr(self, 'house_solar_since', None) is not None, "since": getattr(self, 'house_solar_since', None),
+                      "min_w": 1500.0},
+        }
+        def _so_blocker(*a, **k):
+            return solar_order.blocker(*a, **k) if s_custom else None
+        actions["solar_order"] = s_order if s_custom else None
+        actions["solar_info"] = {k: {"wants": v["wants"], "active": v["active"], "min_w": v["min_w"]} for k, v in s_info.items()}
 
         max_possible_phases = 3 if any(needs[c] and specs[c]["phases"] != "1" for c in car_ids) else 1
 
@@ -469,7 +499,11 @@ class GlobalPriorityManager:
                 # ANVÄNDARREGEL: Ladda ALLTID på solöverskott (oavsett schema/pris) så länge det inte
                 # skapar import. ONE_PHASE_MIN_SURPLUS_W (~1400W) är minsta överskott för 6A 1-fas utan
                 # att köpa nätström – under det kan vi inte ladda utan att skapa bruttolast.
-                if avg_net < ONE_PHASE_MIN_SURPLUS_W:
+                _blk = _so_blocker("ev", s_order, s_info, surplus_w, now) if avg_net < ONE_PHASE_MIN_SURPLUS_W else None
+                if _blk:
+                    actions["log"].append(f"☀️ Prio 3.5 (SOLAR EV): Överskottet går först till {solar_order.NAMES[_blk].lower()} (ordningen för överskott).")
+                if avg_net < ONE_PHASE_MIN_SURPLUS_W and not _blk:
+                    self.ev_solar_started_at = now
                     shaky = state.get('solar_is_shaky', False)
                     self.ev_solar_charge_active = True
                     self.ev_solar_last_eval_time = now
@@ -851,7 +885,8 @@ class GlobalPriorityManager:
                 actions["spa_solar_boost_active"] = True
                 actions["log"].append("🛁 Prio 4 (SPA): Minuspris -> Värmer bad till max för termisk lagring.")
         
-        elif avg_net < spa_solar_threshold or self._spa_solar_hold(avg_net, state, now, spa_solar_threshold):
+        elif (avg_net < spa_solar_threshold or self._spa_solar_hold(avg_net, state, now, spa_solar_threshold)) and \
+                (self.spa_solar_since is not None or not _so_blocker("spa", s_order, s_info, surplus_w, now)):
             if in_cooldown:
                 actions["spa_target"] = spa_normal_temp
                 actions["spa_eco"] = False
@@ -907,7 +942,13 @@ class GlobalPriorityManager:
             actions["log"] = [l for l in actions["log"] if "(SPA)" not in l and "spabad" not in l.lower()]
 
         # --- Prio 4.5: TERMISKT BATTERI (Varmvatten 180L) ---
-        if price < 0 or avg_net < -2000:
+        _hw_solar = avg_net < -2000 and (getattr(self, 'hw_solar_since', None) is not None
+                                          or not _so_blocker("hotwater", s_order, s_info, surplus_w, now))
+        if _hw_solar and getattr(self, 'hw_solar_since', None) is None:
+            self.hw_solar_since = now
+        elif not _hw_solar:
+            self.hw_solar_since = None
+        if price < 0 or _hw_solar:
             actions["water_target_temp"] = 60.0
             actions["pump_run_water"] = True
             actions["log"].append("🔋 Prio 4.5 (TERMISKT BATTERI): Gratis el / Solöverskott! Maximerar varmvattenberedaren till 60°C.")
@@ -969,7 +1010,8 @@ class GlobalPriorityManager:
                 actions["log"].append(f"🏠 Prio 5 (HUS): Kallt inne! ({indoor_temp:.1f}°C < {indoor_min}°C). Tvingar värme oavsett elpris.")
                 
             # NYTT: Solöverskott driver värmen oavsett timpris!
-            elif avg_net < -1500 and actions["pump_mode"] == "EXPENSIVE":
+            elif avg_net < -1500 and actions["pump_mode"] == "EXPENSIVE" and (
+                    getattr(self, 'house_solar_since', None) is not None or not _so_blocker("house", s_order, s_info, surplus_w, now)):
                 # Lagra solvärme bara om huset inte redan är varmt: högst 0,5 °C under taket, och 1 °C under när solen
                 # väntas fortsätta - då värmer den huset genom fönstren av sig själv (2026-11-04: 23 °C en solig förmiddag).
                 sun_soon = state.get('sun_soon') or {}
@@ -983,6 +1025,9 @@ class GlobalPriorityManager:
                 else:
                     actions["pump_mode"] = "CHEAP"
                     actions["pump_target_temp"] = state.get('temp_cheap', 22.0)
+                    if getattr(self, 'house_solar_since', None) is None:
+                        self.house_solar_since = now
+                    actions["house_solar_active"] = True
                     actions["log"].append(f"☀️ Prio 5 (HUS): Kraftigt solöverskott ({abs(avg_net):.0f} W). Tvingar värmepumpen att lagra gratis värme i husets golv/radiatorer!")
                 
             elif actions["pump_mode"] == "CHEAP":
@@ -1077,6 +1122,9 @@ class GlobalPriorityManager:
             actions["heat_feedback_sp"] = fb_sp
             if fb_mode == "på":
                 actions["heat_feedback_for_mode"] = actions["pump_mode"]
+
+        if not actions.get("house_solar_active"):
+            self.house_solar_since = None       # #430: husets solvärmelagring gick inte denna gång
 
         # --- Prio 5.5: BORTALÄGE (AWAY MODE) ---
         if state.get('away_mode_active'):

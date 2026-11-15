@@ -141,6 +141,9 @@ def decide(s, cfg, supported=frozenset({"auto"})):
         return out("charge", "negative", f"Minuspris ({price:.2f} {symbol}/kWh) - laddar batteriet från nätet.", pmax)
     if s.get("ev_charging_grid"):
         return out("hold", "ev_grid", "Elbilen laddar från nätet - batteriet töms inte i bilen.")
+    if s.get("solar_yield_to"):                              # #430: en last före batteriet i ordningen vill ha överskottet
+        return out("idle", "solar_order", f"Solöverskottet går till {s['solar_yield_to']} före batteriet (ordningen för överskott), "
+                                          f"batteriet har {soc:.0f} %.")
     if s.get("ev_solar_active") and soc >= prio:
         return out("idle", "ev_solar", f"Elbilen solladdar och batteriet har {soc:.0f} % (över {prio:.0f} %) - solöverskottet går till bilen.")
     planned = s.get("planned_action")
