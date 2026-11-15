@@ -118,7 +118,8 @@ def test_default_worker_combines_optional_history_learning_and_pv(monkeypatch):
     assert 'solar_factor' not in settings
 
 
-def test_real_candidate_uses_pv_periods_keeps_gaps_and_rejects_active_override(db, monkeypatch, tmp_path):
+@pytest.mark.parametrize('explicit_tariff',[False, True])
+def test_real_candidate_uses_pv_periods_keeps_gaps_and_rejects_active_override(db, monkeypatch, tmp_path, explicit_tariff):
     import battery_plan, ew_settings, ha_solar_forecast, learning, nordpool, plan_snapshot, weather
     from sqlalchemy import create_engine
     now=datetime.now(timezone.utc).replace(minute=0,second=0,microsecond=0)
@@ -131,6 +132,8 @@ def test_real_candidate_uses_pv_periods_keeps_gaps_and_rejects_active_override(d
     monkeypatch.setattr(weather,'get_smart_solar_w',lambda *args,**kwargs:500)
     monkeypatch.setattr(nordpool,'full_buy_cost',lambda price,*args:price)
     monkeypatch.setattr(nordpool,'full_sell_income',lambda price:0)
+    monkeypatch.setattr(nordpool,'cost_settings',lambda:{'currency':'SEK'})
+    monkeypatch.setattr(nordpool,'prices_include_vat',lambda:False)
     snapshots=[]
     def capture(*args,**kwargs):
         snap=plan_snapshot.build(*args,**kwargs);snapshots.append(snap);return snap['plan_id']
@@ -139,9 +142,12 @@ def test_real_candidate_uses_pv_periods_keeps_gaps_and_rejects_active_override(d
     engine=create_engine('postgresql+psycopg://postgres:test@localhost/smartbox_test')
     settings=dict(capacity_kwh=10,reserve_soc=20,max_soc=90,max_power_w=1000,
                   comparison_learning={'state':'learned','age_s':0})
+    model=dict(currency='SEK',spot_includes_vat=False,buy_spot_factor=1.25,buy_extra=.4,
+               sell_positive_spot_factor=.95,sell_negative_spot_factor=1,sell_extra=.1)
     try:
         with pytest.raises(ValueError):battery_plan.plan_from_db(engine,now,50,settings,{}, {'auto'},pv_forecast=forecast)
-        result=battery_plan.plan_from_db(engine,now,50,settings,{}, {'auto'},comparison=True,pv_forecast=forecast)
+        result=battery_plan.plan_from_db(engine,now,50,settings,{}, {'auto'},comparison=True,pv_forecast=forecast,
+                                        **({'tariff_model':model} if explicit_tariff else {}))
         assert [s['solar_kw'] for s in snapshots[0]['inputs']['slots']]==[2]*4+[.5]*4
         assert [s['spot'] for s in snapshots[0]['inputs']['slots']]==[1]*8
         assert result['input_quality']['pv_model']['coverage']==.5
@@ -149,5 +155,11 @@ def test_real_candidate_uses_pv_periods_keeps_gaps_and_rejects_active_override(d
         assert 'latitude' not in plan_snapshot.canonical(snapshots[0])
         assert snapshots[0]['input_quality']['learning']=={'source':'ew_history','state':'learned','age_s':0}
         assert snapshots[0]['input_quality']['pv_model']['coverage']==.5
+        slots=snapshots[0]['inputs']['slots']
+        assert [s['buy'] for s in slots]==[1.65 if explicit_tariff else 1]*8
+        assert [s['sell'] for s in slots]==[1.05 if explicit_tariff else 0]*8
+        if explicit_tariff:
+            assert snapshots[0]['input_quality']['tariff_model']=={'source':'explicit_comparison',**model}
+        else: assert 'tariff_model' not in snapshots[0]['input_quality']
         assert plan_snapshot.replay(snapshots[0])['matches'] and not result['control_ready']
     finally:engine.dispose()
