@@ -2751,5 +2751,11 @@
  "Nära golvet, de två kallaste rummen # °C": "Close to the minimum, the two coldest rooms # °C",
  "Börvärdesmodell (ML): lärd på # perioder.": "Setpoint model (ML): trained on # periods.",
  "Börvärdesmodell (ML): för lite data (# perioder).": "Setpoint model (ML): too little data (# periods).",
- "Börvärdesmodellen (ML) kunde inte läras: {err}": "The setpoint model (ML) could not be trained: {err}"
+ "Börvärdesmodellen (ML) kunde inte läras: {err}": "The setpoint model (ML) could not be trained: {err}",
+ "Tisdag": "Tuesday",
+ "Onsdag": "Wednesday",
+ "Torsdag": "Thursday",
+ "Fredag": "Friday",
+ "→ nästa dag": "→ next day",
+ "Varje rad räknas från sin dag. Slutar tiden före starttiden gäller den till nästa dag: torsdag 22:00–15:00 = torsdag kväll till fredag 15:00.": "Each row counts from its own day. If the end is before the start, it runs into the next day: Thursday 22:00–15:00 = Thursday evening to Friday 15:00."
 }

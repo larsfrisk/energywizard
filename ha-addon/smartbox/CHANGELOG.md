@@ -1,5 +1,10 @@
 # Ändringar
 
+## 1.2.114 (2026-11-15)
+- Badtider: veckodagarna tisdag–fredag visades på svenska i engelsk och tjeckisk vy. Rader som går över midnatt visar
+  nu "→ nästa dag", och en förklaring visar att varje rad räknas från sin egen dag (torsdag 22:00–15:00 = torsdag kväll
+  till fredag 15:00).
+
 ## 1.2.113 (2026-11-15)
 - **Rumsåterkopplingen: golvvakten går på de två kallaste rummen.** Snittet av de två kallaste rumsgivarna avgör när
   börvärdet höjs nära golvet, inte medianen. Medianen låg på 21,0 °C när två rum var nere på 20,4–20,7 °C.

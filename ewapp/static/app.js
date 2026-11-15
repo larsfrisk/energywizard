@@ -316,7 +316,8 @@ async function spaBathSheet() {                           // badtider (smartbox/
     <div class="note">Tider vi inte badar: då får badet svalna, och det värms på de billigaste timmarna så att det är varmt när tiden tar slut. Hur långt det sjunker räknas fram ur hur fort just ert bad svalnar och värms. Tiden får gå över midnatt, t.ex. 22:00–16:00.</div>
     <div class="note">Tider vi badar: utanför dem får badet svalna och värms upp i tid före nästa badtid. Inga påslagna dagar = badet hålls varmt som idag.</div>
     ${ws.map((w, i) => `<div class="setrow"><label style="display:flex;gap:8px;align-items:center;min-width:4.5em"><input type="checkbox" class="bon" data-i="${i}"${w.on ? " checked" : ""}>${days[i]}</label>
-      <span style="display:flex;gap:6px;align-items:center"><input type="time" class="bfrom" data-i="${i}" value="${w.from}" ${inp}>–<input type="time" class="bto" data-i="${i}" value="${w.to}" ${inp}></span></div>`).join("")}
+      <span style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"><input type="time" class="bfrom" data-i="${i}" value="${w.from}" ${inp}>–<input type="time" class="bto" data-i="${i}" value="${w.to}" ${inp}><span class="note bnext" data-i="${i}"${w.to <= w.from ? "" : " hidden"}>→ nästa dag</span></span></div>`).join("")}
+    <div class="note">Varje rad räknas från sin dag. Slutar tiden före starttiden gäller den till nästa dag: torsdag 22:00–15:00 = torsdag kväll till fredag 15:00.</div>
     <button class="big" id="bathsave">Spara</button><button class="mini" data-x="no">Avbryt</button>`);
   $("#bathsave").onclick = async () => {
     const q = (c, i) => document.querySelector(`#sheet .${c}[data-i="${i}"]`);
@@ -324,6 +325,9 @@ async function spaBathSheet() {                           // badtider (smartbox/
     const mode = (document.querySelector("#bmode button.on") || {}).dataset?.m || "bath";
     try { const r = await api("spa_bath", { windows, mode }); closeSheet(); toast(r.msg); H = await api("home"); render(); } catch (er) { toast(er.message); }
   };
+  document.querySelectorAll("#sheet .bfrom, #sheet .bto").forEach((x) => x.onchange = () => { const i = x.dataset.i;
+    const f = document.querySelector(`#sheet .bfrom[data-i="${i}"]`).value, t = document.querySelector(`#sheet .bto[data-i="${i}"]`).value;
+    document.querySelector(`#sheet .bnext[data-i="${i}"]`).hidden = !(t <= f); });
   document.querySelectorAll("#bmode button").forEach((b) => b.onclick = () => document.querySelectorAll("#bmode button").forEach((x) => x.classList.toggle("on", x === b)));
   const no = document.querySelector('#sheet [data-x="no"]'); if (no) no.onclick = () => closeSheet();
 }

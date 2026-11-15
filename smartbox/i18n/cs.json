@@ -2751,5 +2751,11 @@
   "Nära golvet, de två kallaste rummen # °C": "Blízko minima, dvě nejchladnější místnosti # °C",
   "Börvärdesmodell (ML): lärd på # perioder.": "Model požadované hodnoty (ML): naučen na # obdobích.",
   "Börvärdesmodell (ML): för lite data (# perioder).": "Model požadované hodnoty (ML): málo dat (# období).",
-  "Börvärdesmodellen (ML) kunde inte läras: {err}": "Model požadované hodnoty (ML) se nepodařilo naučit: {err}"
+  "Börvärdesmodellen (ML) kunde inte läras: {err}": "Model požadované hodnoty (ML) se nepodařilo naučit: {err}",
+  "Tisdag": "Úterý",
+  "Onsdag": "Středa",
+  "Torsdag": "Čtvrtek",
+  "Fredag": "Pátek",
+  "→ nästa dag": "→ další den",
+  "Varje rad räknas från sin dag. Slutar tiden före starttiden gäller den till nästa dag: torsdag 22:00–15:00 = torsdag kväll till fredag 15:00.": "Každý řádek platí od svého dne. Pokud konec předchází začátku, pokračuje do dalšího dne: čtvrtek 22:00–15:00 = čtvrtek večer až pátek 15:00."
 }

@@ -1063,11 +1063,16 @@ async function renderSpabad() {
       <div class="note">Tider vi badar: utanför dem får badet svalna och värms upp i tid före nästa badtid. Inga påslagna dagar = badet hålls varmt som idag.</div>
       <div style="display:grid;gap:6px;margin-top:10px">${(d.bath_windows || []).map((w, i) => `<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
         <label style="display:flex;align-items:center;gap:8px;width:118px"><input type="checkbox" class="bathon" data-i="${i}"${w.on ? " checked" : ""}> ${["Måndag", "Tisdag", "Onsdag", "Torsdag", "Fredag", "Lördag", "Söndag"][i]}</label>
-        <input type="time" class="bathfrom" data-i="${i}" value="${w.from}" style="width:110px"> – <input type="time" class="bathto" data-i="${i}" value="${w.to}" style="width:110px"></div>`).join("")}</div>
+        <input type="time" class="bathfrom" data-i="${i}" value="${w.from}" style="width:110px"> – <input type="time" class="bathto" data-i="${i}" value="${w.to}" style="width:110px">
+        <span class="note bathnext" data-i="${i}"${w.to <= w.from ? "" : " hidden"}>→ nästa dag</span></div>`).join("")}</div>
+      <div class="note" style="margin-top:6px">Varje rad räknas från sin dag. Slutar tiden före starttiden gäller den till nästa dag: torsdag 22:00–15:00 = torsdag kväll till fredag 15:00.</div>
       <button class="icobtn" id="bathsave" style="margin-top:10px">Spara</button></div>
     <div class="card" style="margin-bottom:16px"><h2>📈 Senaste dygnet</h2><div class="note">Temperatur mot mål. Skuggat = värmaren gick.</div><div id="spachart" style="height:240px;margin-top:10px"></div></div>
     <div class="card"><h2>📡 Trådlös anslutning</h2><div class="note">Signal: ${fmt(d.signal_pct, 0, "%")} · Kanal: ${d.rf_channel != null ? d.rf_channel : "–"}</div></div>`);
   if (d) {
+    document.querySelectorAll(".bathfrom, .bathto").forEach((x) => x.onchange = () => { const i = x.dataset.i;
+      const f = document.querySelector(`.bathfrom[data-i="${i}"]`).value, t = document.querySelector(`.bathto[data-i="${i}"]`).value;
+      document.querySelector(`.bathnext[data-i="${i}"]`).hidden = !(t <= f); });
     document.querySelectorAll("#bathmode button").forEach((b) => b.onclick = () => document.querySelectorAll("#bathmode button").forEach((x) => x.classList.toggle("on", x === b)));
     document.getElementById("bathsave").onclick = async () => {
       const q = (cls, i) => document.querySelector(`.${cls}[data-i="${i}"]`);
