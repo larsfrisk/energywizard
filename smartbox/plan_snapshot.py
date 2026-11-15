@@ -18,7 +18,9 @@ QUALITY_KEYS = {'prices': ('source', 'coverage', 'missing', 'horizon_h'), 'solar
                 'load': ('source', 'coverage'), 'soc': ('source', 'known', 'age_s'),
                 'pv_model': ('source', 'state', 'coverage', 'fetched_at', 'timestamp_basis'),
                 'learning': ('source', 'state', 'age_s'),
-                'battery_model': ('source',)}
+                'battery_model': ('source',),
+                'tariff_model': ('source', 'currency', 'spot_includes_vat', 'buy_spot_factor', 'buy_extra',
+                                 'sell_positive_spot_factor', 'sell_negative_spot_factor', 'sell_extra')}
 MAX_BYTES = 2_000_000
 MAX_FILES = 96
 MAX_AGE_S = 7 * 86400
@@ -97,6 +99,10 @@ def normalize_inputs(slots, params):
             raise ValueError('Planner slots must be consecutive physical quarters')
         previous = dt
         out.append({'t': t, **{k: number(slot.get(k, 0.0)) for k in SLOT_NUMBERS}})
+        # Optional evidence only; the optimizer uses full buy/sell tariffs.
+        # Preserve old snapshots exactly when the recorded spot is absent.
+        if 'spot' in slot:
+            out[-1]['spot'] = number(slot['spot'])
     clean = {}
     for k, v in params.items():
         if k == 'allowed':

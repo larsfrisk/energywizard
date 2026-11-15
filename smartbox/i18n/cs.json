@@ -2688,5 +2688,7 @@
   "Senast uppnådd {when}.": "Naposledy dosaženo {when}.",
   "Var": "Každých",
   "dygn, till": "dní, na",
-  "Värmepumpens eget legionellaprogram, om den har ett, ställs på pumpen.": "Vlastní program proti legionele tepelného čerpadla, pokud ho má, se nastavuje přímo na čerpadle."
+  "Värmepumpens eget legionellaprogram, om den har ett, ställs på pumpen.": "Vlastní program proti legionele tepelného čerpadla, pokud ho má, se nastavuje přímo na čerpadle.",
+  "Intervall": "Interval",
+  "dygn": "dní"
 }

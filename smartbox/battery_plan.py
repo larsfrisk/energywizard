@@ -402,7 +402,7 @@ def _charge_samples(engine, now):
     return [(float(t), float(p)) for t, p in rows if t is not None and p is not None]
 
 
-def plan_from_db(engine, now, soc_pct, settings, base_profile, supported, *, soc_evidence=None, comparison=False, pv_forecast=None):
+def plan_from_db(engine, now, soc_pct, settings, base_profile, supported, *, soc_evidence=None, comparison=False, pv_forecast=None, tariff_model=None):
     """Bygger kvartarna från nu till slutet av kända elpriser och kör optimize(). Sparar planen i
     battery_plan_slots. Returnerar resultatet + 'action_now' för pågående kvart.
     comparison=True only captures a labelled candidate; no active/learning writes or dispatch fields."""
@@ -414,6 +414,14 @@ def plan_from_db(engine, now, soc_pct, settings, base_profile, supported, *, soc
     import weather
     if settings.get('comparison_battery_model') is True and not comparison:
         raise ValueError('Comparison battery model cannot feed active planning')
+    if tariff_model is not None:
+        if not comparison:
+            raise ValueError('Comparison tariff model cannot feed active planning')
+        import comparison_tariff
+        tariff_model = comparison_tariff.validate(tariff_model)
+        if (tariff_model['currency'] != nordpool.cost_settings()['currency']
+                or tariff_model['spot_includes_vat'] is not nordpool.prices_include_vat()):
+            raise ValueError('Comparison tariff basis differs from configured input')
     if pv_forecast is not None and not comparison:
         raise ValueError("PV comparison model cannot feed active planning")
 
@@ -498,7 +506,8 @@ def plan_from_db(engine, now, soc_pct, settings, base_profile, supported, *, soc
         raw_load = _prof or learning.predict_base_load(t, base_profile)
         raw_solar = solar_at(t)
         forecast.append((t, raw_load, raw_solar))          # prognosen som den är, före stil och utfallsrättning
-        slots.append({"t": t, "buy": nordpool.full_buy_cost(p, t), "sell": nordpool.full_sell_income(p), "spot": p,
+        buy, sell = comparison_tariff.prices(tariff_model, p) if tariff_model is not None else (nordpool.full_buy_cost(p, t), nordpool.full_sell_income(p))
+        slots.append({"t": t, "buy": buy, "sell": sell, "spot": p,
                       "load_kw": raw_load * load_bias * load_mult, "solar_kw": raw_solar * solar_bias * solar_mult,
                       "ev_kw": ev_kw.get(t, 0.0)})
         t += timedelta(minutes=15)
@@ -549,6 +558,8 @@ def plan_from_db(engine, now, soc_pct, settings, base_profile, supported, *, soc
         "soc": soc_input_quality(soc_pct, soc_evidence, now.timestamp()),
     }
     r["input_quality"] = quality
+    if tariff_model is not None:
+        quality['tariff_model'] = {'source': 'explicit_comparison', **tariff_model}
     if pv_forecast is not None:
         count = src_count["solar_open_meteo"]
         quality["solar"]["source"] = "open_meteo_pv" if count==n else "mixed" if count else quality["solar"]["source"]

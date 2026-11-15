@@ -48,6 +48,67 @@ def test_matching_selected_inputs_never_qualify_economics_or_control():
     assert not any(result[k] for k in ("adoption_ready", "control_ready", "economic_comparison_ready", "partial_first_quarter"))
     assert "must-not-leak" not in json.dumps(result)
     assert (ew, zenai) == original
+    assert result['spot_price_comparison']['state'] == 'unavailable'
+
+
+def spot_captures():
+    ew, zenai = captures()
+    for slot in ew['inputs']['slots']:
+        slot['spot'] = -.25
+    start = datetime.fromisoformat(ew['inputs']['slots'][0]['t'])
+    zenai['inputs']['prices'] = [dict(time_start=start.isoformat(),
+        time_end=(start+timedelta(hours=1)).isoformat(), SEK_per_kWh=-.25)]
+    return seal(ew, 'plan_id'), seal(zenai, 'plan_run_id')
+
+
+def test_spot_hourly_intervals_compare_without_leaking_prices_or_qualifying_basis():
+    ew, zenai = spot_captures()
+    report = audit(ew, zenai)
+    spot = report['spot_price_comparison']
+    assert spot['state'] == 'matched' and spot['complete']
+    assert spot['compared_quarters'] == 3 and spot['different_quarters'] == 0
+    assert not spot['basis_qualified'] and report['selected_inputs_match']
+    assert 'SEK_per_kWh' not in json.dumps(report) and '-0.25' not in json.dumps(report)
+
+
+def test_spot_difference_is_separate_from_final_tariff_comparison():
+    ew, zenai = spot_captures()
+    ew['inputs']['slots'][1]['spot'] = 0
+    spot = audit(seal(ew, 'plan_id'), zenai)['spot_price_comparison']
+    assert spot['state'] == 'different' and spot['different_quarters'] == 1 and spot['complete']
+
+
+@pytest.mark.parametrize('missing', ['ew', 'zenai', 'partial_interval'])
+def test_missing_spot_coverage_is_not_a_match_or_forward_filled(missing):
+    ew, zenai = spot_captures()
+    if missing == 'ew': del ew['inputs']['slots'][1]['spot']
+    else:
+        zenai['inputs']['prices'][0]['time_end'] = '2026-11-14T00:29:00Z' if missing == 'partial_interval' else '2026-11-14T00:30:00Z'
+    spot = audit(seal(ew,'plan_id'),seal(zenai,'plan_run_id'))['spot_price_comparison']
+    assert spot['state'] == 'unavailable' and not spot['complete']
+    assert spot['compared_quarters'] == (1 if missing == 'partial_interval' else 2)
+
+
+@pytest.mark.parametrize('mode', ['overlap', 'duplicate', 'naive', 'reversed', 'boolean'])
+def test_invalid_spot_interval_evidence_is_rejected(mode):
+    ew, zenai = spot_captures()
+    row = zenai['inputs']['prices'][0]
+    if mode in {'overlap','duplicate'}:
+        zenai['inputs']['prices'].append(dict(row))
+        if mode == 'overlap': zenai['inputs']['prices'][1]['time_start'] = '2026-11-14T00:15:00Z'
+    elif mode == 'naive': row['time_start'] = '2026-11-14T00:00:00'
+    elif mode == 'reversed': row['time_end'] = row['time_start']
+    else: row['SEK_per_kWh'] = True
+    with pytest.raises(ValueError): audit(ew,seal(zenai,'plan_run_id'))
+
+
+def test_spot_dst_fold_quarters_keep_distinct_physical_prices():
+    from migration_plan_audit import _spot_prices
+    slots = [{'spot':0}, {'spot':-.25}]
+    starts = ['2026-10-25T02:00:00+02:00','2026-10-25T02:00:00+01:00']
+    prices = [dict(time_start=start,time_end=(datetime.fromisoformat(start)+timedelta(minutes=15)).isoformat(),SEK_per_kWh=slot['spot']) for start,slot in zip(starts,slots)]
+    times = [datetime.fromisoformat(start).timestamp() for start in starts]
+    assert _spot_prices(slots,times,prices)['state'] == 'matched'
 
 
 def test_equivalent_offsets_and_serialization_rounding_are_explicit():

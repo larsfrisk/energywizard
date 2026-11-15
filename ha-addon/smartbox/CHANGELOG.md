@@ -1,5 +1,9 @@
 # Ändringar
 
+## 1.2.103 (2026-11-15)
+- Legionella på webben: raden med intervall, temperatur och Spara bryts nu på smala skärmar (knappen hamnade utanför
+  kortet med stor text på mobil), och "dygn" översätts i engelsk och tjeckisk vy.
+
 ## 1.2.102 (2026-11-15)
 - **Innetemperaturen när rumsgivarna glappar:** saknas alla valda rumsgivare en kort stund behålls deras senaste värde
   i upp till 15 minuter, i stället för att värmepumpens egen innegivare tas. På en Thermia via Husdata är den ett fast
