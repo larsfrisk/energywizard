@@ -273,6 +273,11 @@ def get_morning_floor(now, current_soc, battery_kwh, target_dt):
         return None
     return morning_dt, max(0.0, (MORNING_MIN_SOC - current_soc) / 100.0 * battery_kwh) * 1.12
 
+# Straff (kr/kWh i planens poäng) för att ladda under effekttariffens höglasttid med effektvakten på. Högt med avsikt:
+# en ny månadstopp kostar mer än nästan alla prisskillnader inom ett dygn.
+HIGH_LOAD_EV_PENALTY = 1.5
+
+
 def calculate_ev_charge_plan(now, ev_schedule, car_data, cfg):
     """Skapar en "Spread & Smooth" laddningsplan för de kommande 48 timmarna."""
     # Användarens INSTÄLLDA huvudsäkring (Inställningar-fliken), fallback till modulkonstanten.
@@ -362,7 +367,12 @@ def calculate_ev_charge_plan(now, ev_schedule, car_data, cfg):
     # för att ge en 1,0 kr-bonus – för svagt för att slå normala prisskillnader vid måttlig sol.
     # /4000 ger redan 3kW sol en bonus på 0,75 kr (slår de flesta vanliga prisskillnader), och
     # 8-10kW sol (~2-2,5 kr bonus) vinner även mot ovanligt dyra timmar. Skalar linjärt med solstyrka.
-    df_plan['score'] = df_plan['price'] - (df_plan['solar_w'] / 4000.0)
+    # Jämförelsepriset tar med tidstariffen (#179) när en sådan är inställd, så kvartar jämförs på det man betalar.
+    import nordpool
+    _cost = nordpool.cost_settings()
+    df_plan['score'] = [nordpool.planning_buy_price(float(p), t.to_pydatetime(), _cost) if p == p else p
+                        for p, t in zip(df_plan['price'], df_plan['t_slot'])]
+    df_plan['score'] = df_plan['score'] - (df_plan['solar_w'] / 4000.0)
 
     # Prognoskolumner för VISNING (grafen) – ren tilläggsdata, påverkar inte allokeringen nedan.
     # husets_forbrukning = inlärd baslastprofil per kvart; sol = redan beräknad solprognos ovan.
@@ -371,7 +381,13 @@ def calculate_ev_charge_plan(now, ev_schedule, car_data, cfg):
         lambda r: _slot_base_kw(r['t_slot'], r['temp'], _display_base_load_profile), axis=1)
     df_plan['solar_kw'] = df_plan['solar_w'] / 1000.0
     df_plan['hour_val'] = df_plan['t_slot'].dt.hour
-    df_plan.loc[(df_plan['hour_val'] >= 7) & (df_plan['hour_val'] < 20), 'score'] += 1.5
+    # Effekttariffens höglasttid (inställd eller standard, nordpool.high_load_window) ska undvikas så länge effektvakten
+    # är på - en laddning där sätter månadens topp. Tidigare fick ALLA kvartar 07-20 straffet, även helger och med
+    # effektvakten avstängd: 2026-11-15 (söndag) valde planen natten för ~1,00 kr före 13:30 för 0,90 kr.
+    if cfg.get("peak_shaving_enabled", True):
+        _hl = nordpool.high_load_window()
+        _high = [nordpool.is_high_load_time(t.to_pydatetime(), _hl) for t in df_plan['t_slot']]
+        df_plan.loc[_high, 'score'] += HIGH_LOAD_EV_PENALTY
 
     for cid in car_ids:
         df_plan[f'{cid}_kw'] = 0.0

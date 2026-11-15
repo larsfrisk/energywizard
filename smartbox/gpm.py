@@ -542,10 +542,16 @@ class GlobalPriorityManager:
                 phase_change_in_progress = False
                 for car_id in car_ids:
                     phases_str = state.get(f'{car_id}_phases')
-                    if needs[car_id] and phases_str:
+                    if needs[car_id]:
                         fixed = specs[car_id]["phases"]
                         target_phases_for_car = 1 if fixed == "1" else 3 if fixed == "3" else target_phases
-                        current_phases = 3 if any(x in str(phases_str) for x in ['Three', '3', 'auto', 'Auto']) else 1
+                        if phases_str:
+                            current_phases = 3 if any(x in str(phases_str) for x in ['Three', '3', 'auto', 'Auto']) else 1
+                        else:
+                            # Okänt fasläge (Easee går inte att läsa; minnet nollas vid omstart): räkna med 3 faser för en bil
+                            # som kan ladda 3-fas, så att 1-fasström aldrig ges till en laddbox som i själva verket kör 3-fas.
+                            # 2026-11-15: 19 A "1-fas" blev 11 A x 3 faser = 7,6 kW på 4,4 kW sol -> nätköp.
+                            current_phases = 1 if fixed == "1" else 3
                         if current_phases != target_phases_for_car:
                             actions[f"{car_id}_set_phases"] = target_phases_for_car
                             actions["log"].append(f"⚡ Prio 3.5 (Fasväxling): Växlar {specs[car_id]['name']} till {target_phases_for_car}-fas.")
@@ -573,7 +579,8 @@ class GlobalPriorityManager:
 
                     if final_ev_amps >= EV_MIN_CHARGE_AMPS:
                         # --- Prioritetslogik fördelar strömmen (den prioriterade 60 %, den andra 40 %) ---
-                        _cars = [c for c in car_ids if needs[c]]
+                        # Solströmmen delas bara mellan bilar som sitter i laddaren (inte en som är på väg hem)
+                        _cars = [c for c in car_ids if needs[c] and state.get(f"{c}_plugged", True)] or [c for c in car_ids if needs[c]]
                         for c, a in _split_amps(final_ev_amps, _cars, prios, specs, EV_MIN_CHARGE_AMPS, other_share=0.4).items():
                             actions[f"{c}_limit_a"] = a
                     else:
@@ -1140,8 +1147,10 @@ class GlobalPriorityManager:
             is_full = soc is not None and soc >= 98
             is_done = state.get(f"{car_id}_charge_completed", False)
 
-            if not state.get(f"{car_id}_connected", True):
-                self.ev_charging_since[car_id] = None      # inte inkopplad (#174): kontaktorskyddet har inget att skydda
+            # Faktiskt inkopplad: "_connected" är sann även när bilen bara är på väg hem (GPS-förallokering). En bil som
+            # inte sitter i laddaren har inga kontaktorer att skydda (#174, 2026-11-15: urkopplad Nissan tvingades till 6 A).
+            if not state.get(f"{car_id}_plugged", state.get(f"{car_id}_connected", True)):
+                self.ev_charging_since[car_id] = None
             elif current_car_limit >= EV_MIN_CHARGE_AMPS:
                 if self.ev_charging_since.get(car_id) is None:
                     self.ev_charging_since[car_id] = now
@@ -1153,7 +1162,7 @@ class GlobalPriorityManager:
                         minutes_run = (now - self.ev_charging_since[car_id]).total_seconds() / 60.0
                         if minutes_run < 30.0:
                             actions[limit_key] = EV_MIN_CHARGE_AMPS
-                            actions["log"].append(f"🔋 Prio 3.5 (BATTERISKYDD): {car_id.capitalize()} måste ladda 30 min i sträck för att skydda kontaktorerna. Tvingar fram {EV_MIN_CHARGE_AMPS}A. (Kört {minutes_run:.0f}/30 min).")
+                            actions["log"].append(f"🔋 Prio 3.5 (BATTERISKYDD): {specs[car_id]['name']} måste ladda 30 min i sträck för att skydda kontaktorerna. Tvingar fram {EV_MIN_CHARGE_AMPS}A. (Kört {minutes_run:.0f}/30 min).")
                         else:
                             self.ev_charging_since[car_id] = None # 30 minuter uppnått
 

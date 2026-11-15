@@ -2674,5 +2674,10 @@
  "Faktor vid positivt spotpris": "Factor for positive spot prices",
  "Faktor vid negativt spotpris": "Factor for negative spot prices",
  "Faktorerna gäller spotdelen. Tillägget läggs på efteråt. Fast säljpris påverkas inte.": "The factors apply to the spot component. The offset is added afterwards. Fixed export prices are unaffected.",
- "Ogiltig faktor för såld el": "Invalid export price factor"
+ "Ogiltig faktor för såld el": "Invalid export price factor",
+ "Prio {p} (BATTERISKYDD): {name} måste ladda {m} min i sträck för att skydda kontaktorerna. Tvingar fram {a}A. (Kört {r}/{t} min).": "Prio {p} (BATTERY PROTECTION): {name} must charge {m} min in a row to protect the contactors. Forcing {a}A. (Ran {r}/{t} min).",
+ "Prio {p} (BATTERISKYDD): {name} måste ladda {m} min i sträck för att skydda kontaktorerna. Tvingar fram {a}A. (Kört {r}/{t} min": "Prio {p} (BATTERY PROTECTION): {name} must charge {m} min in a row to protect the contactors. Forcing {a}A. (Ran {r}/{t} min",
+ "Hemmets position hämtad från inställning.": "Home location taken from the setting.",
+ "Hemmets position hämtad från zone.home.": "Home location taken from zone.home.",
+ "Hemmets position okänd (ingen zone.home i Home Assistant, ingen HOME_LATITUDE/HOME_LONGITUDE) - väderprognos och GPS-hemkomst använder ett reservläge som kan vara långt från huset.": "Home location unknown (no zone.home in Home Assistant, no HOME_LATITUDE/HOME_LONGITUDE) - the weather forecast and GPS homecoming use a fallback location that may be far from the house."
 }
