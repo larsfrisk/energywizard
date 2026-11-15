@@ -1,0 +1,65 @@
+# Recorded Zenai/EW input audit
+
+Before comparing planning outcomes, audit private captures from both systems:
+
+```text
+python scripts/audit_migration_plans.py private-ew.json private-zenai.json
+```
+
+The command only reads these two local JSON files (at most 2 MB each). It does
+not import Zenai, run either planner, access databases/networks, or issue commands.
+Output contains capture hashes, counts and code-owned diagnostic labels, not
+configuration, endpoints, schedules, prices or household values. Errors are generic.
+Keep original captures private even if the audit output is shared.
+
+## Supported recorded formats
+
+EW planning snapshot schema 1 or 2 supplies `plan_id`, `made_at`,
+`inputs.slots` and `inputs.params`. Zenai replay schema 2, as produced by
+`build_plan_replay_payload` in the reviewed local Zenai source, supplies
+`plan_run_id`, `captured_at`, `config_hash`, `inputs.config`, `inputs.soc_pct`,
+and `output.plan_details`. The latter must include 15-minute `hours` and explicit
+`objective_assumptions`. Missing fields or unsupported versions are rejected;
+the tool never reconstructs them from configuration defaults.
+
+Both content hashes and Zenai's config hash are verified. This establishes
+internal integrity, not authenticity, source-code identity or physical correctness.
+Old EW captures do not need the current planner hash because no replay is executed.
+
+| Selected fact | EW field | Zenai field |
+|---|---|---|
+| Quarter | `slots[].t` | `hours[].hour_start` |
+| Full buy/sell numbers | `buy`, `sell` | `import_cost`, `export_rev` |
+| Total forecast load | `load_kw + ev_kw` | `load_kw + extra_load_kw` |
+| PV forecast | `solar_kw` | `solar_kw` |
+| Capacity, energy bounds, rated powers | `params` | `objective_assumptions` |
+| Initial stored energy | `soc0_kwh` | `inputs.soc_pct × capacity / 100` |
+| Charge/discharge efficiency | square root of `eff` | separate efficiency assumptions |
+
+The serializer in the reviewed Zenai legacy planner rounds each load component
+and PV to two decimals and tariffs to four. Absolute comparison tolerances are
+0.010000001 kW for the sum of two load components, 0.005000001 kW for PV,
+0.000050001 per tariff, and 0.000001 for battery assumptions. They are returned
+with the report. These tolerances can conceal smaller differences; a match means
+only that selected recorded numbers are within those tolerances.
+
+Timestamps require explicit offsets and are compared in UTC. Captures must have
+ordered, consecutive physical quarters. Different horizons and planning origins
+are reported as mismatches; horizons are never silently trimmed, filled or
+resampled. A partially elapsed first quarter is separately flagged, since the
+two planners may handle its remaining duration differently.
+
+## Remaining comparison gates
+
+`selected_inputs_match` is an inventory aid, not a parity result. Numeric tariffs
+do not establish equal currency or measurement boundary. Equal total load does
+not establish identical hot-water/EV exclusions or prevent historical double
+counting. Dynamic reserves, daily charge ceilings, initial direction, risk,
+wear, terminal value, grid/fuse limits, hygiene/comfort and command semantics
+are not compared. Separate upstream/version changes may require a new adapter.
+
+Every report keeps `economic_comparison_ready`, `adoption_ready` and
+`control_ready` false. A later paired economic evaluation needs identical qualified
+inputs, explicit policy/constraint models and terminal-energy treatment. Hardware
+release/ownership and actual bounded hot-water operation remain separate migration
+gates. No live captures or economic comparison were performed by the synthetic tests.
