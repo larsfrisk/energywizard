@@ -1103,8 +1103,24 @@ class GlobalPriorityManager:
             fb_hi = state.get('heat_feedback_max_sp')
             fb_lo = min(max(float(fb_lo), 15.0), 25.0) if fb_lo is not None else fb_floor - 1.0
             fb_hi = min(max(float(fb_hi), 15.0), 25.0) if fb_hi is not None else float(state.get('temp_cheap', 22.0)) + fb_boost
-            if indoor_temp < fb_floor + 0.4:
-                fb_sp, fb_why = fb_floor + 1.0, f"Nära golvet, {indoor_temp:.1f} °C inne"
+            # Golvvakten går på snittet av de två kallaste rummen (Emil 2026-11-15), inte på medianen: medianen låg på
+            # 21,0 °C när två rum var nere på 20,4-20,7 och det kändes kallt.
+            low2 = state.get('indoor_low2')
+            low2 = float(low2) if low2 is not None else indoor_temp
+            ml_w, ml_hz = state.get('heat_ml_w'), state.get('heat_horizon') or (None, None)
+            ml_sp = None
+            if low2 < fb_floor + 0.4:
+                fb_sp, fb_why = fb_floor + 1.0, f"Nära golvet, de två kallaste rummen {low2:.1f} °C"
+            elif ml_w and ml_hz[0] is not None:
+                import heat_ml
+                hours = ml_hz[1] if actions["pump_mode"] == "CHEAP" else ml_hz[0]
+                ml_sp, ml_why = heat_ml.choose(ml_w, actions["pump_mode"], low2, indoor_temp, state.get('outdoor_temp') or 0.0,
+                                               hours, fb_floor, indoor_max, fb_lo, fb_hi, float(state.get('heat_ml_bias') or 0.0))
+                if ml_sp is None:
+                    ml_sp = fb_floor + 1.0 if actions["pump_mode"] == "EXPENSIVE" else fb_floor
+                fb_sp, fb_why = ml_sp, f"{ml_why}, de två kallaste rummen {low2:.1f} °C, median {indoor_temp:.1f} °C"
+                actions["heat_ml_rate"] = heat_ml.rate(ml_w, fb_sp, fb_sp, indoor_temp, state.get('outdoor_temp') or 0.0,
+                                                       float(state.get('heat_ml_bias') or 0.0))
             elif actions["pump_mode"] == "CHEAP" and indoor_temp < indoor_max - 0.5:
                 fb_sp, fb_why = fb_hi, f"Billigt, lagrar värme, {indoor_temp:.1f} °C inne"
             elif actions["pump_mode"] == "CHEAP":

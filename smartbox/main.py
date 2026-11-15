@@ -17,6 +17,17 @@ import gps_home  # bilens hemkomst ur GPS (approaching)
 import indoor_hold  # håll givarnas innetemp när de glappar en kort stund
 import ev_rules  # per bil: bara sol / maxpris (#427, #429)
 import trip_plan  # appens resplan: engångsmål idag/imorgon
+import heat_ml  # ML-valt börvärde för rumsåterkopplingen
+_heat_bias = heat_ml.Bias()
+_heat_hz = {"q": None, "v": (None, None)}
+
+
+def _heat_horizon(now, dyn_limit):
+    """(timmar till billigt, timmar billigt kvar) - räknas om en gång per kvart."""
+    q = now.replace(minute=(now.minute // 15) * 15, second=0, microsecond=0)
+    if _heat_hz["q"] != q:
+        _heat_hz.update(q=q, v=heat_ml.horizon(now, dyn_limit))
+    return _heat_hz["v"]
 import homeassistant    # Hämtar data från Home Assistant (temperaturer + Easee-laddare)
 import notifier         # Skickar push-notiser till Emil
 import energy_balance   # Husets energibalans (solgolv ur exporten, rimlig batterieffekt)
@@ -1561,6 +1572,9 @@ while True:
                              for x in _indoor_sensors]
 
             temps_to_avg = [t for t in sensor_values if t is not None and isinstance(t, (int, float)) and t > 0]
+            # Golvvakten: snittet av de två kallaste rummen (Emil 2026-11-15); en givare = den
+            _low = sorted(temps_to_avg)[:2]
+            indoor_low2 = (sum(_low) / len(_low)) if _low else None
 
             # Luftfuktighet: median (>=3 sensorer) annars medel; sparas i ha_temps så loggern tar med den.
             ha_hums = homeassistant.read_humidities()
@@ -2082,6 +2096,8 @@ while True:
                 'solar_auto_export': str(all_overrides.get("solar_auto_export", "true")).lower() != "false",
                 'sun_soon': _sun_cache.get("soon"), 'sun_day': _sun_cache.get("day"),
                 'indoor_temp': indoor_temp, 'indoor_humidity': ha_temps.get('indoor_humidity'), 'indoor_min': cfg.get("indoor_min", 19.0),
+                'indoor_low2': indoor_low2, 'heat_ml_w': heat_ml.model(now) if _ew_settings.get('heat_feedback') == "på" else None,
+                'heat_horizon': _heat_horizon(now, dynamic_limit), 'heat_ml_bias': _heat_bias.value,
                 'indoor_cold_confirmed': _cold_gpm_watch.update(indoor_temp is not None and indoor_temp < cfg.get("indoor_min", 19.0), now), 'indoor_max': cfg.get("indoor_max", 22.5),
                 'water_temp': water_temp or 50.0, 'water_target_normal': wt_norm,
                 'brine_out_temp': pump_data.get("brine_out_temp") if pump_data else None,
@@ -2151,6 +2167,8 @@ while True:
                 })
             
             gpm_actions = gpm_engine.evaluate(gpm_state)
+            if gpm_actions.get("heat_ml_rate") is not None:          # ML-börvärdet: nivårättning mot verkligt utfall
+                _heat_bias.update(now, indoor_temp, gpm_actions["heat_ml_rate"])
             if ((house_cfg.get("heat_pump") or {}).get("hot_water_shadow") or {}).get("enabled") is True:
                 _hot_water_monitor.submit(house_cfg, pump_data, now=now.timestamp(), shadow=shadow.active(),
                     manual=all_overrides.get("hotwater", "auto") != "auto", away=bool(away_mode_enabled),

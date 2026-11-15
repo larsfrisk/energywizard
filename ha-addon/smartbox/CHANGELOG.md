@@ -1,5 +1,15 @@
 # Ändringar
 
+## 1.2.113 (2026-11-15)
+- **Rumsåterkopplingen: golvvakten går på de två kallaste rummen.** Snittet av de två kallaste rumsgivarna avgör när
+  börvärdet höjs nära golvet, inte medianen. Medianen låg på 21,0 °C när två rum var nere på 20,4–20,7 °C.
+- **ML väljer börvärdet.** En modell lärd på husets egen logg (45 dygn) förutsäger hur innetemperaturen ändras med
+  börvärde, eftersläpning och utetemperatur. Dyrt: lägsta börvärde som håller de två kallaste rummen 0,2 °C över
+  golvet fram till nästa billiga period (högst 8 h fram). Billigt: högsta börvärde som håller huset 0,3 °C under
+  maxgränsen. Modellen rättar sin nivå mot hur det faktiskt gick de senaste två timmarna och lärs om varje dygn.
+  Inställningen för lägsta och högsta börvärde är kvar som yttre gränser. Med för lite data gäller den tidigare
+  regeln.
+
 ## 1.2.112 (2026-11-15)
 - **Innetemperaturen läste sitt eget värde.** EnergyWizards egen publicerade sensor `sensor.smartbox_inomhustemp`
   föreslogs som rumsgivare (namnet innehåller "inomhus") och kunde väljas. Medianen läste då sitt eget gamla värde och

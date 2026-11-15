@@ -2743,5 +2743,13 @@
   "Sparat - gäller från nästa beslut": "Uloženo - platí od dalšího rozhodnutí",
   "Prio # (SOLAR EV): Överskottet går först till {load} (ordningen för överskott).": "Prio # (SOLAR EV): Přebytek jde nejdřív do {load} (pořadí pro přebytek).",
   "Solöverskottet går till {load} före batteriet (ordningen för överskott), batteriet har {soc} %.": "Solární přebytek jde do {load} před baterií (pořadí pro přebytek), baterie má {soc} %.",
-  "Givaren {label} är EnergyWizards egen publicerade sensor - räknas inte in i innetemperaturen. Välj bort den bland rumsgivarna.": "Senzor {label} je vlastní publikovaný senzor EnergyWizardu - nepočítá se do vnitřní teploty. Odeberte ho z pokojových senzorů."
+  "Givaren {label} är EnergyWizards egen publicerade sensor - räknas inte in i innetemperaturen. Välj bort den bland rumsgivarna.": "Senzor {label} je vlastní publikovaný senzor EnergyWizardu - nepočítá se do vnitřní teploty. Odeberte ho z pokojových senzorů.",
+  "ML: lägsta börvärde som håller de två kallaste rummen över # °C i # h (förutsägs # °C), de två kallaste rummen # °C, median # °C": "ML: nejnižší požadovaná hodnota, která udrží dvě nejchladnější místnosti nad # °C po # h (předpověď # °C), dvě nejchladnější místnosti # °C, medián # °C",
+  "ML: högsta börvärde som håller huset under # °C i # h (förutsägs # °C), de två kallaste rummen # °C, median # °C": "ML: nejvyšší požadovaná hodnota, která udrží dům pod # °C po # h (předpověď # °C), dvě nejchladnější místnosti # °C, medián # °C",
+  "ML: inget börvärde håller golvet i # h, de två kallaste rummen # °C, median # °C": "ML: žádná požadovaná hodnota neudrží minimum po # h, dvě nejchladnější místnosti # °C, medián # °C",
+  "ML: alla börvärden förutsägs ta huset över # °C, de två kallaste rummen # °C, median # °C": "ML: všechny požadované hodnoty podle předpovědi zvednou dům nad # °C, dvě nejchladnější místnosti # °C, medián # °C",
+  "Nära golvet, de två kallaste rummen # °C": "Blízko minima, dvě nejchladnější místnosti # °C",
+  "Börvärdesmodell (ML): lärd på # perioder.": "Model požadované hodnoty (ML): naučen na # obdobích.",
+  "Börvärdesmodell (ML): för lite data (# perioder).": "Model požadované hodnoty (ML): málo dat (# období).",
+  "Börvärdesmodellen (ML) kunde inte läras: {err}": "Model požadované hodnoty (ML) se nepodařilo naučit: {err}"
 }
