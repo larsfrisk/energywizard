@@ -83,7 +83,10 @@ false: forecasts, timestamps, horizons and policies may still differ. This chang
 was tested with synthetic inputs and an isolated database; it does not enable live
 capture, deploy EW, qualify control, or establish economic/physical equivalence.
 
-## Optional PV comparison input
+## Optional forecast and tariff comparison inputs
+
+Optional [comparison tariff assumptions](comparison-tariff-model.md) can also
+replace full candidate prices without changing live tariffs.
 
 See [the Open-Meteo PV comparison model](comparison-open-meteo-pv.md) for an
 explicit, default-off irradiance input. It does not change active planning.

@@ -23,7 +23,7 @@ def process(event):
     return battery_plan.plan_from_db(engine, event["now"], event["state"]["soc_pct"],
         event["settings"], event["profile"], set(event["allowed"]),
         soc_evidence=event["state"], comparison=True,
-        **({"pv_forecast": event["pv_forecast"]} if "pv_forecast" in event else {}))
+        **{k: event[k] for k in ('pv_forecast', 'tariff_model') if k in event and event[k] is not None})
 
 
 class _ReadOnlyHistory:
@@ -108,6 +108,7 @@ class Monitor:
 
     def submit(self, config, settings, state, profile, *, now, shadow):
         try:
+            import comparison_tariff
             allowed = config.get("allowed_intents")
             if (config.get("enabled") is not True or shadow is not True
                     or settings.get("control") != "samarbete" or settings.get("plan") is not True
@@ -124,6 +125,7 @@ class Monitor:
                 return False
             slot = int(now.timestamp() // 900)
             event = {"now": now, "settings": deepcopy(settings), "profile": deepcopy(profile),
+                     "tariff_model": comparison_tariff.validate(config.get('tariff_model')),
                      "pv_model": {k: (config.get("pv_model") or {}).get(k) for k in
                                   ("enabled", "source", "latitude", "longitude", "tilt_deg", "azimuth_deg", "kwp", "derate")},
                      "learn_from_history": config.get("learn_from_history") is True,
