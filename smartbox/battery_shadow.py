@@ -19,13 +19,15 @@ def process(event):
     from database_engine import engine
     return battery_plan.plan_from_db(engine, event["now"], event["state"]["soc_pct"],
         event["settings"], event["profile"], set(event["allowed"]),
-        soc_evidence=event["state"], comparison=True)
+        soc_evidence=event["state"], comparison=True,
+        **({"pv_forecast": event["pv_forecast"]} if "pv_forecast" in event else {}))
 
 
 class Monitor:
     """One daemon and at most one waiting sample; submit never waits for I/O."""
     def __init__(self, planner=process):
         self._planner = planner
+        self._pv = None
         self._queue = Queue(maxsize=1)
         self._lock = threading.Lock()
         self._thread = None
@@ -35,6 +37,14 @@ class Monitor:
         while True:
             event = self._queue.get()
             try:
+                if (event.get("pv_model") or {}).get("enabled") is True:
+                    import shadow
+                    if not shadow.active() or not -5 <= time.time()-event["now"].timestamp() <= 90:
+                        continue
+                    if self._pv is None:
+                        from open_meteo_pv import Forecast
+                        self._pv = Forecast()
+                    event = {**event, "pv_forecast": self._pv.snapshot(event["pv_model"])}
                 self._planner(event)
             except Exception:
                 pass  # No raw configuration/errors in logs; comparison cannot affect control.
@@ -59,6 +69,8 @@ class Monitor:
                 return False
             slot = int(now.timestamp() // 900)
             event = {"now": now, "settings": deepcopy(settings), "profile": deepcopy(profile),
+                     "pv_model": {k: (config.get("pv_model") or {}).get(k) for k in
+                                  ("enabled", "source", "latitude", "longitude", "tilt_deg", "azimuth_deg", "kwp", "derate")},
                      "allowed": tuple(allowed), "state": {k: state.get(k) for k in ("soc_pct", "soc_sample_at", "soc_source")}}
             # Balancing needs real ownership; never copy a maintenance request into comparison.
             event["settings"].pop("balance_request", None)

@@ -402,7 +402,7 @@ def _charge_samples(engine, now):
     return [(float(t), float(p)) for t, p in rows if t is not None and p is not None]
 
 
-def plan_from_db(engine, now, soc_pct, settings, base_profile, supported, *, soc_evidence=None, comparison=False):
+def plan_from_db(engine, now, soc_pct, settings, base_profile, supported, *, soc_evidence=None, comparison=False, pv_forecast=None):
     """Bygger kvartarna från nu till slutet av kända elpriser och kör optimize(). Sparar planen i
     battery_plan_slots. Returnerar resultatet + 'action_now' för pågående kvart.
     comparison=True only captures a labelled candidate; no active/learning writes or dispatch fields."""
@@ -412,6 +412,8 @@ def plan_from_db(engine, now, soc_pct, settings, base_profile, supported, *, soc
     import learning
     import nordpool
     import weather
+    if pv_forecast is not None and not comparison:
+        raise ValueError("PV comparison model cannot feed active planning")
 
     cap = settings.get("capacity_kwh")
     if not cap or soc_pct is None:
@@ -448,10 +450,15 @@ def plan_from_db(engine, now, soc_pct, settings, base_profile, supported, *, soc
 
     factor = settings.get("solar_factor") or {}          # inlärd rättning per timme (battery_learning.py)
 
-    src_count = {"solar_ha": 0, "solar_model": 0, "price_filled": 0, "load_profile": 0, "load_model": 0}   # #389
+    src_count = {"solar_ha": 0, "solar_open_meteo": 0, "solar_model": 0, "price_filled": 0, "load_profile": 0, "load_model": 0}   # #389
 
     def solar_at(ts):
         import ha_solar_forecast
+        if pv_forecast is not None:
+            external = ha_solar_forecast.average_w(pv_forecast.get("periods", []), ts, ts+timedelta(minutes=15))
+            if external is not None:
+                src_count["solar_open_meteo"] += 1
+                return external / 1000.0 * factor.get(ts.hour, 1.0)
         external = ha_solar_forecast.power_at(ts)
         if external is not None:
             src_count["solar_ha"] += 1
@@ -540,6 +547,13 @@ def plan_from_db(engine, now, soc_pct, settings, base_profile, supported, *, soc
         "soc": soc_input_quality(soc_pct, soc_evidence, now.timestamp()),
     }
     r["input_quality"] = quality
+    if pv_forecast is not None:
+        count = src_count["solar_open_meteo"]
+        quality["solar"]["source"] = "open_meteo_pv" if count==n else "mixed" if count else quality["solar"]["source"]
+        quality["solar"]["coverage"] = round((count+src_count["solar_ha"])/n, 3)
+        state = pv_forecast.get("state")
+        quality["pv_model"] = {"source": "open_meteo_pv", "state": state if state in {"ready","partial","unavailable","invalid_config"} else "unavailable",
+                               "coverage": round(count/n,3), "fetched_at": pv_forecast.get("fetched_at"), "timestamp_basis": "host_receipt"}
     if comparison:
         r["plan_id"] = plan_snapshot.capture(slots, params, r, now, quality=quality, purpose="cooperative_shadow")
     else:
