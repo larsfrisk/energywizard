@@ -89,3 +89,18 @@ def test_storage_error_and_disabled_capture_do_not_break_control(monkeypatch):
     monkeypatch.setenv('EW_PLAN_SNAPSHOTS', '1')
     assert S.capture(slots, params, result, now) is None
     assert battery_plan.optimize(slots, **example()[1]) == result
+
+
+def test_cooperative_snapshots_are_labelled_and_separately_queued(monkeypatch, tmp_path):
+    queue = Queue(maxsize=1)
+    monkeypatch.setattr(S, '_queue', queue)
+    monkeypatch.setattr(S, '_worker', object())
+    monkeypatch.setenv('EW_PLAN_SNAPSHOTS', '1')
+    monkeypatch.setenv('EW_PLAN_SNAPSHOT_DIR', str(tmp_path))
+    assert S.capture(*example(), purpose='cooperative_shadow')
+    payload, directory = queue.get_nowait()
+    assert directory == str(tmp_path / 'cooperative-shadow')
+    assert payload['purpose'] == 'cooperative_shadow' and S.replay(payload)['matches']
+    assert payload['plan_id'] != S.build(*example())['plan_id']
+    with pytest.raises(ValueError):
+        S.build(*example(), purpose='invalid')

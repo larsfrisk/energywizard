@@ -398,9 +398,10 @@ def _charge_samples(engine, now):
     return [(float(t), float(p)) for t, p in rows if t is not None and p is not None]
 
 
-def plan_from_db(engine, now, soc_pct, settings, base_profile, supported, *, soc_evidence=None):
+def plan_from_db(engine, now, soc_pct, settings, base_profile, supported, *, soc_evidence=None, comparison=False):
     """Bygger kvartarna från nu till slutet av kända elpriser och kör optimize(). Sparar planen i
-    battery_plan_slots. Returnerar resultatet + 'action_now' för pågående kvart."""
+    battery_plan_slots. Returnerar resultatet + 'action_now' för pågående kvart.
+    comparison=True only captures a labelled candidate; no active/learning writes or dispatch fields."""
     from datetime import timedelta
     from sqlalchemy import text
     from drivers.battery import soc_input_quality
@@ -491,7 +492,7 @@ def plan_from_db(engine, now, soc_pct, settings, base_profile, supported, *, soc
     if not slots:
         return None
     command_kw = battery_learning.planning_kw(settings, "charge")
-    schedule_kw = live_charge_kw(command_kw, _charge_samples(engine, now))
+    schedule_kw = command_kw if comparison else live_charge_kw(command_kw, _charge_samples(engine, now))
     params = dict(soc0_kwh=soc_pct / 100.0 * cap, capacity_kwh=cap,
                   reserve_kwh=settings["reserve_soc"] / 100.0 * cap,
                   max_kwh=settings["max_soc"] / 100.0 * cap,
@@ -534,8 +535,14 @@ def plan_from_db(engine, now, soc_pct, settings, base_profile, supported, *, soc
         "soc": soc_input_quality(soc_pct, soc_evidence, now.timestamp()),
     }
     r["input_quality"] = quality
-    r["plan_id"] = plan_snapshot.capture(slots, params, r, now, quality=quality)
+    if comparison:
+        r["plan_id"] = plan_snapshot.capture(slots, params, r, now, quality=quality, purpose="cooperative_shadow")
+    else:
+        r["plan_id"] = plan_snapshot.capture(slots, params, r, now, quality=quality)
     r["style"], r["allow_export"] = style, allow_export
+    if comparison:
+        # No active plan/forecast writes, current-action fields or dispatch authority.
+        return {**r, "simulation_only": True, "control_ready": False}
     try:
         with engine.begin() as c:
             c.execute(text("CREATE TABLE IF NOT EXISTS battery_plan_slots (t_slot TIMESTAMPTZ PRIMARY KEY, action TEXT, "

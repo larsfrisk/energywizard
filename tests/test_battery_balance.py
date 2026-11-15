@@ -342,6 +342,20 @@ def test_postgres_persists_maintenance_flags_and_defers_impossible_plan(db, monk
             saved = load_battery_rows(conn)
         assert len(saved) == 6 and any(row[6] for row in saved)
         assert max(float(row[2]) for row in saved) == 100
+        # A cooperation candidate must not replace the active plan or its learning history.
+        before_forecast = db.execute("SELECT * FROM battery_plan_forecast ORDER BY t_slot").fetchall()
+        captured = []
+        with monkeypatch.context() as comparison_patch:
+            comparison_patch.setattr(plan_snapshot, "capture", lambda *args, **kwargs: captured.append(kwargs) or "comparison-id")
+            comparison_patch.setattr(battery_plan, "_charge_samples", lambda *args: (_ for _ in ()).throw(AssertionError("active-plan inference")))
+            candidate = battery_plan.plan_from_db(engine, now, 50, {k: v for k, v in settings.items() if k != "balance_request"},
+                {}, {"auto", "charge", "hold"}, comparison=True)
+        assert candidate["simulation_only"] and candidate["control_ready"] is False
+        assert not {"action_now", "power_now_w", "balance_now"} & candidate.keys()
+        assert captured[0]["purpose"] == "cooperative_shadow"
+        with engine.connect() as conn:
+            assert load_battery_rows(conn) == saved
+        assert db.execute("SELECT * FROM battery_plan_forecast ORDER BY t_slot").fetchall() == before_forecast
         settings["balance_request"]["hold_slots"] = 8
         result = battery_plan.plan_from_db(engine, now, 50, settings, {}, {"auto", "charge", "hold"})
         assert result["balance_deferred"] and not result["balance_now"]

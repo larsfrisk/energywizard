@@ -48,6 +48,7 @@ import hot_water_power  # Optional dedicated electrical-load evidence, cache/rea
 import energy_source_evidence  # Optional raw source snapshot, separate from corrected balance
 import ev_heating       # Temperaturberoende baslast för laddplanen (ev_planning.heating_adjustment), natanoj
 import battery_plan      # Batteriets dygnsplan (steg 3): ladda billigt, ladda ur dyrt
+import battery_shadow    # Default-off cooperation comparison; never used for dispatch
 import battery_balance
 import battery_learning  # Planen lär sig batteriets verkliga verkningsgrad, kapacitet, effekt och solprognosens fel
 import signal
@@ -319,6 +320,7 @@ last_sent_temp           = None
 last_sent_water          = None
 water_sp = water_setpoints.WaterSetpoints()
 _hot_water_monitor = hot_water_monitor.Monitor()
+_battery_shadow_monitor = battery_shadow.Monitor()
 last_sent_spa_target     = None
 last_sent_spa_eco        = None
 last_sent_operating_mode = None
@@ -2092,6 +2094,10 @@ while True:
             _battery["decision_rule"] = None
             try:
                 battery_state = _battery_early or battery_driver.read_state() or {}   # redan läst ovan (husets förbrukning)
+                if ((house_cfg.get("battery") or {}).get("shadow_plan") or {}).get("enabled") is True:
+                    _battery_shadow_monitor.submit(house_cfg["battery"]["shadow_plan"],
+                        battery_learning.apply(battery_cfg, _battery["model"]), battery_state, dynamic_base_load_profile,
+                        now=now, shadow=shadow.active())
                 _bplan, _bdec = None, None
                 _balance = _battery_balance.update(battery_state, battery_cfg["balance"], time.time(),
                     battery_cfg["control"] == "styr" and battery_cfg.get("plan") and

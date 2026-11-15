@@ -142,12 +142,16 @@ def normalize_quality(quality):
     return out
 
 
-def build(slots, params, result, made_at, quality=None):
+def build(slots, params, result, made_at, quality=None, *, purpose=None):
     payload = {'schema_version': SCHEMA, 'planner_hash': planner_hash(),
                'made_at': timestamp(made_at), 'inputs': normalize_inputs(slots, params),
                'output': normalized_result(result)}
     if quality:
         payload['input_quality'] = normalize_quality(quality)
+    if purpose is not None:
+        if purpose != 'cooperative_shadow':
+            raise ValueError('Unsupported snapshot purpose')
+        payload['purpose'] = purpose
     # No environment/config dump: source hash identifies exact planning code.
     payload['plan_id'] = hashlib.sha256(canonical(payload).encode()).hexdigest()
     if len(canonical(payload).encode()) > MAX_BYTES:
@@ -207,18 +211,21 @@ def _run():
             _queue.task_done()
 
 
-def capture(slots, params, result, made_at, quality=None):
+def capture(slots, params, result, made_at, quality=None, *, purpose=None):
     """Best-effort capture: never wait for disk, queue space or a stuck writer."""
     global _worker
     try:
         if os.environ.get('EW_PLAN_SNAPSHOTS', '1') == '0':
             return None
-        payload = build(slots, params, result, made_at, quality)
+        payload = build(slots, params, result, made_at, quality, purpose=purpose)
         with _lock:
             if _worker is None:
                 _worker = threading.Thread(target=_run, name='plan-snapshots', daemon=True)
                 _worker.start()
-        _queue.put_nowait((payload, os.environ.get('EW_PLAN_SNAPSHOT_DIR', '/data/planning-snapshots')))
+        directory = os.environ.get('EW_PLAN_SNAPSHOT_DIR', '/data/planning-snapshots')
+        if purpose == 'cooperative_shadow':
+            directory = str(Path(directory) / 'cooperative-shadow')
+        _queue.put_nowait((payload, directory))
         return payload['plan_id']
     except Full:
         _problem('dropped')
