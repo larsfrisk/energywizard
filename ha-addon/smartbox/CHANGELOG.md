@@ -1,5 +1,14 @@
 # Ändringar
 
+## 1.2.104 (2026-11-15)
+- **Solis RC-batteri (#443, rättning av Lars Frisk):**
+  - Läget "håll" finns nu: tvångsladdning med 0 W. Utan det föll håll tillbaka till auto och husbatteriet laddade ur i
+    elbilen.
+  - Läget skrivs före effekten. Integrationen solis_modbus skriver om effekten ur sin registercache direkt efter
+    lägesvalet, så den nya effekten skrevs över (300 W i stället för 2,8 kW).
+  - Håll vid liv körs i 10-sekundersloopen, så tvångsladdning och håll inte släpper efter växelriktarens RC Timeout
+    (5 minuter). Gäller bara drivrutiner med keepalive_s, aldrig under säkerhetsregler.
+
 ## 1.2.103 (2026-11-15)
 - Legionella på webben: raden med intervall, temperatur och Spara bryts nu på smala skärmar (knappen hamnade utanför
   kortet med stor text på mobil), och "dygn" översätts i engelsk och tjeckisk vy.
