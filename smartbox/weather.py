@@ -15,9 +15,52 @@ DB_USER = os.environ.get("POSTGRES_USER")
 DB_PASS = os.environ.get("POSTGRES_PASSWORD")
 DB_NAME = os.environ.get("POSTGRES_DB")
 
-# 🌍 Koordinater för Taberg
-LATITUDE  = 57.6797
-LONGITUDE = 14.1293
+# Hemmets position: väderprognosen (moln -> solprognos) och bilarnas avstånd hem (GPS-hemkomst) räknas härifrån.
+# Var hårdkodad till en ort i Småland för alla installationer, och låg 1,77 km från Emils egen hemzon - båda bilarna såg
+# ut att vara "på väg hem" när de stod hemma (2026-11-15). Ordning: HOME_LATITUDE/HOME_LONGITUDE (miljö eller
+# inställning) -> Home Assistants zone.home -> reservvärdet nedan (bara om inget annat finns, varnar en gång).
+_FALLBACK_LAT, _FALLBACK_LON = 57.6797, 14.1293
+LATITUDE, LONGITUDE = _FALLBACK_LAT, _FALLBACK_LON
+LOCATION_SOURCE = "reserv"
+
+
+def _valid(lat, lon):
+    try:
+        lat, lon = float(lat), float(lon)
+    except (TypeError, ValueError):
+        return None
+    return (lat, lon) if -90 <= lat <= 90 and -180 <= lon <= 180 and (lat, lon) != (0.0, 0.0) else None
+
+
+def refresh_location():
+    """Uppdaterar LATITUDE/LONGITUDE. Anropas när HA:s tillstånd lästs in; billig, kan anropas varje varv."""
+    global LATITUDE, LONGITUDE, LOCATION_SOURCE
+    pos, src = None, None
+    try:
+        import ew_settings
+        pos = _valid(os.environ.get("HOME_LATITUDE") or ew_settings.get("home_latitude"),
+                     os.environ.get("HOME_LONGITUDE") or ew_settings.get("home_longitude"))
+        src = "inställning" if pos else None
+    except Exception:
+        pos = _valid(os.environ.get("HOME_LATITUDE"), os.environ.get("HOME_LONGITUDE"))
+        src = "inställning" if pos else None
+    if not pos:
+        try:
+            import homeassistant
+            pos = _valid(homeassistant._get_numeric_attribute("zone.home", "latitude"),
+                         homeassistant._get_numeric_attribute("zone.home", "longitude"))
+            src = "zone.home" if pos else None
+        except Exception:
+            pos = None
+    if pos:
+        if (pos, src) != ((LATITUDE, LONGITUDE), LOCATION_SOURCE):
+            print(f"📍 Hemmets position hämtad från {src}.")
+        LATITUDE, LONGITUDE, LOCATION_SOURCE = pos[0], pos[1], src
+    elif LOCATION_SOURCE == "reserv" and not getattr(refresh_location, "_warned", False):
+        refresh_location._warned = True
+        print("⚠️ Hemmets position okänd (ingen zone.home i Home Assistant, ingen HOME_LATITUDE/HOME_LONGITUDE) - "
+              "väderprognos och GPS-hemkomst använder ett reservläge som kan vara långt från huset.")
+    return LATITUDE, LONGITUDE
 
 # SMHI rapporterar åska som en sannolikhet i procent (parametern "tstm").
 # Över denna gräns betraktar vi det som åska.
@@ -61,9 +104,13 @@ def _add_precip_column():
 # och HA:s SMHI-integration var 'unavailable'. Vi hämtar därför prognosen direkt från
 # Open-Meteo (gratis, ingen API-nyckel, aktivt underhållen). DB-schema och publika
 # funktioner är oförändrade.
+def open_meteo_url():
+    return OPEN_METEO_URL.format(lat=LATITUDE, lon=LONGITUDE)
+
+
 OPEN_METEO_URL = (
     "https://api.open-meteo.com/v1/forecast"
-    f"?latitude={LATITUDE}&longitude={LONGITUDE}"
+    "?latitude={lat}&longitude={lon}"
     "&hourly=temperature_2m,cloudcover,windspeed_10m,winddirection_10m,"
     "precipitation,precipitation_probability,weathercode"
     "&forecast_days=3&timezone=UTC&windspeed_unit=ms"
@@ -81,7 +128,7 @@ def update_forecast():
     """
     try:
         _add_precip_column()
-        response = requests.get(OPEN_METEO_URL, timeout=15)
+        response = requests.get(open_meteo_url(), timeout=15)
         if response.status_code != 200:
             # Ett enstaka svar utan prognos är tillfälligt (nästa försök brukar gå) - motorn larmar själv efter två
             # missar i rad, så det här är en varning, inte ett fel som telemetrin ska rapportera (#133)

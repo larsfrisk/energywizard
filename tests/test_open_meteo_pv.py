@@ -92,6 +92,32 @@ def test_worker_only_uses_explicit_comparison_model(monkeypatch):
     assert 'token' not in captured[0]['pv_model']
 
 
+def test_default_worker_combines_optional_history_learning_and_pv(monkeypatch):
+    import battery_shadow as B, shadow
+    monkeypatch.setattr(shadow,'active',lambda:True)
+    monkeypatch.setattr(B.time,'time',lambda:NOW.timestamp())
+    captured=[];learned=[];done=Event()
+    def learner(settings, as_of):
+        learned.append(as_of)
+        return {'use':{'solar_factor':{NOW.hour:.8}}}
+    def planner(event):
+        captured.append(event);done.set()
+    evaluator=B.Evaluator(learner,planner)
+    monkeypatch.setattr(B,'Evaluator',lambda:evaluator)
+    monitor=B.Monitor()
+    monitor._pv=P.Forecast(lambda c:payload(),clock=lambda:NOW.timestamp())
+    settings=dict(control='samarbete',plan=True,capacity_kwh=10)
+    assert monitor.submit({'enabled':True,'allowed_intents':['auto'],
+                           'learn_from_history':True,'pv_model':CONFIG},
+                          settings,{'soc_pct':50},{},now=NOW,shadow=True)
+    assert done.wait(2)
+    assert learned==[NOW]
+    assert captured[0]['settings']['solar_factor']=={NOW.hour:.8}
+    assert captured[0]['settings']['comparison_learning']=={'state':'learned','age_s':0}
+    assert captured[0]['pv_forecast']['periods'][0][2]==2000
+    assert 'solar_factor' not in settings
+
+
 def test_real_candidate_uses_pv_periods_keeps_gaps_and_rejects_active_override(db, monkeypatch, tmp_path):
     import battery_plan, ew_settings, ha_solar_forecast, learning, nordpool, plan_snapshot, weather
     from sqlalchemy import create_engine
@@ -111,7 +137,8 @@ def test_real_candidate_uses_pv_periods_keeps_gaps_and_rejects_active_override(d
     monkeypatch.setattr(plan_snapshot,'capture',capture)
     forecast={'state':'partial','periods':P.parse(payload((500,None),now),P.configuration(CONFIG)), 'fetched_at':now.timestamp()}
     engine=create_engine('postgresql+psycopg://postgres:test@localhost/smartbox_test')
-    settings=dict(capacity_kwh=10,reserve_soc=20,max_soc=90,max_power_w=1000)
+    settings=dict(capacity_kwh=10,reserve_soc=20,max_soc=90,max_power_w=1000,
+                  comparison_learning={'state':'learned','age_s':0})
     try:
         with pytest.raises(ValueError):battery_plan.plan_from_db(engine,now,50,settings,{}, {'auto'},pv_forecast=forecast)
         result=battery_plan.plan_from_db(engine,now,50,settings,{}, {'auto'},comparison=True,pv_forecast=forecast)
@@ -119,5 +146,7 @@ def test_real_candidate_uses_pv_periods_keeps_gaps_and_rejects_active_override(d
         assert result['input_quality']['pv_model']['coverage']==.5
         assert result['input_quality']['solar']=={'source':'mixed','coverage':.5}
         assert 'latitude' not in plan_snapshot.canonical(snapshots[0])
+        assert snapshots[0]['input_quality']['learning']=={'source':'ew_history','state':'learned','age_s':0}
+        assert snapshots[0]['input_quality']['pv_model']['coverage']==.5
         assert plan_snapshot.replay(snapshots[0])['matches'] and not result['control_ready']
     finally:engine.dispose()

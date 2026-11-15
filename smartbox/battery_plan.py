@@ -555,6 +555,10 @@ def plan_from_db(engine, now, soc_pct, settings, base_profile, supported, *, soc
         quality["pv_model"] = {"source": "open_meteo_pv", "state": state if state in {"ready","partial","unavailable","invalid_config"} else "unavailable",
                                "coverage": round(count/n,3), "fetched_at": pv_forecast.get("fetched_at"), "timestamp_basis": "host_receipt"}
     if comparison:
+        evidence = settings.get("comparison_learning") or {}
+        if evidence.get("state") in {"learned", "insufficient", "unavailable"}:
+            quality["learning"] = {"source": "ew_history", "state": evidence["state"], "age_s": evidence.get("age_s")}
+    if comparison:
         r["plan_id"] = plan_snapshot.capture(slots, params, r, now, quality=quality, purpose="cooperative_shadow")
     else:
         r["plan_id"] = plan_snapshot.capture(slots, params, r, now, quality=quality)

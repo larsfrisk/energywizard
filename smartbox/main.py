@@ -13,6 +13,7 @@ import pump      # Styr värmepumpen och läser dess sensorer
 import logger    # Sparar logg till databas (varje minut)
 import settings  # Hanterar konfigurationsinställningar
 import weather   # Hämtar och cachelagrar väderprognos inkl. solprognos
+import gps_home  # bilens hemkomst ur GPS (approaching)
 import homeassistant    # Hämtar data från Home Assistant (temperaturer + Easee-laddare)
 import notifier         # Skickar push-notiser till Emil
 import energy_balance   # Husets energibalans (solgolv ur exporten, rimlig batterieffekt)
@@ -72,7 +73,7 @@ ev_allocations = {}
 
 # Tracker-state för GPS Hemkomst
 from collections import defaultdict as _dd
-ev_gps_state = _dd(lambda: {'prev_dist': 999.0, 'approaching': False})   # per bil (installationens id)
+ev_gps_state = _dd(lambda: {'prev_dist': None, 'approaching': False, 'closer_at': None})   # per bil (installationens id)
 
 def calc_distance(lat1, lon1, lat2, lon2):
     if None in (lat1, lon1, lat2, lon2): return 999.0
@@ -916,6 +917,7 @@ while True:
         # 🏃 SNABB TASK – var 10:e sekund
         # ============================================================
         homeassistant.update_states()
+        weather.refresh_location()       # hemmets position ur zone.home/inställning (väder + GPS-hemkomst)
 
         _trip_grid = {}
         tibber = homeassistant.read_power_meter()
@@ -1344,16 +1346,13 @@ while True:
                 lat = trackers.get(f'{car}_lat')
                 lon = trackers.get(f'{car}_lon')
                 dist = calc_distance(weather.LATITUDE, weather.LONGITUDE, lat, lon)
-                
-                if 0.5 < dist < 15.0 and dist < ev_gps_state[car]['prev_dist'] - 0.2:
-                    if not ev_gps_state[car]['approaching']:
-                        ev_gps_state[car]['approaching'] = True
-                        print(f"📍 GPS: {CAR_SPECS.get(car, {}).get('name', car)} närmar sig hemmet! (Avstånd: {dist:.1f} km). Förallokerar.")
-                        force_ev_plan_recalc = True
-                elif dist <= 0.5 or dist >= 15.0 or ev_connection_state[car]['connected']:
-                    ev_gps_state[car]['approaching'] = False
-                    
-                ev_gps_state[car]['prev_dist'] = dist
+                _g = ev_gps_state[car]
+                _app, _g['closer_at'], _g['prev_dist'] = gps_home.approaching(
+                    _g['approaching'], dist, _g['prev_dist'], _g['closer_at'], ev_connection_state[car]['connected'], now)
+                if _app and not _g['approaching']:
+                    print(f"📍 GPS: {CAR_SPECS.get(car, {}).get('name', car)} närmar sig hemmet! (Avstånd: {dist:.1f} km). Förallokerar.")
+                    force_ev_plan_recalc = True
+                _g['approaching'] = _app
                 
                 if ev_gps_state[car]['approaching']:
                     ai_thoughts.append(f"📍 GPS: {CAR_SPECS.get(car, {}).get('name', car)} närmar sig hemmet ({dist:.1f} km bort). För-allokerar.")
@@ -2070,6 +2069,7 @@ while True:
                 gpm_state.update({
                     f'{_c}_soc': car_soc.get(_c),
                     f'{_c}_connected': ev_connection_state[_c]['connected'] or ev_gps_state[_c]['approaching'],
+                    f'{_c}_plugged': ev_connection_state[_c]['connected'],     # faktiskt inkopplad (utan GPS-förallokering)
                     f'{_c}_charge_completed': ev_connection_state[_c]['charge_completed'],
                     f'{_c}_phases': (car_charger_data.get(_c) or {}).get('phases'),
                     f'{_c}_habit_profile': _cached_ev_profiles.get(_c, {}),

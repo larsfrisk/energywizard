@@ -2674,5 +2674,10 @@
   "Faktor vid positivt spotpris": "Koeficient pro kladné spotové ceny",
   "Faktor vid negativt spotpris": "Koeficient pro záporné spotové ceny",
   "Faktorerna gäller spotdelen. Tillägget läggs på efteråt. Fast säljpris påverkas inte.": "Koeficienty se vztahují na spotovou složku. Příplatek se přičítá následně. Pevné výkupní ceny zůstávají beze změny.",
-  "Ogiltig faktor för såld el": "Neplatný koeficient výkupní ceny"
+  "Ogiltig faktor för såld el": "Neplatný koeficient výkupní ceny",
+  "Prio {p} (BATTERISKYDD): {name} måste ladda {m} min i sträck för att skydda kontaktorerna. Tvingar fram {a}A. (Kört {r}/{t} min).": "Prio {p} (OCHRANA BATERIE): {name} musí nabíjet {m} min v kuse, aby se chránily stykače. Vynucuji {a}A. (Běží {r}/{t} min).",
+  "Prio {p} (BATTERISKYDD): {name} måste ladda {m} min i sträck för att skydda kontaktorerna. Tvingar fram {a}A. (Kört {r}/{t} min": "Prio {p} (OCHRANA BATERIE): {name} musí nabíjet {m} min v kuse, aby se chránily stykače. Vynucuji {a}A. (Běží {r}/{t} min",
+  "Hemmets position hämtad från inställning.": "Poloha domova převzata z nastavení.",
+  "Hemmets position hämtad från zone.home.": "Poloha domova převzata ze zone.home.",
+  "Hemmets position okänd (ingen zone.home i Home Assistant, ingen HOME_LATITUDE/HOME_LONGITUDE) - väderprognos och GPS-hemkomst använder ett reservläge som kan vara långt från huset.": "Poloha domova není známa (v Home Assistantu chybí zone.home, není nastaveno HOME_LATITUDE/HOME_LONGITUDE) - předpověď počasí a GPS návrat domů používají náhradní polohu, která může být daleko od domu."
 }

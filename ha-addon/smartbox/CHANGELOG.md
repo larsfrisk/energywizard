@@ -1,5 +1,21 @@
 # Ändringar
 
+## 1.2.101 (2026-11-15)
+- **Laddplanen hoppade över billiga kvartar på dagen** (#438). Alla kvartar 07-20 fick ett påslag på 1,50 kr/kWh i planens
+  rangordning, även på helger och med effektvakten avstängd. En söndag valdes därför natten för ca 1,00 kr före 13:30
+  för 0,90 kr. Påslaget gäller nu bara effekttariffens höglasttid (inställd eller standard) när effektvakten är på.
+  Kvartarna jämförs också med tidstariffen inräknad, när en sådan är inställd.
+- **Solladdning med okänt fasläge gav nätköp** (#439). Easee-laddboxens fasläge går inte att läsa, och efter en omstart var
+  det okänt. Solladdningen räknade då ström för 1 fas medan laddboxen körde 3 faser, och bilen drog tre gånger mer än
+  solen gav. Okänt fasläge räknas nu som 3 faser, så att motorn växlar till 1 fas innan den ger 1-fasström.
+- **Hemmets position var hårdkodad** (#440) till en ort i Småland för alla installationer. Den styr väderprognosen (moln och
+  därmed solprognos) och bilarnas avstånd hem. Positionen hämtas nu från Home Assistants `zone.home`, eller från
+  `HOME_LATITUDE`/`HOME_LONGITUDE` om de är satta.
+- **GPS-hemkomsten** räknade första avläsningen efter en omstart som "på väg hem", och släppte aldrig flaggan för en bil
+  som stod still. Nu krävs ett verkligt närmande, och flaggan släpper efter 10 minuter utan närmande.
+- **Kontaktorskyddet** (30 minuters laddning efter start) gäller bara bilar som sitter i laddaren, inte en som är på
+  väg hem. Loggraden använder bilens namn.
+
 ## 1.2.100 (2026-11-15)
 - Kompressorlåsets klockslag i loggen visas nu i husets tid (prisområdets tidszon). I 1.2.99 stod det fortfarande i
   UTC eftersom motorns container kör UTC.
