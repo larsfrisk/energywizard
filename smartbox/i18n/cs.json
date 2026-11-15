@@ -2742,5 +2742,6 @@
   "Ordningen ska innehålla varje last en gång": "Pořadí musí obsahovat každou zátěž jednou",
   "Sparat - gäller från nästa beslut": "Uloženo - platí od dalšího rozhodnutí",
   "Prio # (SOLAR EV): Överskottet går först till {load} (ordningen för överskott).": "Prio # (SOLAR EV): Přebytek jde nejdřív do {load} (pořadí pro přebytek).",
-  "Solöverskottet går till {load} före batteriet (ordningen för överskott), batteriet har {soc} %.": "Solární přebytek jde do {load} před baterií (pořadí pro přebytek), baterie má {soc} %."
+  "Solöverskottet går till {load} före batteriet (ordningen för överskott), batteriet har {soc} %.": "Solární přebytek jde do {load} před baterií (pořadí pro přebytek), baterie má {soc} %.",
+  "Givaren {label} är EnergyWizards egen publicerade sensor - räknas inte in i innetemperaturen. Välj bort den bland rumsgivarna.": "Senzor {label} je vlastní publikovaný senzor EnergyWizardu - nepočítá se do vnitřní teploty. Odeberte ho z pokojových senzorů."
 }

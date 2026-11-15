@@ -879,8 +879,8 @@ async def sensors_get(request: Request):
     temps, hums = [], []
     for st in states:
         e, a = st.get("entity_id", ""), st.get("attributes") or {}
-        if not e.startswith("sensor."):
-            continue
+        if not e.startswith("sensor.") or homeassistant.is_own_entity(e):
+            continue                 # EnergyWizards egna publicerade sensorer (t.ex. sensor.smartbox_inomhustemp) är inga mätvärden
         name = a.get("friendly_name") or e
         try:
             val = float(st.get("state"))

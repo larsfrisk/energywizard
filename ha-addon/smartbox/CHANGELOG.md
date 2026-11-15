@@ -1,5 +1,11 @@
 # Ändringar
 
+## 1.2.112 (2026-11-15)
+- **Innetemperaturen läste sitt eget värde.** EnergyWizards egen publicerade sensor `sensor.smartbox_inomhustemp`
+  föreslogs som rumsgivare (namnet innehåller "inomhus") och kunde väljas. Medianen läste då sitt eget gamla värde och
+  fastnade, hos oss på 21,1 °C i tre timmar medan rummen svalnade. EnergyWizards egna entiteter räknas nu aldrig in i
+  inne- eller fukttemperaturen och föreslås inte längre i givarvalet.
+
 ## 1.2.111 (2026-11-15)
 - **Ordning för solöverskott (#430)**, på webbens Solceller-sida (förslag från Emlben, #420): husbatteri, elbil,
   spabad, varmvatten och huset i den ordning man vill. En last längre ned startar bara när ingen last ovanför vill ha

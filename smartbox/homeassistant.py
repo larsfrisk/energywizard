@@ -73,10 +73,28 @@ def is_outdoor_sensor(entity: str | None, label: str | None = None, outdoor_enti
     return bool(OUTDOOR_HINT.search(f"{entity or ''} {label or ''}"))
 
 
+_PUBLISHED: set = set()          # entiteter EnergyWizard själv publicerar (publish_states)
+_self_skip_warned: set = set()
+
+
+def is_own_entity(entity) -> bool:
+    """Publicerar EnergyWizard den här entiteten själv? Då får den aldrig läsas tillbaka som mätvärde (2026-11-15:
+    sensor.smartbox_inomhustemp låg bland rumsgivarna; medianen läste sitt eget gamla värde och fastnade på 21,1 °C
+    medan rummen svalnade)."""
+    e = str(entity or "")
+    return e in _PUBLISHED or e.startswith("sensor.smartbox_")
+
+
 def indoor_sensors() -> list:
     out = []
     cfg = sensor_config()
     for i, s in enumerate(cfg.get("indoor") or [], start=1):
+        if isinstance(s, dict) and is_own_entity(s.get("entity")):
+            if s["entity"] not in _self_skip_warned:
+                print(f"⚠️ Givaren {s.get('label') or s['entity']} är EnergyWizards egen publicerade sensor - räknas inte in i "
+                      "innetemperaturen. Välj bort den bland rumsgivarna.")
+                _self_skip_warned.add(s["entity"])
+            continue
         if isinstance(s, dict) and s.get("entity") and is_outdoor_sensor(s.get("entity"), s.get("label"), cfg.get("outdoor")):
             if s["entity"] not in _outdoor_skip_warned:
                 print(f"⚠️ Givaren {s.get('label') or s['entity']} är vald som innegivare men är en utegivare - räknas inte in i innetemperaturen.")
@@ -215,6 +233,7 @@ def publish_states(entities: dict):
     """Publicerar smartbox-värden som sensorer i HA (POST /api/states/<entity_id>) så de kan visas i dashboarden.
     entities = {entity_id: (state, attributes)}. Sensorerna är icke-persistenta (finns tills HA startas om) och
     uppdateras varje minut. Körs i egen tråd; avbryter vid första fel så att en nedstängd HA aldrig hindrar något."""
+    _PUBLISHED.update(entities.keys())
     for entity_id, (state, attrs) in entities.items():
         if state is None:
             continue
@@ -373,7 +392,7 @@ def read_temperatures():
 
 def read_humidities():
     """Luftfuktighet (%) per innegivare som har en fuktentitet, samma nycklar som read_temperatures."""
-    return {s["key"]: _get_numeric_state(s["humidity"]) for s in indoor_sensors() if s.get("humidity")}
+    return {s["key"]: _get_numeric_state(s["humidity"]) for s in indoor_sensors() if s.get("humidity") and not is_own_entity(s["humidity"])}
 
 # Fasläge: HA:s Easee-integration (0.9.74, efter HA-uppdateringen 2026-10-14) har inga select-entiteter längre (select.*_allowed_charging_phases finns inte),
 # så fasläget går inte att läsa. Vi minns det senast satta värdet per laddare; utan minne (efter omstart) returneras None (okänt).

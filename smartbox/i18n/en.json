@@ -2742,5 +2742,6 @@
  "Ordningen ska innehålla varje last en gång": "The order must contain each load once",
  "Sparat - gäller från nästa beslut": "Saved - applies from the next decision",
  "Prio # (SOLAR EV): Överskottet går först till {load} (ordningen för överskott).": "Prio # (SOLAR EV): The surplus goes to {load} first (order for surplus).",
- "Solöverskottet går till {load} före batteriet (ordningen för överskott), batteriet har {soc} %.": "The solar surplus goes to {load} before the battery (order for surplus), the battery is at {soc} %."
+ "Solöverskottet går till {load} före batteriet (ordningen för överskott), batteriet har {soc} %.": "The solar surplus goes to {load} before the battery (order for surplus), the battery is at {soc} %.",
+ "Givaren {label} är EnergyWizards egen publicerade sensor - räknas inte in i innetemperaturen. Välj bort den bland rumsgivarna.": "The sensor {label} is EnergyWizard's own published sensor - it is not counted in the indoor temperature. Remove it from the room sensors."
 }
