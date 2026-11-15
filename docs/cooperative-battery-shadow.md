@@ -82,3 +82,8 @@ the [recorded-input audit](migration-plan-comparison.md). Its readiness flags st
 false: forecasts, timestamps, horizons and policies may still differ. This change
 was tested with synthetic inputs and an isolated database; it does not enable live
 capture, deploy EW, qualify control, or establish economic/physical equivalence.
+
+## Optional PV comparison input
+
+See [the Open-Meteo PV comparison model](comparison-open-meteo-pv.md) for an
+explicit, default-off irradiance input. It does not change active planning.
