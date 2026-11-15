@@ -251,7 +251,18 @@ def battery_settings(cfg: dict) -> dict:
         except (TypeError, ValueError):
             v = None
         return d if v is None or v != v or (positive and v <= 0) else v
-    return {"control": control if bat.get("enabled") else "av", "reserve_soc": f("reserve_soc", 20.0),
+    directional = {}
+    keys = ("charge_efficiency", "discharge_efficiency")
+    if any(bat.get(k) not in (None, "") for k in keys):
+        from battery_efficiency import resolve
+        try:
+            if any(isinstance(bat.get(k), bool) for k in keys):
+                raise ValueError()
+            directional = {k: float(bat[k]) for k in keys}
+            resolve(0.9, **directional)
+        except (KeyError, TypeError, ValueError, OverflowError):
+            raise ValueError("Configure both battery directional efficiencies in (0, 1]") from None
+    return {**directional, "control": control if bat.get("enabled") else "av", "reserve_soc": f("reserve_soc", 20.0),
             "priority_soc": f("priority_soc", 50.0), "max_soc": f("max_soc", 100.0, True),
             "max_power_w": f("max_power_w", 5000.0, True),
             # Växelriktarens faser (1 eller 3): hur nätladdningen fördelas mot säkringen (#399)

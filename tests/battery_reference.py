@@ -6,7 +6,7 @@ Actions choose full rated charge/discharge, self-consumption, solar-only absorpt
 or zero. Integrate continuous stored energy; no production grid recurrence.
 """
 from itertools import product
-from math import sqrt
+from math import sqrt, isfinite
 
 ACTIONS = ('auto', 'hold', 'idle', 'charge', 'discharge')
 
@@ -14,7 +14,12 @@ ACTIONS = ('auto', 'hold', 'idle', 'charge', 'discharge')
 def score(slots, actions, p):
     if len(actions) != len(slots):
         raise ValueError('One action per slot required')
-    eta = sqrt(p.get('eff', 0.9))
+    charge_eta, discharge_eta = p.get('charge_efficiency'), p.get('discharge_efficiency')
+    if charge_eta is None and discharge_eta is None:
+        charge_eta = discharge_eta = sqrt(p.get('eff', 0.9))
+    elif any(isinstance(v, bool) or not isinstance(v, (int, float)) or not isfinite(v) or not 0 < v <= 1
+             for v in (charge_eta, discharge_eta)):
+        raise ValueError('Invalid directional efficiencies')
     energy = p['soc0_kwh']
     lo = max(0, p['reserve_kwh'])
     hi = min(p['capacity_kwh'], p['max_kwh'])
@@ -40,13 +45,13 @@ def score(slots, actions, p):
                 watts = 0
         before = energy
         if watts >= 0:
-            added = min(watts*0.25*eta, max(0, hi-energy))
+            added = min(watts*0.25*charge_eta, max(0, hi-energy))
             energy += added
-            watts = added/(0.25*eta)
+            watts = added/(0.25*charge_eta)
         else:
-            removed = min(-watts*0.25/eta, max(0, energy-lo))
+            removed = min(-watts*0.25/discharge_eta, max(0, energy-lo))
             energy -= removed
-            watts = -removed*eta/0.25
+            watts = -removed*discharge_eta/0.25
         # Initial out-of-bounds energy may stay there but cannot get worse.
         if energy < min(lo, before)-1e-9 or energy > max(hi, before)+1e-9:
             raise ValueError('Energy constraint violated')
@@ -62,7 +67,7 @@ def score(slots, actions, p):
         rows.append({'energy': energy, 'power': watts, 'grid': grid})
         previous, direction = action, new_direction or direction
     prices = sorted(s['buy'] for s in slots)
-    terminal_rate = prices[min(len(prices)-1, int(len(prices)*p.get('terminal_pct', 25)/100))]*eta
+    terminal_rate = prices[min(len(prices)-1, int(len(prices)*p.get('terminal_pct', 25)/100))]*discharge_eta
     return cost-energy*terminal_rate, rows
 
 

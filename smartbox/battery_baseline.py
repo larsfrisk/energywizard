@@ -18,7 +18,8 @@ MIN_COVERAGE = 0.8          # minst så stor del av dygnets kvartar för att dyg
 QUARTERS_PER_DAY = 96
 
 
-def compare(slots, soc0_kwh, capacity_kwh, reserve_kwh, max_kwh, charge_kw, discharge_kw, eff):
+def compare(slots, soc0_kwh, capacity_kwh, reserve_kwh, max_kwh, charge_kw, discharge_kw, eff, *,
+            charge_efficiency=None, discharge_efficiency=None):
     """Faktisk kostnad mot självförbrukning för samma kvartar. slots: t, grid_kw, solar_kw, battery_kw, buy, sell."""
     actual, sim = 0.0, []
     for s in slots:
@@ -27,7 +28,8 @@ def compare(slots, soc0_kwh, capacity_kwh, reserve_kwh, max_kwh, charge_kw, disc
         sim.append({"t": s["t"], "load_kw": s["grid_kw"] + s["solar_kw"] - s["battery_kw"], "solar_kw": s["solar_kw"],
                     "buy": s["buy"], "sell": s["sell"]})
     selfuse, _ = battery_plan.simulate(sim, soc0_kwh, ["auto"] * len(sim), capacity_kwh, reserve_kwh, max_kwh,
-                                       charge_kw, discharge_kw, eff)
+                                       charge_kw, discharge_kw, eff,
+                                       charge_efficiency=charge_efficiency, discharge_efficiency=discharge_efficiency)
     return {"actual": round(actual, 2), "selfuse": round(selfuse, 2), "saved": round(selfuse - actual, 2),
             "quarters": len(slots)}
 
@@ -75,7 +77,8 @@ def periods(conn, cfg, today: date, tz):
         slots, soc0 = day_slots(conn, d, tz)
         need = QUARTERS_PER_DAY * MIN_COVERAGE if d < today else 4
         if slots and soc0 is not None and len(slots) >= need:
-            r = compare(slots, cap * soc0 / 100.0, cap, reserve, max_kwh, pc, pd, eff)
+            r = compare(slots, cap * soc0 / 100.0, cap, reserve, max_kwh, pc, pd, eff,
+                        charge_efficiency=cfg.get("charge_efficiency"), discharge_efficiency=cfg.get("discharge_efficiency"))
             r["partial"] = len(slots) < QUARTERS_PER_DAY * 0.98 and d < today
             days[d] = r
         d += timedelta(days=1)

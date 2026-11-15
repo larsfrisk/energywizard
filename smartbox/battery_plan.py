@@ -23,6 +23,7 @@ Ren modul utan I/O, testas i tests/test_battery_plan.py. main.py bygger indata o
 """
 
 import math
+from battery_efficiency import resolve as resolve_efficiencies
 
 import battery_learning
 
@@ -141,9 +142,10 @@ def _cost(grid_kw, buy, sell):
 
 
 def simulate(slots, soc0, actions, capacity, reserve, max_kwh, pc, pd, eff, cycle_cost=0.0,
-             charge_wear_cost_sek_per_kwh=0.0, discharge_wear_cost_sek_per_kwh=0.0):
+             charge_wear_cost_sek_per_kwh=0.0, discharge_wear_cost_sek_per_kwh=0.0, *,
+             charge_efficiency=None, discharge_efficiency=None):
     """Kör en given avsiktsserie och returnerar (kostnad, rader). Används för baslinjen."""
-    eff_c = eff_d = math.sqrt(eff)
+    eff_c, eff_d = resolve_efficiencies(eff, charge_efficiency, discharge_efficiency)
     soc, cost, rows = soc0, 0.0, []
     for s, a in zip(slots, actions):
         net = s["load_kw"] + s.get("ev_kw", 0.0) - s.get("solar_kw", 0.0)
@@ -167,7 +169,8 @@ def optimize(slots, soc0_kwh, capacity_kwh, reserve_kwh, max_kwh, charge_kw, dis
              eff=0.9, allowed=ACTIONS, step_kwh=None, switch_cost=0.10, cycle_cost=0.0,
              terminal_pct=25, allow_export=True, charge_wear_cost_sek_per_kwh=0.0,
              discharge_wear_cost_sek_per_kwh=0.0, reversal_cost_sek=0.0, ev_mode="block",
-             balance_target_kwh=0.0, balance_hold_slots=0, balance_deadline_slots=0):
+             balance_target_kwh=0.0, balance_hold_slots=0, balance_deadline_slots=0,
+             charge_efficiency=None, discharge_efficiency=None):
     """ev_mode: vad batteriet får göra medan elbilen laddar - "block" (ladda inte ur alls, som förut),
     "offload" (Martins förslag 2026-11-07: täck bara husets egen förbrukning, aldrig bilen) eller "free" (även bilen).
     slots: [{'t', 'buy', 'sell', 'load_kw', 'solar_kw', 'ev_kw'}] (kvartar, i tidsordning).
@@ -206,7 +209,7 @@ def optimize(slots, soc0_kwh, capacity_kwh, reserve_kwh, max_kwh, charge_kw, dis
     if balancing and (not isinstance(deadline, int) or deadline < 1):
         raise ValueError("Invalid balancing deadline")
     P *= Q
-    eff_c = eff_d = math.sqrt(eff)
+    eff_c, eff_d = resolve_efficiencies(eff, charge_efficiency, discharge_efficiency)
     step = step_kwh or max(0.05, capacity_kwh / 100.0)
     lo, hi = max(0.0, reserve_kwh), min(capacity_kwh, max_kwh)
     n_states = int(round(capacity_kwh / step)) + 1
@@ -334,7 +337,8 @@ def optimize(slots, soc0_kwh, capacity_kwh, reserve_kwh, max_kwh, charge_kw, dis
         last_direction = direction or last_direction
         i, prev = nxt, (k * 3 + last_direction if track_direction else k) * Q + next_phase
     base_cost, base_rows = simulate(slots, soc0_kwh, ["auto"] * len(slots), capacity_kwh, lo, hi, charge_kw, discharge_kw, eff, cycle_cost,
-                                    charge_wear_cost_sek_per_kwh, discharge_wear_cost_sek_per_kwh)
+                                    charge_wear_cost_sek_per_kwh, discharge_wear_cost_sek_per_kwh,
+                                    charge_efficiency=charge_efficiency, discharge_efficiency=discharge_efficiency)
     # Rättvis jämförelse: värdera energin kvar vid slutet lika i båda.
     end_plan = rows[-1]["soc_kwh"] if rows else soc0_kwh
     end_base = base_rows[-1]["soc_kwh"] if base_rows else soc0_kwh
@@ -499,6 +503,7 @@ def plan_from_db(engine, now, soc_pct, settings, base_profile, supported, *, soc
                   charge_kw=schedule_kw,
                   discharge_kw=battery_learning.planning_kw(settings, "discharge"),
                   eff=settings.get("efficiency", 0.9), allowed=tuple(supported),
+                  charge_efficiency=settings.get("charge_efficiency"), discharge_efficiency=settings.get("discharge_efficiency"),
                   cycle_cost=settings.get("cycle_cost", 0.30), terminal_pct=terminal_pct,
                   allow_export=allow_export,
                   charge_wear_cost_sek_per_kwh=settings.get("charge_wear_cost_sek_per_kwh", 0.0),

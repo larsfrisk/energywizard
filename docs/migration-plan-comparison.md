@@ -34,7 +34,7 @@ Old EW captures do not need the current planner hash because no replay is execut
 | PV forecast | `solar_kw` | `solar_kw` |
 | Capacity, energy bounds, rated powers | `params` | `objective_assumptions` |
 | Initial stored energy | `soc0_kwh` | `inputs.soc_pct × capacity / 100` |
-| Charge/discharge efficiency | square root of `eff` | separate efficiency assumptions |
+| Charge/discharge efficiency | explicit directional pair, otherwise square root of `eff` | separate efficiency assumptions |
 
 The serializer in the reviewed Zenai legacy planner rounds each load component
 and PV to two decimals and tariffs to four. Absolute comparison tolerances are
