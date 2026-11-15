@@ -1558,6 +1558,11 @@ async function mountPriceSettings() {
         </div>
       </details>
       <label style="display:flex;gap:8px;align-items:center;margin-top:10px"><input type="checkbox" id="psellvat"${d.sell_vat ? " checked" : ""}> Moms på såld el (oftast nej för privatpersoner)</label>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:8px">
+        ${field("psellfactor", "Faktor vid positivt spotpris", d.sell_factor ?? 1, "")}
+        ${field("psellnegativefactor", "Faktor vid negativt spotpris", d.sell_negative_factor ?? 1, "")}
+      </div>
+      <div class="note">Faktorerna gäller spotdelen. Tillägget läggs på efteråt. Fast säljpris påverkas inte.</div>
       <details id="ptoudetails" style="margin-top:12px"${d.tou_extra ? " open" : ""}><summary><b>Tidstariff</b> <span class="note">(dyrare nätavgift under höglasttid)</span></summary>
         <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:8px">
           ${field("ptou", `Tillägg under höglast (${sym}/kWh, inkl. moms)`, d.tou_extra || "", "0 eller tomt = ingen tidstariff")}
@@ -1653,6 +1658,7 @@ async function mountPriceSettings() {
           hdo_entity: v("phdo"), distribution_nt: v("pnt"), distribution_vt: v("pvt"),
           buy_nt: v("pbuynt"), buy_vt: v("pbuyvt"), hdo_price_source: v("phdopricesource"),
           sell_extra: v("psell"), sell_vat: document.getElementById("psellvat").checked,
+          sell_factor: v("psellfactor"), sell_negative_factor: v("psellnegativefactor"),
           tou_extra: v("ptou"), tou_hours: v("ptouh"), tou_months: v("ptoum"), tou_weekdays: document.getElementById("ptouwd").checked,
           power_high: { choice: v("phchoice"), hours: v("phh"), months: v("phm"), weekdays: document.getElementById("phwd").checked } });
         toast("Sparat - priser och kostnader räknas om inom en minut");

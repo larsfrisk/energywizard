@@ -2670,5 +2670,9 @@
   "Databas: Vädertabellen är redo": "Databáze: tabulka počasí je připravena",
   "Batteri: läge '{m}', styrbara lägen {x}": "Baterie: režim '{m}', ovladatelné režimy {x}",
   "°C högst:": "°C nejvýš:",
-  "Smartbox Måltemperatur": "Cílová teplota smartboxu"
+  "Smartbox Måltemperatur": "Cílová teplota smartboxu",
+  "Faktor vid positivt spotpris": "Koeficient pro kladné spotové ceny",
+  "Faktor vid negativt spotpris": "Koeficient pro záporné spotové ceny",
+  "Faktorerna gäller spotdelen. Tillägget läggs på efteråt. Fast säljpris påverkas inte.": "Koeficienty se vztahují na spotovou složku. Příplatek se přičítá následně. Pevné výkupní ceny zůstávají beze změny.",
+  "Ogiltig faktor för såld el": "Neplatný koeficient výkupní ceny"
 }
