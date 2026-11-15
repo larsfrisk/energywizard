@@ -110,10 +110,14 @@ def test_låst_i_annat_läge_ger_lägets_vanliga_temp():
     assert a["pump_mode"] == "EXPENSIVE" and a["pump_target_temp"] == 20.0
 
 
-def test_låsets_klockslag_visas_i_lokal_tid(monkeypatch):
+def test_låsets_klockslag_visas_i_husets_tid(monkeypatch):
+    # Containern kör UTC: klockslaget ska följa husets tidszon (prisområdet), inte processens TZ
     import time
-    monkeypatch.setenv("TZ", "Europe/Stockholm")
+    import zoneinfo
+    import nordpool
+    monkeypatch.setenv("TZ", "UTC")
     time.tzset()
+    monkeypatch.setattr(nordpool, "price_timezone", lambda: zoneinfo.ZoneInfo("Europe/Stockholm"))
     try:
         g = _locked("EXPENSIVE")      # låst till 13:30 UTC = 14:30 svensk vintertid
         a = g.evaluate({"now": NOW, "car_ids": [], "indoor_temp": 21.0, "indoor_min": 19.0, "indoor_max": 22.0,

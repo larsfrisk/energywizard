@@ -43,7 +43,11 @@ def _morgongolv(states):
     return False
 
 
-def test_samma_beslut_som_fore_ombyggnaden():
+def test_samma_beslut_som_fore_ombyggnaden(monkeypatch):
+    # Facit skrevs med låstider i UTC. Testet gäller besluten, så visningstiden låses till UTC (1.2.100 visar husets tid).
+    import zoneinfo
+    import nordpool
+    monkeypatch.setattr(nordpool, "price_timezone", lambda: zoneinfo.ZoneInfo("UTC"))
     expected = json.load(gzip.open(FIX, "rt", encoding="utf-8"))
     got = gen.run()
     assert len(got) == len(expected)

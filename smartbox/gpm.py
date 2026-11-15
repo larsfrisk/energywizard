@@ -233,9 +233,10 @@ def no_sensor_heat(mode, outdoor_c, cheap_t, expensive_t, lowered_since, recover
 
 
 def _local_hm(t):
-    """Klockslag i husets tid (TZ, svensk tid hos oss) - motorns now är UTC och loggen ska visa lokal tid."""
+    """Klockslag i husets tid (prisområdets tidszon, svensk tid hos oss). Motorns now är UTC och containern kör UTC,
+    så astimezone() utan zon räcker inte."""
     try:
-        return t.astimezone().strftime('%H:%M') if t.tzinfo else t.strftime('%H:%M')
+        return t.astimezone(nordpool.price_timezone()).strftime('%H:%M') if t.tzinfo else t.strftime('%H:%M')
     except Exception:
         return str(t)
 

@@ -1,10 +1,13 @@
 # Ändringar
 
+## 1.2.100 (2026-11-15)
+- Kompressorlåsets klockslag i loggen visas nu i husets tid (prisområdets tidszon). I 1.2.99 stod det fortfarande i
+  UTC eftersom motorns container kör UTC.
+
 ## 1.2.99 (2026-11-15)
 - **Rumsåterkopplingen slog inte igenom efter ett lägesbyte.** Kompressorskyddet (Prio 8) låser pumpen i dyrt eller
   billigt läge i 45-60 minuter efter ett byte, och skrev då tillbaka lägets vanliga börvärde över återkopplingens.
   Med återkopplingen på behålls nu dess börvärde när låset gäller samma läge som den räknade för.
-- Låsets klockslag i loggen visas i husets lokala tid i stället för UTC.
 
 ## 1.2.98 (2026-11-15)
 - **Värmepump via Home Assistant-entiteter: egna effektgivare** (#404). `heat_pump.entities.power_w` kan peka på en
