@@ -921,6 +921,16 @@ while True:
         homeassistant.update_states()
         weather.refresh_location()       # hemmets position ur zone.home/inställning (väder + GPS-hemkomst)
 
+        # Håll vid liv i 10-sekundersloopen, inte bara i kvartsstyrningen: Solis RC släpper efter sin RC Timeout
+        # (standard 5 min) och kvartsloopen hann inte före den - laddning/håll föll tillbaka till växelriktarens läge.
+        # Bara drivrutiner med keepalive_s (den självbegränsar); FTW:s vakthund sköts redan i kvartsstyrningen.
+        if (battery_cfg["control"] == "styr" and getattr(battery_driver, "_keepalive", None)
+                and _battery.get("decision_rule") not in battery_control.SAFETY_RULES):
+            try:
+                battery_driver.refresh()
+            except Exception as _bre:
+                print(f"⚠️ Batteriets håll-vid-liv hoppade över: {_bre}")
+
         _trip_grid = {}
         tibber = homeassistant.read_power_meter()
         if tibber is not None and not _bat_meter_freeze.update(tibber["net_power_w"], time.time()):
