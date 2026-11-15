@@ -22,6 +22,7 @@ Rena funktioner testas i tests/test_battery_learning.py; learn_from_db() läser 
 """
 
 import math
+from datetime import datetime
 
 MIN_SEGMENTS = 3            # minst så många laddnings- resp. urladdningspass innan verkningsgrad/kapacitet används
 MIN_SEGMENT_SOC = 5.0       # ett pass räknas om laddnivån ändrats minst så här många procent
@@ -294,30 +295,35 @@ def describe(model):
 
 # ---------------------------------------------------------------- databas (main.py)
 
-def learn_from_db(engine, configured, days=21):
+def learn_from_db(engine, configured, days=21, *, as_of=None):
     """Läser historiken och lär. Returnerar {'learned', 'use', 'saving_yesterday_kr'}."""
     from sqlalchemy import text
     import nordpool
+    if as_of is not None and (not isinstance(as_of, datetime) or as_of.utcoffset() is None):
+        raise ValueError("History cutoff requires an offset-aware datetime")
+    guard = " AND timestamp <= :cutoff" if as_of is not None else ""
+    forecast_guard = " AND f.made_at <= :cutoff AND f.t_slot + interval '15 minutes' <= :cutoff" if as_of is not None else ""
+    args = {"d": int(days), **({"cutoff": as_of} if as_of is not None else {})}
     with engine.connect() as c:
-        rows = c.execute(text("""SELECT extract(epoch FROM timestamp), battery_soc, battery_power_w, net_power, price
+        rows = c.execute(text(f"""SELECT extract(epoch FROM timestamp), battery_soc, battery_power_w, net_power, price
                                  FROM sensor_log WHERE timestamp > now() - make_interval(days => :d)
-                                   AND battery_soc IS NOT NULL ORDER BY timestamp"""), {"d": int(days)}).fetchall()
-        solar = c.execute(text("""SELECT extract(hour FROM timestamp AT TIME ZONE 'Europe/Stockholm')::int,
+                                   AND battery_soc IS NOT NULL {guard} ORDER BY timestamp"""), args).fetchall()
+        solar = c.execute(text(f"""SELECT extract(hour FROM timestamp AT TIME ZONE 'Europe/Stockholm')::int,
                                          avg(solar_forecast_w), avg(pv_power_w)
                                   FROM sensor_log WHERE timestamp > now() - make_interval(days => :d)
-                                    AND solar_forecast_w IS NOT NULL AND pv_power_w IS NOT NULL
-                                  GROUP BY date_trunc('hour', timestamp), 1"""), {"d": int(days)}).fetchall()
-        load = c.execute(text("""SELECT extract(isodow FROM h)::int - 1, extract(hour FROM h)::int, kw FROM (
+                                    AND solar_forecast_w IS NOT NULL AND pv_power_w IS NOT NULL {guard}
+                                  GROUP BY date_trunc('hour', timestamp), 1"""), args).fetchall()
+        load = c.execute(text(f"""SELECT extract(isodow FROM h)::int - 1, extract(hour FROM h)::int, kw FROM (
                                     SELECT date_trunc('hour', timestamp AT TIME ZONE 'Europe/Stockholm') AS h,
                                            avg(GREATEST(0, COALESCE(house_consumption_w, net_power + COALESCE(pv_power_w, 0)
                                                 - COALESCE(battery_power_w, 0))) / 1000.0
                                                - COALESCE(ev_power_kw, 0) - COALESCE(ev_carport_power_kw, 0)) AS kw
-                                    FROM sensor_log WHERE timestamp > now() - interval '28 days' GROUP BY 1) t"""
-                                 )).fetchall()
-        y = c.execute(text("""SELECT extract(epoch FROM timestamp), net_power, battery_power_w, price FROM sensor_log
+                                    FROM sensor_log WHERE timestamp > now() - interval '28 days' {guard} GROUP BY 1) t"""
+                                 ), args).fetchall()
+        y = c.execute(text(f"""SELECT extract(epoch FROM timestamp), net_power, battery_power_w, price FROM sensor_log
                               WHERE timestamp >= date_trunc('day', now() AT TIME ZONE 'Europe/Stockholm') AT TIME ZONE 'Europe/Stockholm' - interval '1 day'
                                 AND timestamp < date_trunc('day', now() AT TIME ZONE 'Europe/Stockholm') AT TIME ZONE 'Europe/Stockholm'
-                              ORDER BY timestamp""")).fetchall()
+                              {guard} ORDER BY timestamp"""), args).fetchall()
     f = lambda v: float(v) if v is not None else None
     samples = [(float(ts), f(soc), f(p)) for ts, soc, p, _, _ in rows]
     model = learn(samples, [(h, f(fc), f(a)) for h, fc, a in solar], configured)
@@ -331,14 +337,14 @@ def learn_from_db(engine, configured, days=21):
         yrows.append((dt, f(net), f(bat), f(price)))
     try:
         with engine.connect() as c:
-            pairs = c.execute(text("""SELECT f.load_kw, f.solar_kw, a.load_kw, a.solar_kw FROM battery_plan_forecast f JOIN (
+            pairs = c.execute(text(f"""SELECT f.load_kw, f.solar_kw, a.load_kw, a.solar_kw FROM battery_plan_forecast f JOIN (
                     SELECT date_trunc('hour', timestamp) + floor(extract(minute FROM timestamp) / 15) * interval '15 minutes' AS q,
                            avg(GREATEST(0, COALESCE(house_consumption_w, net_power + COALESCE(pv_power_w, 0)
                                 - COALESCE(battery_power_w, 0))) / 1000.0
                                - COALESCE(ev_power_kw, 0) - COALESCE(ev_carport_power_kw, 0)) AS load_kw,
                            avg(pv_power_w) / 1000.0 AS solar_kw
-                    FROM sensor_log WHERE timestamp > now() - interval '14 days' GROUP BY 1) a ON a.q = f.t_slot
-                WHERE f.t_slot > now() - interval '14 days' AND f.t_slot < now() - interval '15 minutes'""")).fetchall()
+                    FROM sensor_log WHERE timestamp > now() - interval '14 days' {guard} GROUP BY 1) a ON a.q = f.t_slot
+                WHERE f.t_slot > now() - interval '14 days' AND f.t_slot < now() - interval '15 minutes' {forecast_guard}"""), args).fetchall()
     except Exception:                      # tabellen finns först när en plan sparats
         pairs = []
     for kind, i in (("load", 0), ("solar", 1)):
