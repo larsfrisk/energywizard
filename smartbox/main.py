@@ -2112,6 +2112,7 @@ while True:
                 'solar_order': _ew_settings.get("solar_order"),           # #430: ordningen för solöverskottet
                 'spa_should_heat_now': spa_should_heat_now, 'away_mode_active': away_mode_enabled,
                 'hw_probability': max_hw_prob, 'away_recovering': away_recovering,
+                'hw_profile': hw_profile, 'hw_ml': _ew_settings.get('hw_ml'),      # ML-styrt varmvatten (hw_ml.py)
                 'temp_cheap': cfg.get("temp_cheap", 22.0), 'temp_expensive': cfg.get("temp_expensive", 20.0),
                 'heat_feedback': _ew_settings.get("heat_feedback", "av"), 'heat_feedback_boost': float(_ew_settings.get("heat_feedback_boost", 1.0) or 1.0),
                 'heat_feedback_min_sp': _ew_settings.get("heat_feedback_min_sp"), 'heat_feedback_max_sp': _ew_settings.get("heat_feedback_max_sp"),

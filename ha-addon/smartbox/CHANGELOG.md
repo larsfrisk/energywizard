@@ -1,5 +1,12 @@
 # Ändringar
 
+## 1.2.115 (2026-11-15)
+- **ML-styrt varmvatten** (Av / Skugga / På under Varmvatten på webbens värmepumpssida). Startvärdet väljs efter de
+  inlärda varmvattenvanorna och elpriset. Pumpen väntar på dyra timmar när ingen tappning väntas (start 30 °C) och
+  fyller tanken på de billigaste kvartarna före nästa troliga tappning (start 50 °C). Stoppvärdet (toppvärmningen) rörs
+  inte, och legionella, felskydd, minuspris och solöverskott går före. Utredningen i #446 visade att Thermia jämför
+  startvärdet med en viktad tanktemperatur, där givaren längre ned väger 65 %, och inte med topptemperaturen.
+
 ## 1.2.114 (2026-11-15)
 - Badtider: veckodagarna tisdag–fredag visades på svenska i engelsk och tjeckisk vy. Rader som går över midnatt visar
   nu "→ nästa dag", och en förklaring visar att varje rad räknas från sin egen dag (torsdag 22:00–15:00 = torsdag kväll

@@ -1878,6 +1878,9 @@ async function renderVarmepump() {
         <h2>🚿 Varmvatten</h2>
         <div class="note" style="margin-bottom:8px">Samma princip som rumsvärmen, egen överstyrning.</div>
         <div class="seg" id="hotwaterseg">${["auto", "on", "off"].map(m => `<button data-m="${m}" class="${d.hotwater_mode === m ? "on" : ""}">${{ auto: "Auto", on: "Tvinga PÅ", off: "Tvinga AV" }[m]}</button>`).join("")}</div>
+        <h3 style="margin:14px 0 4px;font-size:15px">ML-styrt varmvatten</h3>
+        <div class="note">Startvärdet väljs efter era inlärda varmvattenvanor och elpriset: pumpen väntar på dyra timmar när ingen tappning väntas och fyller tanken på de billigaste timmarna före nästa troliga tappning. Skugga loggar bara vad som skulle ha gjorts.</div>
+        <div class="seg" id="hwmlseg" style="margin-top:6px">${[["av", "Av"], ["skugga", "Skugga"], ["på", "På"]].map(([k, l]) => `<button data-hw="${k}">${l}</button>`).join("")}</div>
         <h3 style="margin:14px 0 4px;font-size:15px">Legionella</h3>
         <div class="note">Värmer varmvattnet till legionellatemperaturen om det har gått för länge sedan sist.</div>
         <div class="note">${legLast(d.legionella_last)}</div>
@@ -1903,6 +1906,10 @@ async function renderVarmepump() {
     </div>`;
   document.querySelectorAll("#heatseg button").forEach(b => b.onclick = () => postAction("api/home-action/heat", { value: b.dataset.m }).then(renderVarmepump));
   document.querySelectorAll("#hotwaterseg button").forEach(b => b.onclick = () => postAction("api/home-action/hotwater", { value: b.dataset.m }).then(renderVarmepump));
+  api("api/hw-ml").then((r) => document.querySelectorAll("#hwmlseg button").forEach((b) => b.classList.toggle("on", b.dataset.hw === r.mode))).catch(() => {});
+  document.querySelectorAll("#hwmlseg button").forEach((b) => b.onclick = async () => {
+    try { await postJSON("api/hw-ml", { mode: b.dataset.hw }); document.querySelectorAll("#hwmlseg button").forEach((x) => x.classList.toggle("on", x === b)); toast("Sparat - gäller från nästa beslut (inom 15 min)"); }
+    catch (e) { toast(e.message); } });
   document.getElementById("legsave").onclick = async () => {
     await postAction("api/settings-action", { key: "legionella_days", value: parseInt(document.getElementById("legdays").value, 10) });
     await postAction("api/settings-action", { key: "legionella_temp", value: parseFloat(document.getElementById("legtemp").value) });

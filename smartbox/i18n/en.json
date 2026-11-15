@@ -2757,5 +2757,8 @@
  "Torsdag": "Thursday",
  "Fredag": "Friday",
  "→ nästa dag": "→ next day",
- "Varje rad räknas från sin dag. Slutar tiden före starttiden gäller den till nästa dag: torsdag 22:00–15:00 = torsdag kväll till fredag 15:00.": "Each row counts from its own day. If the end is before the start, it runs into the next day: Thursday 22:00–15:00 = Thursday evening to Friday 15:00."
+ "Varje rad räknas från sin dag. Slutar tiden före starttiden gäller den till nästa dag: torsdag 22:00–15:00 = torsdag kväll till fredag 15:00.": "Each row counts from its own day. If the end is before the start, it runs into the next day: Thursday 22:00–15:00 = Thursday evening to Friday 15:00.",
+ "ML-styrt varmvatten": "ML-controlled hot water",
+ "Startvärdet väljs efter era inlärda varmvattenvanor och elpriset: pumpen väntar på dyra timmar när ingen tappning väntas och fyller tanken på de billigaste timmarna före nästa troliga tappning. Skugga loggar bara vad som skulle ha gjorts.": "The start value is chosen from your learned hot water habits and the electricity price: the pump waits during expensive hours when no draw is expected and fills the tank in the cheapest hours before the next likely draw. Shadow only logs what would have been done.",
+ "Prio #.# (VARMVATTEN, ML): Start # °C - {why}.": "Prio #.# (HOT WATER, ML): Start # °C - {why}."
 }

@@ -941,6 +941,24 @@ class GlobalPriorityManager:
             actions["spa_solar_boost_active"] = False
             actions["log"] = [l for l in actions["log"] if "(SPA)" not in l and "spabad" not in l.lower()]
 
+        # --- Prio 4.4: ML-STYRT VARMVATTEN (2026-11-15) ---
+        # Startvärdet väljs efter inlärda varmvattenvanor och pris (hw_ml.py). Lägen av / skugga / på. Legionella,
+        # felskydd, minuspris och solöverskott nedan går före.
+        hw_mode = state.get('hw_ml') or "av"
+        if hw_mode in ("skugga", "på") and actions["pump_mode"] in ("CHEAP", "EXPENSIVE"):
+            import hw_ml
+            _q = (now.hour * 4 + now.minute // 15) if hasattr(now, 'hour') else 0
+            hw_start, hw_why = hw_ml.choose_start(now, actions["pump_mode"], state.get('hw_profile') or {},
+                                                  state.get('all_prices') or [], _q)
+            hw_target = hw_ml.target_for_start(hw_start)
+            if hw_mode == "på":
+                actions["water_target_temp"] = hw_target
+                actions["log"].append(f"🚿 Prio 4.4 (VARMVATTEN, ML): Start {hw_start:.0f} °C - {hw_why}.")
+            else:
+                actions["log"].append(f"🧪 Prio 4.4 (VARMVATTEN, ML): I skugga skulle start bli {hw_start:.0f} °C (nu "
+                                      f"{float(actions['water_target_temp']) - 5:.0f} °C) - {hw_why}.")
+            actions["hw_ml_start"] = hw_start
+
         # --- Prio 4.5: TERMISKT BATTERI (Varmvatten 180L) ---
         _hw_solar = avg_net < -2000 and (getattr(self, 'hw_solar_since', None) is not None
                                           or not _so_blocker("hotwater", s_order, s_info, surplus_w, now))

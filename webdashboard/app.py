@@ -371,6 +371,24 @@ async def api_ev_rules_save(request: Request):
     return {"ok": True, **rule}
 
 
+@app.get("/api/hw-ml")
+async def api_hw_ml():
+    """ML-styrt varmvatten (hw_ml.py): av / skugga / på."""
+    return {"mode": ew_settings.get("hw_ml") or "av"}
+
+
+@app.post("/api/hw-ml")
+async def api_hw_ml_save(request: Request):
+    role, _ = AUTH.session(request)
+    if role != "owner":
+        return JSONResponse({"detail": "Bara ägaren kan ändra värmestyrningen"}, status_code=403)
+    mode = (await request.json()).get("mode")
+    if mode not in ("av", "skugga", "på"):
+        return JSONResponse({"detail": "Okänt läge"}, status_code=400)
+    ew_settings.update(hw_ml=mode)
+    return {"ok": True, "mode": mode}
+
+
 @app.get("/api/heat-feedback")
 async def api_heat_feedback():
     """Rumsåterkoppling för värmepumpen (gpm.py Prio 5b): av / skugga / på."""

@@ -2757,5 +2757,8 @@
   "Torsdag": "Čtvrtek",
   "Fredag": "Pátek",
   "→ nästa dag": "→ další den",
-  "Varje rad räknas från sin dag. Slutar tiden före starttiden gäller den till nästa dag: torsdag 22:00–15:00 = torsdag kväll till fredag 15:00.": "Každý řádek platí od svého dne. Pokud konec předchází začátku, pokračuje do dalšího dne: čtvrtek 22:00–15:00 = čtvrtek večer až pátek 15:00."
+  "Varje rad räknas från sin dag. Slutar tiden före starttiden gäller den till nästa dag: torsdag 22:00–15:00 = torsdag kväll till fredag 15:00.": "Každý řádek platí od svého dne. Pokud konec předchází začátku, pokračuje do dalšího dne: čtvrtek 22:00–15:00 = čtvrtek večer až pátek 15:00.",
+  "ML-styrt varmvatten": "Teplá voda řízená ML",
+  "Startvärdet väljs efter era inlärda varmvattenvanor och elpriset: pumpen väntar på dyra timmar när ingen tappning väntas och fyller tanken på de billigaste timmarna före nästa troliga tappning. Skugga loggar bara vad som skulle ha gjorts.": "Počáteční hodnota se volí podle naučených zvyků s teplou vodou a ceny elektřiny: čerpadlo v drahých hodinách čeká, když se neočekává odběr, a nádrž plní v nejlevnějších hodinách před dalším pravděpodobným odběrem. Stín jen zaznamená, co by se udělalo.",
+  "Prio #.# (VARMVATTEN, ML): Start # °C - {why}.": "Prio #.# (TEPLÁ VODA, ML): Start # °C - {why}."
 }
