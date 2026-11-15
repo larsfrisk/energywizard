@@ -1,5 +1,8 @@
 # Recorded Zenai/EW input audit
 
+See the [handover readiness checkpoint](migration-handover-readiness.md) for the
+implemented scope, last installation evidence and remaining qualification gates.
+
 Before comparing planning outcomes, audit private captures from both systems:
 
 ```text
