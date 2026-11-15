@@ -127,7 +127,8 @@ def evaluate_planner_snapshot(rows,snapshot,timezone_name='Europe/Stockholm'):
         if len(actions)!=len(slots):raise ValueError('Incomplete counterfactual plan')
         _,simulation=battery_plan.simulate(realized,params['soc0_kwh'],actions,
             params['capacity_kwh'],params['reserve_kwh'],params['max_kwh'],
-            params['charge_kw'],params['discharge_kw'],params['eff'])
+            params['charge_kw'],params['discharge_kw'],params['eff'],
+            charge_efficiency=params.get('charge_efficiency'), discharge_efficiency=params.get('discharge_efficiency'))
         cash=sum(battery_plan._cost(r['grid_kw'],s['buy'],s['sell']) for r,s in zip(simulation,slots))
         results[label]={'energy_cash_cost':cash,'ending_soc_kwh':simulation[-1]['soc_kwh'],
             'soc_bounds_respected':all(params['reserve_kwh']-1e-9<=r['soc_kwh']<=params['max_kwh']+1e-9 for r in simulation),

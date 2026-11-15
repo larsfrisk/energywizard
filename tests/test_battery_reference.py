@@ -34,6 +34,8 @@ def test_hand_calculated_cash_efficiency_wear_and_terminal():
     (slots([-2, 3, -.5, 0]), {}),
     (slots([0, 4, 1, 0]), {'reserve_kwh': .25, 'max_kwh': .75}),
     (slots([0, 4, 1, 0]), {'eff': .64, 'step_kwh': .0025}),
+    (slots([0, 4, 1, 0]), {'charge_efficiency': .9, 'discharge_efficiency': 1, 'step_kwh': .0025}),
+    (slots([-2, 3, -.5, 0]), {'charge_efficiency': .8, 'discharge_efficiency': .5, 'step_kwh': .0025}),
     (slots([0, 4, 1, 0]), {'cycle_cost': .8, 'charge_wear_cost_sek_per_kwh': .4, 'discharge_wear_cost_sek_per_kwh': .7}),
     (slots([0, 4, 1, 0]), {'reversal_cost_sek': .3}),
     (slots([0, 4, 1, 0]), {'switch_cost': .1}),

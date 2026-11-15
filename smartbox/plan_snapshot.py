@@ -26,6 +26,7 @@ PARAMS = {
     'charge_wear_cost_sek_per_kwh', 'discharge_wear_cost_sek_per_kwh',
     'reversal_cost_sek', 'ev_mode', 'allowed',
     'balance_target_kwh', 'balance_hold_slots', 'balance_deadline_slots',
+    'charge_efficiency', 'discharge_efficiency',
 }
 SLOT_NUMBERS = ('buy', 'sell', 'load_kw', 'solar_kw', 'ev_kw')
 _queue = Queue(maxsize=1)
@@ -60,7 +61,11 @@ def canonical(value):
 
 @lru_cache(maxsize=1)
 def planner_hash():
-    return hashlib.sha256(Path(__file__).with_name('battery_plan.py').read_bytes()).hexdigest()
+    digest = hashlib.sha256()
+    for name in ('battery_plan.py', 'battery_efficiency.py'):
+        data = Path(__file__).with_name(name).read_bytes()
+        digest.update(name.encode() + b'\0' + len(data).to_bytes(8, 'big') + data)
+    return digest.hexdigest()
 
 
 def timestamp(value):
@@ -104,12 +109,14 @@ def normalize_inputs(slots, params):
                 raise ValueError('Export policy must be boolean')
             clean[k] = v
         else:
-            clean[k] = None if k == 'step_kwh' and v is None else number(v)
+            clean[k] = None if k in ('step_kwh', 'charge_efficiency', 'discharge_efficiency') and v is None else number(v)
     # Bind all defaults, so future changes cannot silently change captured semantics.
     import inspect
     from battery_plan import optimize
     bound = inspect.signature(optimize).bind(slots=out, **clean)
     bound.apply_defaults()
+    from battery_efficiency import resolve
+    resolve(bound.arguments['eff'], bound.arguments['charge_efficiency'], bound.arguments['discharge_efficiency'])
     clean = {k: (sorted(v) if k == 'allowed' else v) for k, v in bound.arguments.items() if k != 'slots'}
     return {'slots': out, 'params': clean}
 

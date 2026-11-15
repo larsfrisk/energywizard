@@ -85,11 +85,17 @@ def audit(ew, zenai):
     compare("maximum_energy", p["max_kwh"], _number(a["battery_max_soc_pct"]) * zcap / 100)
     compare("charge_limit", p["charge_kw"], a["max_charge_kw"])
     compare("discharge_limit", p["discharge_kw"], a["max_discharge_kw"])
-    efficiency = _number(p["eff"])
-    if not 0 < efficiency <= 1:
-        raise ValueError("Valid recorded round-trip efficiency required")
-    compare("charge_efficiency", math.sqrt(efficiency), a["charge_efficiency"])
-    compare("discharge_efficiency", math.sqrt(efficiency), a["discharge_efficiency"])
+    if p.get("charge_efficiency") is None and p.get("discharge_efficiency") is None:
+        efficiency = _number(p["eff"])
+        if not 0 < efficiency <= 1:
+            raise ValueError("Valid recorded round-trip efficiency required")
+        charge_eta = discharge_eta = math.sqrt(efficiency)
+    else:
+        charge_eta, discharge_eta = (_number(p[k]) for k in ("charge_efficiency", "discharge_efficiency"))
+        if not all(0 < v <= 1 for v in (charge_eta, discharge_eta)):
+            raise ValueError("Valid recorded directional efficiencies required")
+    compare("charge_efficiency", charge_eta, a["charge_efficiency"])
+    compare("discharge_efficiency", discharge_eta, a["discharge_efficiency"])
     return {"schema": 1, "ew_plan_id": ew["plan_id"], "zenai_plan_id": zenai["plan_run_id"],
             "ew_quarters": len(et), "zenai_quarters": len(zt),
             "selected_inputs_match": not differences, "difference_counts": differences,
