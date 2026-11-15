@@ -55,6 +55,9 @@ import math
 import homeassistant
 from drivers.battery import BatteryDriver, INTENTS
 
+SOLIS_RC_CHARGE = "Solis RC Force Battery Charge"
+KEEPALIVE_INTENTS = ("charge", "discharge", "hold")
+
 
 class GenericBatteryDriver(BatteryDriver):
     """Default för batterier utan egen drivrutin. Alla entiteter valfria - supports_control()
@@ -73,6 +76,23 @@ class GenericBatteryDriver(BatteryDriver):
         self._invert_cfg = power_invert
         self._e = entities or {}
         self._modes = {k: v for k, v in (modes or {}).items() if k in INTENTS and v}
+        # Solis RC (Pho3niX90/solis_modbus): välj läget FÖRST och skriv effekten SEDAN. Integrationen skriver om
+        # effekt/timeout ur sin registercache direkt efter lägesvalet (companion_writes, solis #352/#534); skrivs
+        # effekten före läget ligger den nya effekten fortfarande i skrivkön och cachens gamla värde skriver över den.
+        # Håll = tvångsladdning med 0 W (batteriet varken laddar eller laddar ur, huset tar nätet) - utan det föll
+        # "håll" tillbaka till "auto" och batteriet tömdes i elbilen. Gäller även befintliga configs (läses ur lägena).
+        self._rc_select = self._solis_rc_select(self._modes)
+        if self._rc_select and "hold" not in self._modes and self._e.get("charge_power"):
+            self._modes["hold"] = {self._rc_select: SOLIS_RC_CHARGE}
+
+    @staticmethod
+    def _solis_rc_select(modes: dict) -> str | None:
+        charge = modes.get("charge")
+        if isinstance(charge, dict) and len(charge) == 1:
+            entity, option = next(iter(charge.items()))
+            if option == SOLIS_RC_CHARGE:
+                return entity
+        return None
 
     @staticmethod
     def _as_list(v):
@@ -214,12 +234,16 @@ class GenericBatteryDriver(BatteryDriver):
 
     def refresh(self, now: float | None = None) -> bool:
         import time as _t
-        if not self._keepalive or not self._last or self._last[0] not in ("charge", "discharge"):
+        if not self._keepalive or not self._last or self._last[0] not in self._keepalive_intents():
             return False
         now = _t.time() if now is None else now
         if now - self._last[2] < self._keepalive:
             return False
         return self.apply_intent(self._last[0], self._last[1], now=now, force=True)   # håll vid liv: skriv även samma värde
+
+    def _keepalive_intents(self) -> tuple:
+        # Håll är bara en tidsbegränsad fjärrstyrning hos Solis RC; övriga växelriktares håll-lägen ligger kvar.
+        return KEEPALIVE_INTENTS if self._rc_select else ("charge", "discharge")
 
     def apply_intent(self, intent: str, power_w: float | None = None, now: float | None = None, force: bool = False) -> bool:
         import time as _t
@@ -274,6 +298,8 @@ class GenericBatteryDriver(BatteryDriver):
         if not option or (not isinstance(option, (dict, list)) and not self._e.get("mode_select")):
             return False
         ok = True
+        if self._rc_select and intent in ("charge", "discharge", "hold"):
+            return self._apply_solis_rc(intent, power_w)
         if power_w is not None:
             num = self._e.get("charge_power" if intent == "charge" else "discharge_power" if intent == "discharge" else "")
             if num:
@@ -293,3 +319,19 @@ class GenericBatteryDriver(BatteryDriver):
         if ok and btn:
             ok = bool(homeassistant.press_button(btn))
         return ok
+
+    def _apply_solis_rc(self, intent: str, power_w: float | None) -> bool:
+        """Läget först, effekten sedan (se __init__). Håll = laddläget med 0 W."""
+        option = self._modes.get(intent)
+        if not isinstance(option, dict):
+            return False
+        ok = True
+        for entity, opt in option.items():
+            ok = ok and homeassistant.set_select(entity, opt, **self._fkw())
+        num = self._e.get("discharge_power" if intent == "discharge" else "charge_power")
+        if ok and num:
+            if intent == "hold":
+                ok = homeassistant.set_number(num, 0, **self._fkw())
+            elif power_w is not None:
+                ok = homeassistant.set_number(num, self._power_value(num, abs(power_w)), **self._fkw())
+        return bool(ok)

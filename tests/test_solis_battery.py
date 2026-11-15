@@ -40,7 +40,7 @@ def test_yaml_ger_styrbar_drivrutin_med_keepalive():
     text = _builder()({"cars": [], "battery": discover_house(SOLIS)["battery"]})
     assert "keepalive_s: 180" in text
     drv = build_battery_driver(yaml.safe_load(text))
-    assert drv.supported_intents() == {"auto", "charge", "discharge"}
+    assert drv.supported_intents() == {"auto", "charge", "discharge", "hold"}   # håll = RC-laddning med 0 W
     assert drv._keepalive == 180
 
 
@@ -61,3 +61,59 @@ def test_tvangsladdning_skrivs_om_fore_tidsgransen():
         assert drv.apply_intent("auto", now=1300)
         sel.assert_called_once_with(RC, "None")
         assert not drv.refresh(now=5000)                               # auto hålls inte vid liv
+
+
+def _driver():
+    gs = discover_house(SOLIS)["battery"]["generic_suggestion"]
+    return GenericBatteryDriver(entities=gs["entities"], modes=gs["modes"], keepalive_s=gs["keepalive_s"])
+
+
+def test_laget_skrivs_fore_effekten():
+    """solis_modbus skriver om effekten ur sin registercache direkt efter lägesvalet. Skrivs effekten först ligger
+    den kvar i skrivkön och cachens gamla värde (t.ex. 300 W) skriver över den - batteriet laddade med 300 W."""
+    calls = []
+    drv = _driver()
+    with patch("homeassistant.get_attribute", return_value=None), \
+         patch("homeassistant.set_number", side_effect=lambda *a, **k: calls.append(("number",) + a) or True), \
+         patch("homeassistant.set_select", side_effect=lambda *a, **k: calls.append(("select",) + a) or True):
+        assert drv.apply_intent("charge", 2810, now=1000)
+    assert [c[0] for c in calls] == ["select", "number"]
+    assert calls[1][1:] == ("number.solis_rc_force_battery_charge_power", 2810)
+
+
+def test_hall_ar_laddlage_med_noll_watt_och_halls_vid_liv():
+    """Utan håll föll EnergyWizard tillbaka till auto när elbilen laddade från nätet - batteriet tömdes i bilen."""
+    drv = _driver()
+    assert "hold" in drv.supported_intents()
+    with patch("homeassistant.get_attribute", return_value=None), \
+         patch("homeassistant.set_number", return_value=True) as num, \
+         patch("homeassistant.set_select", return_value=True) as sel:
+        assert drv.apply_intent("hold", None, now=1000)
+        sel.assert_called_once_with(RC, "Solis RC Force Battery Charge")
+        num.assert_called_once_with("number.solis_rc_force_battery_charge_power", 0)
+        sel.reset_mock(); num.reset_mock()
+        assert drv.refresh(now=1000 + 180)                             # håll släpper också efter RC Timeout
+        sel.assert_called_once_with(RC, "Solis RC Force Battery Charge", force=True)
+        num.assert_called_once_with("number.solis_rc_force_battery_charge_power", 0, force=True)
+
+
+def test_urladdning_skriver_urladdningseffekten():
+    drv = _driver()
+    with patch("homeassistant.get_attribute", return_value=None), \
+         patch("homeassistant.set_number", return_value=True) as num, \
+         patch("homeassistant.set_select", return_value=True) as sel:
+        assert drv.apply_intent("discharge", 1500, now=1000)
+        sel.assert_called_once_with(RC, "Solis RC Force Battery Discharge")
+        num.assert_called_once_with("number.solis_rc_force_battery_discharge_power", 1500)
+
+
+def test_andra_batterier_far_inte_halllage_eller_ny_ordning():
+    modes = {"auto": {"select.x": "Auto"}, "charge": {"select.x": "Charge"}}
+    drv = GenericBatteryDriver(entities={"charge_power": "number.p"}, modes=modes, keepalive_s=180)
+    assert "hold" not in drv.supported_intents()
+    calls = []
+    with patch("homeassistant.get_attribute", return_value=None), \
+         patch("homeassistant.set_number", side_effect=lambda *a, **k: calls.append(("number",) + a) or True), \
+         patch("homeassistant.set_select", side_effect=lambda *a, **k: calls.append(("select",) + a) or True):
+        assert drv.apply_intent("charge", 2000, now=1000)
+    assert [c[0] for c in calls] == ["number", "select"]   # oförändrat för övriga
