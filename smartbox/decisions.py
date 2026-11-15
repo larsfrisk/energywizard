@@ -311,7 +311,10 @@ def calculate_ev_charge_plan(now, ev_schedule, car_data, cfg):
                      "max_a": int(sp.get('max_a') or 16), "battery_kwh": bkwh,
                      "kw_per_amp": ev_power.kw_per_amp(sp.get('max_charge_kw'), int(sp.get('max_a') or 16), _phases(cid)),
                      "target_dt": t_dt, "target_soc": t_soc, "kwh": kwh, "panic": panic,
-                     "single_block": str(sp.get('charge_block', 'split')).lower() == 'single'}
+                     "single_block": str(sp.get('charge_block', 'split')).lower() == 'single',
+                     # #427/#429: bara sol (ingen planerad nätladdning) och maxpris, ur ev_rules via main
+                     "grid": car_data.get(f'{cid}_grid_allowed', True) is not False,
+                     "max_price": car_data.get(f'{cid}_max_price')}
 
     max_dt = now
     for c in cars.values():
@@ -450,7 +453,7 @@ def calculate_ev_charge_plan(now, ev_schedule, car_data, cfg):
             cars_to_plan.append({'id': cid, 'deadline': full_charge_deadline(now, c["target_dt"], c["target_soc"]), 'kwh_needed': c["kwh"],
                                  'min_kw': 6 * c["kw_per_amp"], 'max_kw': min(c["max_a"], fuse_a) * c["kw_per_amp"],
                                  'panic_mode': c["panic"], 'floor': get_morning_floor(now, c["soc"], c["battery_kwh"], c["target_dt"]),
-                                 'single_block': c["single_block"]})
+                                 'single_block': c["single_block"], 'grid': c["grid"], 'max_price': c["max_price"]})
     cars_to_plan.sort(key=lambda x: x['deadline'])
 
     hourly_energy_allocated = {}
@@ -467,11 +470,16 @@ def calculate_ev_charge_plan(now, ev_schedule, car_data, cfg):
         else:
             stages.append((car['deadline'], car['kwh_needed']))
 
+        if not car.get('grid', True):
+            continue                     # #427 bara sol: ingen planerad laddning från nätet, inte heller morgongolvet
         for stage_idx, (stage_deadline, kwh_needed) in enumerate(stages):
             if kwh_needed <= 0:
                 continue
             car_deadline_dt_naive = stage_deadline.replace(tzinfo=None)
             potential_slots_df = df_plan[(df_plan['t_slot'] < car_deadline_dt_naive) & (df_plan['t_slot'] >= now_slot_naive)]
+            # #429 maxpris: dyrare kvartar tas bort - utom för morgongolvet (första delmålet när det finns), en säkerhet
+            if car.get('max_price') is not None and not (car.get('floor') and stage_idx == 0):
+                potential_slots_df = potential_slots_df[potential_slots_df['price'] <= float(car['max_price'])]
             if stage_idx > 0:   # slots som delmålet före redan gett ström tas inte om (skulle skrivas över)
                 potential_slots_df = potential_slots_df[potential_slots_df[f"{car['id']}_kw"] <= 0]
             if potential_slots_df.empty:

@@ -140,6 +140,8 @@ def _needy_morning_cars(state, car_ids, morning_soc, morning_hour, now):
             continue
         if (state.get(f"{c}_force_amps") or 0) > 0:
             continue
+        if state.get(f"{c}_grid_allowed", True) is False:
+            continue                     # #427 bara sol: morgongolvet laddar inte från nätet
         out.append(c)
     return out
 
@@ -735,8 +737,12 @@ class GlobalPriorityManager:
             soc = state.get(f'{car_id}_soc')
             connected = state.get(f'{car_id}_connected', False)
             profile = state.get(f'{car_id}_habit_profile', {})
+            # #427/#429: bara sol eller över maxpriset -> ingen underhållsladdning från nätet
+            _mp = state.get(f'{car_id}_max_price')
+            grid_ok = state.get(f'{car_id}_grid_allowed', True) is not False and not (
+                _mp is not None and price is not None and price > float(_mp))
             
-            if connected and soc is not None and soc < 40 and profile:
+            if connected and soc is not None and soc < 40 and profile and grid_ok:
                 current_hour = now.hour
                 current_dow = now.weekday()
                 prob_now = profile.get((current_dow, current_hour), 1.0)

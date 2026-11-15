@@ -2691,5 +2691,16 @@
  "Värmepumpens eget legionellaprogram, om den har ett, ställs på pumpen.": "The heat pump's own legionella programme, if it has one, is set on the pump.",
  "Intervall": "Interval",
  "dygn": "days",
- "HA svarar inte än (läser internal_url/external_url): {err}": "HA is not responding yet (reading internal_url/external_url): {err}"
+ "HA svarar inte än (läser internal_url/external_url): {err}": "HA is not responding yet (reading internal_url/external_url): {err}",
+ "⚡ Laddning från nätet": "⚡ Charging from the grid",
+ "Laddning från nätet": "Charging from the grid",
+ "Sol och nät": "Solar and grid",
+ "Bara sol": "Solar only",
+ "Ladda aldrig över": "Never charge above",
+ "Bara sol: ingen planerad laddning från nätet, inte heller morgongolvet. Maxpriset jämförs med spotpriset i prisgrafen och gäller inte morgongolvet. Ladda nu fungerar alltid.": "Solar only: no planned charging from the grid, not even the morning minimum. The maximum price is compared with the spot price in the price chart and does not apply to the morning minimum. Charge now always works.",
+ "Sparat - gäller från nästa laddplan (inom 15 min)": "Saved - applies from the next charging plan (within 15 min)",
+ "Bara ägaren kan ändra laddreglerna": "Only the owner can change the charging rules",
+ "Ogiltig regel": "Invalid rule",
+ "Maxpriset ska vara ett tal": "The maximum price must be a number",
+ "Maxpriset ska vara 0–20 kr/kWh": "The maximum price must be 0–20 SEK/kWh"
 }

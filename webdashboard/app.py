@@ -313,6 +313,42 @@ async def api_setup_ha(request: Request):
 
 
 # ---------- Batteriets planering: stil och försäljning (valt i webben) ----------
+def _ev_house_cfg():
+    try:
+        return house_config.load_house_config(HOUSE_CONFIG_FILE)
+    except Exception:
+        return {}
+
+
+@app.get("/api/ev-rules")
+async def api_ev_rules():
+    """Per bil: bara sol / maxpris för laddning från nätet (#427, #429)."""
+    import ev_rules
+    st = ew_settings.load()
+    cars = [c.get("id") for c in (_ev_house_cfg().get("evs") or []) if c.get("id")]
+    return ev_rules.all_rules(cars, st)
+
+
+@app.post("/api/ev-rules")
+async def api_ev_rules_save(request: Request):
+    import ev_rules
+    role, _ = AUTH.session(request)
+    if role != "owner":
+        return JSONResponse({"detail": "Bara ägaren kan ändra laddreglerna"}, status_code=403)
+    body = await request.json()
+    car = str(body.get("car") or "")
+    cars = [c.get("id") for c in (_ev_house_cfg().get("evs") or []) if c.get("id")]
+    if car not in cars:
+        return JSONResponse({"detail": "Okänd bil"}, status_code=400)
+    rule, err = ev_rules.validate({"grid": body.get("grid", True), "max_price": body.get("max_price")})
+    if err:
+        return JSONResponse({"detail": err}, status_code=400)
+    rules = dict(ew_settings.get("ev_rules") or {})
+    rules[car] = rule
+    ew_settings.update(ev_rules=rules)
+    return {"ok": True, **rule}
+
+
 @app.get("/api/heat-feedback")
 async def api_heat_feedback():
     """Rumsåterkoppling för värmepumpen (gpm.py Prio 5b): av / skugga / på."""

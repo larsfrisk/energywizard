@@ -621,6 +621,15 @@ async function renderElbil() {
             <button class="icobtn sch-all" data-car="${c.id}" title="Måndagens rad gäller alla dagar">Samma som måndag alla dagar</button>
           </div>
         </div>
+        <div class="card" style="margin-top:12px;padding:12px">
+          <div class="note">⚡ Laddning från nätet</div>
+          <div class="seg evgrid" data-car="${c.id}" style="margin-top:6px">
+            <button data-g="1">Sol och nät</button><button data-g="0">Bara sol</button></div>
+          <div class="numfield" style="margin-top:8px;display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px">
+            <span style="white-space:nowrap"><span>Ladda aldrig över</span> <input type="number" class="evmax" data-car="${c.id}" min="0" max="20" step="0.05" placeholder="–" style="width:80px"> <span>kr/kWh</span></span>
+            <button class="icobtn evrule-save" data-car="${c.id}">Spara</button></div>
+          <div class="note">Bara sol: ingen planerad laddning från nätet, inte heller morgongolvet. Maxpriset jämförs med spotpriset i prisgrafen och gäller inte morgongolvet. Ladda nu fungerar alltid.</div>
+        </div>
         ${heatCard(c)}
       </div>`;
       }).join("")}
@@ -635,6 +644,19 @@ async function renderElbil() {
   const rowOf = (car, day) => ({ time: document.querySelector(`.sch-t[data-car="${car}"][data-day="${day}"]`).value,
     soc: parseInt(document.querySelector(`.sch-s[data-car="${car}"][data-day="${day}"]`).value, 10),
     enabled: document.querySelector(`.sch-en[data-car="${car}"][data-day="${day}"]`).checked });
+  api("api/ev-rules").then((rules) => {                    // #427/#429: bara sol och maxpris per bil
+    document.querySelectorAll(".evgrid").forEach((seg) => {
+      const r = rules[seg.dataset.car] || { grid: true, max_price: null };
+      seg.querySelectorAll("button").forEach((x) => x.classList.toggle("on", (x.dataset.g === "1") === r.grid));
+      seg.querySelectorAll("button").forEach((x) => x.onclick = () => seg.querySelectorAll("button").forEach((y) => y.classList.toggle("on", y === x)));
+      const mx = document.querySelector(`.evmax[data-car="${seg.dataset.car}"]`); if (mx && r.max_price != null) mx.value = r.max_price;
+    });
+  }).catch(() => {});
+  document.querySelectorAll(".evrule-save").forEach((b) => b.onclick = async () => {
+    const car = b.dataset.car, on = document.querySelector(`.evgrid[data-car="${car}"] button.on`);
+    try { await postJSON("api/ev-rules", { car, grid: !on || on.dataset.g === "1", max_price: document.querySelector(`.evmax[data-car="${car}"]`).value });
+          toast("Sparat - gäller från nästa laddplan (inom 15 min)"); } catch (e) { toast(e.message); }
+  });
   document.querySelectorAll(".sch-save").forEach(b => b.onclick = async () => {        // alla sju dagarna (#142)
     const car = b.dataset.car;
     try { for (let day = 0; day < 7; day++) await postJSON("api/schedule", { car, day, ...rowOf(car, day) }); toast("Schemat sparat för hela veckan"); }

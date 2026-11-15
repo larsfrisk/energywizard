@@ -15,6 +15,7 @@ import settings  # Hanterar konfigurationsinställningar
 import weather   # Hämtar och cachelagrar väderprognos inkl. solprognos
 import gps_home  # bilens hemkomst ur GPS (approaching)
 import indoor_hold  # håll givarnas innetemp när de glappar en kort stund
+import ev_rules  # per bil: bara sol / maxpris (#427, #429)
 import homeassistant    # Hämtar data från Home Assistant (temperaturer + Easee-laddare)
 import notifier         # Skickar push-notiser till Emil
 import energy_balance   # Husets energibalans (solgolv ur exporten, rimlig batterieffekt)
@@ -1445,6 +1446,9 @@ while True:
                     _rents = (_EV_BY_ID.get(_c) or {}).get("entities") or {}
                     car_data_for_plan[f"{_c}_ready_by"] = homeassistant.read_ready_by(_rents.get("ready_by"), now)
                     car_data_for_plan[f"{_c}_ready_soc"] = homeassistant._get_numeric_state(_rents["ready_soc"]) if _rents.get("ready_soc") else None
+                    _rule = ev_rules.get(_c)                             # #427/#429
+                    car_data_for_plan[f"{_c}_grid_allowed"] = _rule["grid"]
+                    car_data_for_plan[f"{_c}_max_price"] = _rule["max_price"]
                 car_data_for_plan.update({
                     "car_ids": list(car_ids), "car_specs": CAR_SPECS,     # bilarna ur installationen (laddplanen har inga bilnamn)
                     "heating_model": _ev_heating_model(now),
@@ -2086,6 +2090,8 @@ while True:
                     f'{_c}_soc': car_soc.get(_c),
                     f'{_c}_connected': ev_connection_state[_c]['connected'] or ev_gps_state[_c]['approaching'],
                     f'{_c}_plugged': ev_connection_state[_c]['connected'],     # faktiskt inkopplad (utan GPS-förallokering)
+                    f'{_c}_grid_allowed': ev_rules.get(_c)["grid"],            # #427 bara sol
+                    f'{_c}_max_price': ev_rules.get(_c)["max_price"],          # #429 maxpris
                     f'{_c}_charge_completed': ev_connection_state[_c]['charge_completed'],
                     f'{_c}_phases': (car_charger_data.get(_c) or {}).get('phases'),
                     f'{_c}_habit_profile': _cached_ev_profiles.get(_c, {}),

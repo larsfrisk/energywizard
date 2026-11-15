@@ -1,5 +1,14 @@
 # Ändringar
 
+## 1.2.106 (2026-11-15)
+- **Elbil: bara sol (#427) och maxpris (#429)**, per bil på webbens Elbil-sida under "Laddning från nätet" (förslag från
+  Emlben, #420):
+  - **Bara sol:** ingen planerad laddning från nätet, inte heller morgongolvet. Solladdning och Ladda nu fungerar som
+    vanligt.
+  - **Ladda aldrig över X kr/kWh:** planerade kvartar dyrare än så tas bort. Jämförs med spotpriset i prisgrafen.
+    Morgongolvet (50 % kl 06) undantas, eftersom det är en säkerhet.
+  - Underhållsladdningen inför en förutsedd avresa (AI-vanor) följer också reglerna.
+
 ## 1.2.105 (2026-11-15)
 - **Sol- och baslastprofilerna tränades om flera gånger i minuten** när det fanns för lite data (ny installation,
   eller nästan inget nätköp), med en fråga över ett års logg varje gång (#434). Ett tomt resultat gäller nu en timme
