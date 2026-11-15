@@ -23,6 +23,27 @@ def example():
     return slots, params, result, now
 
 
+def test_optional_spot_evidence_is_hash_bound_without_changing_replay():
+    slots, params, result, now = example()
+    original = S.build(slots, params, result, now)
+    assert all('spot' not in s for s in original['inputs']['slots'])
+    for slot, value in zip(slots, [0, -.2, .35, 1]):
+        slot['spot'] = value
+    snap = S.build(slots, params, result, now)
+    assert [s['spot'] for s in snap['inputs']['slots']] == [0, -.2, .35, 1]
+    assert snap['output'] == original['output'] and snap['plan_id'] != original['plan_id']
+    assert S.replay(snap)['matches']
+    snap['inputs']['slots'][0]['spot'] = 99
+    with pytest.raises(ValueError): S.replay(snap)
+
+
+@pytest.mark.parametrize('value', [None, True, '1', float('inf'), float('nan')])
+def test_optional_spot_evidence_requires_a_finite_native_number(value):
+    slots, params, result, now = example()
+    slots[0]['spot'] = value
+    with pytest.raises(ValueError): S.build(slots, params, result, now)
+
+
 def test_snapshot_replays_exactly_without_live_dependencies(tmp_path):
     snapshot = S.build(*example())
     assert S.replay(json.loads(S.canonical(snapshot)))['matches']

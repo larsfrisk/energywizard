@@ -39,6 +39,37 @@ def _rows(rows, time_key):
     return times
 
 
+def _spot_prices(slots, times, prices):
+    """Compare recorded numbers only; never infer VAT/currency or fill gaps."""
+    if not isinstance(prices, list) or len(prices) > 1024:
+        raise ValueError("Unsupported recorded spot-price intervals")
+    intervals = []
+    for row in prices:
+        start, end = _time(row['time_start']), _time(row['time_end'])
+        value = _number(row['SEK_per_kWh'])
+        if end <= start:
+            raise ValueError("Invalid recorded spot-price interval")
+        intervals.append((start, end, value))
+    intervals.sort()
+    if any(b[0] < a[1] for a, b in zip(intervals, intervals[1:])):
+        raise ValueError("Overlapping recorded spot-price intervals")
+    compared = different = missing_ew = missing_zenai = 0
+    for slot, stamp in zip(slots, times):
+        value = _number(slot['spot']) if 'spot' in slot else None
+        matches = [v for start, end, v in intervals if start <= stamp and stamp+900 <= end]
+        missing_ew += value is None
+        missing_zenai += not matches
+        if value is not None and matches:
+            compared += 1
+            different += abs(value-matches[0]) > 1e-9
+    complete = compared == len(slots)
+    return {'state': 'different' if different else 'matched' if complete else 'unavailable',
+            'compared_quarters': compared, 'different_quarters': different,
+            'missing_ew_quarters': missing_ew, 'missing_zenai_quarters': missing_zenai,
+            'complete': complete, 'absolute_tolerance': 1e-9,
+            'basis_qualified': False}
+
+
 def audit(ew, zenai):
     """Compare allowlisted effective facts from EW and Zenai replay schema 2.
 
@@ -57,6 +88,7 @@ def audit(ew, zenai):
         raise ValueError("Zenai capture must use quarter-hour slots")
     et, zt = _rows(slots, "t"), _rows(hours, "hour_start")
     made, captured = _time(ew["made_at"]), _time(zenai["captured_at"])
+    spot = _spot_prices(slots, et, zi.get('prices', []))
     differences = {}
 
     def compare(name, left, right, tolerance=1e-6):
@@ -99,12 +131,14 @@ def audit(ew, zenai):
     return {"schema": 1, "ew_plan_id": ew["plan_id"], "zenai_plan_id": zenai["plan_run_id"],
             "ew_quarters": len(et), "zenai_quarters": len(zt),
             "selected_inputs_match": not differences, "difference_counts": differences,
+            "spot_price_comparison": spot,
             "absolute_tolerances": {"tariff": .000050001, "solar_kw": .005000001,
                                     "total_load_kw": .010000001, "battery": 1e-6, "origin_seconds": 0},
             "partial_first_quarter": made > et[0] or captured > zt[0],
             "adoption_ready": False, "control_ready": False, "economic_comparison_ready": False,
             "limits": ["Integrity is not authenticity or measurement qualification.",
                        "Numeric tariffs do not establish matching currency or AC boundary.",
+                       "Spot comparison uses recorded numbers, not qualified currency/VAT bases; missing evidence is not a match.",
                        "Total load matching does not establish equivalent controlled-load exclusions.",
                        "Policies, dynamic reserves, charge ceilings, risk/wear/terminal values and command semantics are not compared.",
                        "No plans are executed, scored or classified as equivalent; no savings or hardware claim."]}

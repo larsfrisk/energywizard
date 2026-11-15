@@ -143,6 +143,7 @@ def test_real_candidate_uses_pv_periods_keeps_gaps_and_rejects_active_override(d
         with pytest.raises(ValueError):battery_plan.plan_from_db(engine,now,50,settings,{}, {'auto'},pv_forecast=forecast)
         result=battery_plan.plan_from_db(engine,now,50,settings,{}, {'auto'},comparison=True,pv_forecast=forecast)
         assert [s['solar_kw'] for s in snapshots[0]['inputs']['slots']]==[2]*4+[.5]*4
+        assert [s['spot'] for s in snapshots[0]['inputs']['slots']]==[1]*8
         assert result['input_quality']['pv_model']['coverage']==.5
         assert result['input_quality']['solar']=={'source':'mixed','coverage':.5}
         assert 'latitude' not in plan_snapshot.canonical(snapshots[0])
