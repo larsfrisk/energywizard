@@ -118,6 +118,24 @@ protection remains necessary. No entity-picker preset is installed automatically
 
 ## Verification and sources
 
+### Installation read-only preflight — 2026-11-15
+
+The native EW reader was exercised against the endpoint and unit resolved from
+the installation's existing Zenai configuration. EW remained in forced shadow
+and cooperation mode; its configured generic battery driver was not changed.
+A temporary connection wrapper allowed only the five input-register reads for
+SOC, capacity, battery power, mode and power reference and rejected other
+operations. All five values were available, SOC/power receipt dates were present,
+and no write attempt occurred. No endpoint or raw household values are published.
+
+The probe instantiated the native driver with control disabled and default-mode
+verification false; it advertised no control intents. This establishes readable
+responses on those addresses, not physical power accuracy, AC measurement
+boundaries, firmware-wide compatibility, command delivery or release semantics.
+Receipt time remains distinct from device measurement time. No control opt-in,
+verified allowlist or runtime configuration was changed. A real-write
+commissioning plan still needs installation facts and separate authorization.
+
 Mocked tests cover signed values, word order, write ordering, readback failures, SOC/power
 limits, opt-in behavior, shadow mode, transport failures and registry wiring. They do not
 establish firmware compatibility, watchdog behavior, physical power or hardware timing.

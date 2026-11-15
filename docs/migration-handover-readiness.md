@@ -49,6 +49,13 @@ Old undated rows were not backfilled or treated as qualified measurements.
 Private configuration, coordinates, source IDs and raw household series are not
 published here. Refer to installation-local reports for a new, time-bound check.
 
+A subsequent [native Ferroamp read-only preflight](ferroamp-energyhub.md)
+returned SOC, capacity, battery power, mode and reference through five whitelisted
+reads using the existing Zenai endpoint. It made no write attempt and changed no
+runtime configuration; the native probe driver advertised no control intents.
+This narrows the transport-read uncertainty but does not qualify AC boundaries,
+delivered control or release. The configured EW driver remained generic.
+
 ## Evidence needed for the next stage
 
 1. **Qualify the measurement target.** Identify signed grid import/export, PV and
