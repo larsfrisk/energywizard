@@ -17,9 +17,10 @@ def validate_window(since, until, limit=100000):
     return since, until
 
 
-def export(connection, since, until, limit=100000):
+def export(connection, since, until, limit=100000, *, target='hot_water_excluded'):
     """Use a fresh SQLAlchemy connection/transaction; output includes endpoints."""
     since, until = validate_window(since, until, limit)
+    if target not in {'hot_water_excluded','household_total'}:raise ValueError('Unsupported export target')
     connection.execute(text("SET TRANSACTION READ ONLY"))
     connection.execute(text("SET LOCAL statement_timeout = '2s'"))
     rows = connection.execute(text("SELECT timestamp,energy_source_evidence FROM sensor_log "
@@ -35,7 +36,7 @@ def export(connection, since, until, limit=100000):
             samples.append(gap)
             continue
         snapshot = log_value(row[1])
-        if snapshot is None:
+        if snapshot is None or snapshot['schema'] != (2 if target=='household_total' else 1):
             invalid += 1
             samples.append(gap)
             continue
@@ -45,6 +46,8 @@ def export(connection, since, until, limit=100000):
             samples.append(gap)
             continue
         samples.append(snapshot)
-    return {"contract": {**CONTRACT, "excluded_loads": ["hot_water"]}, "samples": samples,
+    from household_load_evidence import CONTRACT as TOTAL_CONTRACT
+    contract = {**TOTAL_CONTRACT,'excluded_loads':[]} if target=='household_total' else {**CONTRACT,'excluded_loads':['hot_water']}
+    return {"contract": contract, "samples": samples,
             "export_report": {"rows_read": len(rows), "missing_evidence_rows": missing,
                               "invalid_evidence_rows": invalid}, "adoption_ready": False}

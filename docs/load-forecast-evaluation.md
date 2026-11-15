@@ -60,6 +60,12 @@ This mode performs forecast-error evaluation only, retains the chronological
 minimum-data gates and never enables runtime adoption. Keep both inputs and
 prediction output private. The default raw-array input path remains unchanged.
 
+For a separately qualified direct AC household-load sensor, the explicit
+[`household_total` contract](direct-household-load-evidence.md) is also supported.
+It includes all loads without component reconstruction or exclusions; it does not
+require or replace a dedicated hot-water electrical measurement. The same CLI
+refuses paired snapshot scoring until controlled-load targets are aligned.
+
 Predeclared minimum evaluation: 672 valid training quarters (one week's worth) and
 96 held-out quarters. Prefer multiple representative weeks and seasonal datasets
 before drawing conclusions. A frozen weekday/hour p85 profile is clamped 1–6 kW,

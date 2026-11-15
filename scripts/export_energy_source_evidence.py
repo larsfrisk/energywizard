@@ -13,6 +13,7 @@ def main():
     parser.add_argument("--since", required=True, help="Offset-aware ISO date, inclusive")
     parser.add_argument("--until", required=True, help="Offset-aware ISO date, inclusive endpoint sample")
     parser.add_argument("--limit", type=int, default=100000)
+    parser.add_argument('--target',choices=('hot_water_excluded','household_total'),default='hot_water_excluded')
     args = parser.parse_args()
     try:
         since, until = validate_window(args.since, args.until, args.limit)
@@ -21,7 +22,7 @@ def main():
     try:
         from database_engine import engine
         with engine.connect() as connection:
-            result = export(connection, since, until, args.limit)
+            result = export(connection, since, until, args.limit, target=args.target)
     except ValueError as exc:
         parser.error(str(exc) if str(exc) == "Too many rows; narrow the export window" else
                      "Could not read source evidence; check local database availability and schema")
