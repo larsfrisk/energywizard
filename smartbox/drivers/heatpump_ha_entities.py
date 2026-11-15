@@ -8,6 +8,8 @@ läser i stället de entiteter installationsguiden kopplat (heat_pump.entities i
   indoor_temp, outdoor_temp, forward_temp, return_temp, water_temp, degree_minutes  (sensor-/number-entiteter)
   compressor   (valfri, binary_sensor/sensor: på/av eller frekvens > 0 = går)
   room_target  (valfri, number-entitet för rumsbörvärdet)
+  power_w      (valfri, #404: en eller flera effektgivare för pumpens el, t.ex. värme och varmvatten var för sig - summeras;
+               W eller kW enligt givarens enhet. Utan den uppskattas eleffekten ur framledningen)
   curve_offset (valfri, number-entitet för värmekurvans förskjutning, t.ex. NIBE 47011 "Heating offset climate system 1",
                #200 Jonas: F730 via nibegw). Används när rumsbörvärde saknas: önskad innetemp -> förskjutning med
                offset_steps_per_c steg per grad kring offset_base_c (standard 2 steg/°C kring 20,5 °C), inom
@@ -29,6 +31,8 @@ _READ = ("indoor_temp", "outdoor_temp", "forward_temp", "return_temp", "water_te
 class HaEntitiesHeatPumpDriver(HeatPumpDriver):
     def __init__(self, entities: dict | None = None, cfg: dict | None = None):
         self._e = {k: v for k, v in (entities or {}).items() if isinstance(v, str) and "." in v}
+        pw = (entities or {}).get("power_w")                # #404: en sträng eller en lista med effektgivare
+        self._power = [x.strip() for x in (pw if isinstance(pw, list) else str(pw or "").split(",")) if "." in str(x)]
         self._cfg = cfg or {}                     # offset_steps_per_c, offset_base_c, offset_min, offset_max (#200)
         self._warned = set()
 
@@ -45,17 +49,30 @@ class HaEntitiesHeatPumpDriver(HeatPumpDriver):
             self._warned.add(key)
 
     def read_sensors(self) -> dict:
-        if not self._e:
+        if not self._e and not self._power:
             return {}
         out = {k: self._num(k) for k in _READ}
         out["compressor_running"] = compressor_running(self._e.get("compressor"), self._num("compressor"),
                                                        lambda: homeassistant._get_raw_state(self._e["compressor"]))
         out["compressor_power_kw"] = None
+        out["compressor_power_w"] = self._power_w()
         from hot_water_observation import temperature
         raw = homeassistant._states_cache.get(self._e.get("water_temp")) or {}
         out["water_temp_observation"] = temperature(
             out.get("water_temp"), raw.get("last_reported") or raw.get("last_updated"), "ha_report")
         return out
+
+    def _power_w(self):
+        """Summan av effektgivarna i W (#404), eller None om ingen givare är vald eller ingen svarar."""
+        total, seen = 0.0, False
+        for ent in self._power:
+            v = homeassistant._get_numeric_state(ent)
+            if not isinstance(v, (int, float)) or v != v:
+                continue
+            unit = str(((homeassistant._states_cache.get(ent) or {}).get("attributes") or {}).get("unit_of_measurement") or "").lower()
+            total += v * 1000.0 if unit == "kw" else v
+            seen = True
+        return round(total, 1) if seen else None
 
     def set_room_temp(self, target_c: float) -> bool:
         ent = self._e.get("room_target")

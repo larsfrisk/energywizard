@@ -1,5 +1,10 @@
 # Ändringar
 
+## 1.2.98 (2026-11-15)
+- **Värmepump via Home Assistant-entiteter: egna effektgivare** (#404). `heat_pump.entities.power_w` kan peka på en
+  eller flera effektgivare (t.ex. en för värme och en för varmvatten), som summeras. W och kW känns igen. Då används
+  uppmätt eleffekt i lastnedbrytningen och COP i stället för en uppskattning ur framledningen.
+
 ## 1.2.97 (2026-11-14)
 - **Svenska kvar i engelsk och tjeckisk vy:** genomgång av appen, webben och motorns meddelanden. Cirka 65 texter
   saknade översättning, bland annat "Gråzon", "Laddat", "Veckan", "imorgon", "Alla delar" och "Elpris dygnet".
