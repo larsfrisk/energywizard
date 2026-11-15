@@ -110,7 +110,8 @@ def test_real_postgres_history_is_read_only_and_cutoff_excludes_later_data(db, s
         engine.dispose()
 
 
-def test_learning_outcome_is_bound_into_real_comparison_snapshot(db, monkeypatch, tmp_path):
+@pytest.mark.parametrize('explicit_model', [False, True])
+def test_learning_outcome_is_bound_into_real_comparison_snapshot(db, monkeypatch, tmp_path, explicit_model):
     import battery_plan, ew_settings, ha_solar_forecast, learning, nordpool, plan_snapshot, weather
     from sqlalchemy import create_engine
     now = datetime.now(timezone.utc).replace(second=0, microsecond=0)
@@ -133,6 +134,11 @@ def test_learning_outcome_is_bound_into_real_comparison_snapshot(db, monkeypatch
     monkeypatch.setattr(plan_snapshot, "capture", capture)
     settings = dict(capacity_kwh=1, reserve_soc=20, max_soc=90, max_power_w=1000,
                     comparison_learning={"state":"learned","age_s":900,"private":"must-not-leak"})
+    original = deepcopy(settings)
+    if explicit_model:
+        settings = B._with_battery_model({'settings':settings,'battery_model':dict(
+            capacity_kwh=2,reserve_soc=10,max_soc=80,charge_kw=3,discharge_kw=4,
+            charge_efficiency=.8,discharge_efficiency=.95)})['settings']
     engine = create_engine("postgresql+psycopg://postgres:test@localhost/smartbox_test")
     try:
         result = battery_plan.plan_from_db(B._ReadOnlyHistory(engine),now,50,settings,{}, {'auto','hold','charge'},comparison=True)
@@ -141,5 +147,13 @@ def test_learning_outcome_is_bound_into_real_comparison_snapshot(db, monkeypatch
         assert 'must-not-leak' not in plan_snapshot.canonical(captured[0])
         assert plan_snapshot.replay(captured[0])['matches']
         assert not result['control_ready'] and result['simulation_only']
+        if explicit_model:
+            params = captured[0]['inputs']['params']
+            assert params['capacity_kwh']==2 and params['soc0_kwh']==1
+            assert params['reserve_kwh']==.2 and params['max_kwh']==1.6
+            assert (params['charge_kw'],params['discharge_kw'])==(3,4)
+            assert (params['charge_efficiency'],params['discharge_efficiency'])==(.8,.95)
+            assert captured[0]['input_quality']['battery_model']=={'source':'explicit_comparison'}
+            assert original['capacity_kwh']==1
     finally:
         engine.dispose()

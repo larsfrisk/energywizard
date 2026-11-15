@@ -17,7 +17,8 @@ REPLAYABLE = (1, 2)
 QUALITY_KEYS = {'prices': ('source', 'coverage', 'missing', 'horizon_h'), 'solar': ('source', 'coverage'),
                 'load': ('source', 'coverage'), 'soc': ('source', 'known', 'age_s'),
                 'pv_model': ('source', 'state', 'coverage', 'fetched_at', 'timestamp_basis'),
-                'learning': ('source', 'state', 'age_s')}
+                'learning': ('source', 'state', 'age_s'),
+                'battery_model': ('source',)}
 MAX_BYTES = 2_000_000
 MAX_FILES = 96
 MAX_AGE_S = 7 * 86400
