@@ -134,7 +134,46 @@ delivery/readback. No heater, production optimizer or authenticated cloud servic
 contacted to implement or test this branch. Physical writes and firmware compatibility
 still require commissioning on each installation.
 
-Public references:
+## Configured hot-water boost/release command
+
+The local driver also supports `read_hot_water_boost()` and
+`set_hot_water_boost(bool)` through an explicit `points.hot_water_boost` binding.
+This supplies the missing transport operation for the existing installation's
+boost scheduler; it is not a new generic migration mode.
+
+```yaml
+points:
+  hot_water_boost:
+    variable_id: 48001       # synthetic; resolve the actual local point
+    register: 450            # synthetic; never a cloud parameter ID
+    register_type: MODBUS_HOLDING_REGISTER
+    unit: ""                # must match the actual metadata, including empty unit
+    allowed_values: [0, 3]   # synthetic explicit enum values
+    start_value: 3
+    release_value: 0
+```
+
+No boost mapping or enum value is inferred. Existing explicit control enablement,
+expected-product, TLS pin, writable identity and independent readback guards apply.
+The driver validates both start and release against the native word size, reserved
+sentinels and any usable metadata range before starting. Equal firmware bounds
+remain unknown; the explicit enum allowlist supplies the installation bounds, as
+with existing operating-mode writes. Boost enums require divisor 1.
+
+Read state is true only for the configured start value, false only for release,
+and unknown for other/external values or unavailable metadata. Shadow requests
+never enter transport or establish a pending real command. An ambiguous write is
+not replayed; later commands wait for independent confirmation of the pending
+value. No cloud fallback is added.
+
+This command does not create a timer, ownership journal or automatic start path.
+The scheduling caller remains responsible for duration, temperature termination,
+manual/hygiene precedence and release/recovery. Runtime integration is a separate
+step; no caller, installation binding or real device command is enabled here.
+Other heat-pump drivers retain unsupported defaults. A dedicated electrical meter
+is not a prerequisite for this transport operation.
+
+## Public references
 
 - [NIBE technical guide, January 2026](https://headless.nibe.eu/download/18.4e8833a719b52e0331e3da/1768300199729/M12676SV%20%282026-01-13%29.pdf)
 - [NIBE firmware release notes](https://www.nibe.eu/webdav/files/myuplink_changelog/nibe-n.pdf)

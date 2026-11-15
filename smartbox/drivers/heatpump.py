@@ -37,6 +37,14 @@ class HeatPumpDriver(ABC):
             caps.add("pause")
         return frozenset(caps)
 
+    def read_hot_water_boost(self) -> bool | None:
+        """Configured boost state; None means unsupported, external or unknown."""
+        return None
+
+    def set_hot_water_boost(self, active: bool) -> bool:
+        """Request a configured boost/release. The caller owns scheduling/lifetime."""
+        return False
+
     def read_state(self) -> dict:
         """Normaliserad bild (alla fält valfria, None = okänt): mode (ur MODES), indoor_temp, outdoor_temp,
         running, power_w, energy_kwh, fault, plus tillägg curve_offset, heat_output_w, cop, defrosting,

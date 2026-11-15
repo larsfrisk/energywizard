@@ -66,6 +66,105 @@ def driver(**kw):
     return nibe.NibeLocalHeatPumpDriver(connection={"expected_product": PRODUCT}, **kw)
 
 
+def boost_binding(**changes):
+    return {'variable_id':48001,'register':450,'register_type':HOLDING,'unit':'',
+            'allowed_values':[0,3],'start_value':3,'release_value':0,**changes}
+
+
+def boost_driver(heater,**changes):
+    heater.points['48001']=point(48001,450,0,divisor=1,unit='',writable=True)
+    return driver(control_enabled=True,points={'hot_water_boost':boost_binding(**changes)})
+
+
+def test_boost_and_release_use_explicit_values_and_independent_readback(heater):
+    d=boost_driver(heater)
+    assert 'hot_water_boost' in d.capabilities()
+    assert d.read_hot_water_boost() is False
+    assert d.set_hot_water_boost(True) and d.read_hot_water_boost() is True
+    assert d.set_hot_water_boost(False) and d.read_hot_water_boost() is False
+    assert [p[0]['integerValue'] for p in heater.writes]==[3,0]
+    assert all(p[0]['variableId']==48001 for p in heater.writes)
+    assert heater.requests[-1][0]=='GET'
+
+
+@pytest.mark.parametrize('change',[{'variable_id':None},{'variable_id':True},{'register':True},
+    {'register_type':INPUT},{'allowed_values':[0,True,3]},{'allowed_values':[0,0,3]},
+    {'start_value':0},{'release_value':7},{'start_value':'3'},{'allowed_values':None}])
+def test_invalid_boost_binding_has_no_capability_and_never_connects(heater,change):
+    d=boost_driver(heater,**change)
+    assert 'hot_water_boost' not in d.capabilities()
+    assert d.read_hot_water_boost() is None and not d.set_hot_water_boost(True)
+    assert not heater.requests
+
+
+@pytest.mark.parametrize('value',[None,0,1,'true',float('nan')])
+def test_boost_boolean_request_is_strict(heater,value):
+    assert not boost_driver(heater).set_hot_water_boost(value)
+    assert not heater.requests
+
+
+def test_boost_default_off_unknown_state_and_noop(heater):
+    from drivers.heatpump import NullHeatPumpDriver
+    assert NullHeatPumpDriver().read_hot_water_boost() is None
+    assert NullHeatPumpDriver().set_hot_water_boost(True) is False
+    assert 'hot_water_boost' not in NullHeatPumpDriver().capabilities()
+    assert driver().read_hot_water_boost() is None
+    assert not driver().set_hot_water_boost(True)
+    assert not driver(points={'hot_water_boost':boost_binding()}).set_hot_water_boost(True)
+    assert 'hot_water_boost' not in driver(points={'hot_water_boost':boost_binding()}).capabilities()
+    d=boost_driver(heater)
+    assert d.set_hot_water_boost(False) and not heater.writes
+    heater.points['48001']['value']['integerValue']=2
+    assert d.read_hot_water_boost() is None
+
+
+def test_boost_metadata_checks_release_endpoint_before_starting(heater):
+    d=boost_driver(heater)
+    meta=heater.points['48001']['metadata']
+    meta.update(minValue=1,maxValue=4)
+    assert not d.set_hot_water_boost(True) and not heater.writes
+    meta.update(minValue=0,maxValue=0,divisor=10)
+    assert not d.set_hot_water_boost(True) and d.read_hot_water_boost() is None
+    meta.update(divisor=1,isWritable=False)
+    assert not d.set_hot_water_boost(True) and not heater.writes
+
+
+@pytest.mark.parametrize('release',[65535,4294967295,-32768,-2147483648])
+def test_boost_sentinel_or_unrepresentable_release_blocks_start(heater,release):
+    assert not boost_driver(heater,allowed_values=[3,release],release_value=release).set_hot_water_boost(True)
+    assert not heater.writes
+
+
+def test_boost_shadow_creates_no_pending_write_authority(heater,monkeypatch):
+    import shadow
+    active=[True]
+    monkeypatch.setattr(shadow,'active',lambda:active[0])
+    monkeypatch.setattr(shadow,'record',lambda *args:None)
+    d=boost_driver(heater)
+    assert d.set_hot_water_boost(True) and d.set_hot_water_boost(False)
+    assert not heater.requests and d._pending is None
+    active[0]=False
+    assert d.set_hot_water_boost(True) and len(heater.writes)==1
+
+
+def test_boost_ambiguous_start_is_not_replayed_and_release_waits_for_confirmation(heater):
+    d=boost_driver(heater);heater.apply=False
+    assert not d.set_hot_water_boost(True)
+    assert not d.set_hot_water_boost(True)
+    assert not d.set_hot_water_boost(False)
+    assert len(heater.writes)==1
+    heater.points['48001']['value']['integerValue']=3
+    heater.apply=True
+    assert d.set_hot_water_boost(False)
+    assert [p[0]['integerValue'] for p in heater.writes]==[3,0]
+
+
+def test_boost_binding_identity_changes_are_not_accepted(heater):
+    d=boost_driver(heater)
+    heater.points['48001']['metadata']['modbusRegisterID']=451
+    assert not d.set_hot_water_boost(True) and not heater.writes
+
+
 def test_real_discovery_shape_uses_device_index_and_scales_by_metadata(heater):
     values = driver().read_sensors()
     assert values["outdoor_temp"] == -3.5 and values["water_temp"] == 50.4
