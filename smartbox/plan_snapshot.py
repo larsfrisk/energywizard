@@ -15,7 +15,8 @@ from datetime import datetime, timezone
 SCHEMA = 2          # 2: valfri input_quality (#389). Version 1 spelas fortfarande upp.
 REPLAYABLE = (1, 2)
 QUALITY_KEYS = {'prices': ('source', 'coverage', 'missing', 'horizon_h'), 'solar': ('source', 'coverage'),
-                'load': ('source', 'coverage'), 'soc': ('source', 'known', 'age_s')}
+                'load': ('source', 'coverage'), 'soc': ('source', 'known', 'age_s'),
+                'learning': ('source', 'state', 'age_s')}
 MAX_BYTES = 2_000_000
 MAX_FILES = 96
 MAX_AGE_S = 7 * 86400
