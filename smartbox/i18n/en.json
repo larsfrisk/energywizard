@@ -2670,5 +2670,9 @@
  "Databas: Vädertabellen är redo": "Database: the weather table is ready",
  "Batteri: läge '{m}', styrbara lägen {x}": "Battery: mode '{m}', controllable modes {x}",
  "°C högst:": "°C highest:",
- "Smartbox Måltemperatur": "Smartbox target temperature"
+ "Smartbox Måltemperatur": "Smartbox target temperature",
+ "Faktor vid positivt spotpris": "Factor for positive spot prices",
+ "Faktor vid negativt spotpris": "Factor for negative spot prices",
+ "Faktorerna gäller spotdelen. Tillägget läggs på efteråt. Fast säljpris påverkas inte.": "The factors apply to the spot component. The offset is added afterwards. Fixed export prices are unaffected.",
+ "Ogiltig faktor för såld el": "Invalid export price factor"
 }

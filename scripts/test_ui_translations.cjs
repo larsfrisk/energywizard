@@ -41,6 +41,10 @@ const cases = [
   ['🩺 Felsökningsutdrag vid fel', '🩺 Diagnostic excerpts on errors', '🩺 Diagnostické výpisy při chybách'],
   ['Felsökningsutdrag är på', 'Diagnostic excerpts are on', 'Diagnostické výpisy jsou zapnuté'],
   ['Felsökningsutdrag är av', 'Diagnostic excerpts are off', 'Diagnostické výpisy jsou vypnuté'],
+  ['Faktor vid positivt spotpris', 'Factor for positive spot prices', 'Koeficient pro kladné spotové ceny'],
+  ['Faktor vid negativt spotpris', 'Factor for negative spot prices', 'Koeficient pro záporné spotové ceny'],
+  ['Faktorerna gäller spotdelen. Tillägget läggs på efteråt. Fast säljpris påverkas inte.', 'The factors apply to the spot component. The offset is added afterwards. Fixed export prices are unaffected.', 'Koeficienty se vztahují na spotovou složku. Příplatek se přičítá následně. Pevné výkupní ceny zůstávají beze změny.'],
+  ['Ogiltig faktor för såld el', 'Invalid export price factor', 'Neplatný koeficient výkupní ceny'],
 ];
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));

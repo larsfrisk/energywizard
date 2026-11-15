@@ -488,6 +488,7 @@ async def shadow_set(request: Request):
 
 
 _PRICE_KEYS = ("price_country", "price_area", "price_vat_pct", "price_buy_extra", "price_sell_extra", "price_sell_vat",
+               "price_sell_factor", "price_sell_negative_factor",
                "price_currency", "price_timezone", "price_final", "price_current_entity", "price_ha_entity", "price_tou_extra", "price_tou_hours", "price_tou_months", "price_tou_weekdays",
                "price_buy_mode", "price_buy_fixed", "price_sell_mode", "price_sell_fixed",
                "price_hdo_entity", "price_distribution_nt", "price_distribution_vt",
@@ -951,6 +952,22 @@ async def price_settings_set(request: Request):
         if not lo <= v <= hi:
             return JSONResponse({"error": f"{field} utanför rimligt intervall"}, status_code=400)
         upd[key] = v
+    for field in ("sell_factor", "sell_negative_factor"):
+        if field not in body:
+            continue  # Older clients must preserve existing contract factors.
+        value = body[field]
+        if value in (None, ""):
+            upd["price_" + field] = None
+            continue
+        try:
+            if isinstance(value, bool):
+                raise ValueError()
+            value = float(str(value).replace(",", "."))
+            if not 0 <= value <= 10:
+                raise ValueError()
+        except (TypeError, ValueError):
+            return JSONResponse({"error": "Ogiltig faktor för såld el"}, status_code=400)
+        upd["price_" + field] = value
     upd["price_sell_vat"] = bool(body.get("sell_vat"))
     # Tidstariff (issue #98): tillägg under höglasttid. Tomt/0 = ingen.
     if "tou_extra" in body:

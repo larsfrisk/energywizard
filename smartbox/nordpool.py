@@ -91,6 +91,8 @@ def cost_settings() -> dict:
         "vat_pct": _num(_setting("price_vat_pct", "PRICE_VAT_PCT"), preset.get("vat_pct", 0.0)),
         "buy_extra": _num(_setting("price_buy_extra", "PRICE_BUY_EXTRA"), preset.get("buy_extra", 0.0)),
         "sell_extra": _num(_setting("price_sell_extra", "PRICE_SELL_EXTRA"), preset.get("sell_extra", 0.0)),
+        "sell_factor": _sell_factor("price_sell_factor", "PRICE_SELL_FACTOR"),
+        "sell_negative_factor": _sell_factor("price_sell_negative_factor", "PRICE_SELL_NEGATIVE_FACTOR"),
         "buy_mode": str(_setting("price_buy_mode", "PRICE_BUY_MODE", "spot")),
         "buy_fixed": _num(_setting("price_buy_fixed", "PRICE_BUY_FIXED"), None),
         "buy_nt": _num(_setting("price_buy_nt", "PRICE_BUY_NT"), None),
@@ -297,6 +299,11 @@ def full_buy_cost(spot: float, t=None) -> float:
     return spot * _vat_factor() + extra
 
 
+def _sell_factor(key, env):
+    value = _num(_setting(key, env), 1.0)
+    return value if 0 <= value <= 10 else 1.0
+
+
 def full_sell_income(spot: float) -> float:
     """Verklig försäljningsintäkt per kWh vid export. Sverige: ingen moms på sålt överskott (mikroproduktion)."""
     c = cost_settings()
@@ -304,7 +311,8 @@ def full_sell_income(spot: float) -> float:
         return c["sell_fixed"] + c["sell_extra"]
     f = _vat_factor()
     base = spot / f if prices_include_vat() else spot
-    return (base * f if c["sell_vat"] else base) + c["sell_extra"]
+    factor = c["sell_factor"] if base >= 0 else c["sell_negative_factor"]
+    return (base * f if c["sell_vat"] else base) * factor + c["sell_extra"]
 
 
 def _sql_tou(c, tcol):
@@ -343,7 +351,10 @@ def sql_sell_income_expr(col: str) -> str:
         return f"({c['sell_fixed']} + {c['sell_extra']})"
     f = _vat_factor()
     base = f"({col} / {f})" if prices_include_vat() else f"{col}"
-    return f"({base}{f' * {f}' if c['sell_vat'] else ''} + {c['sell_extra']})"
+    scaled = f"{base}{f' * {f}' if c['sell_vat'] else ''}"
+    if c["sell_factor"] != 1 or c["sell_negative_factor"] != 1:
+        scaled = f"({scaled}) * (CASE WHEN {base} >= 0 THEN {c['sell_factor']} ELSE {c['sell_negative_factor']} END)"
+    return f"({scaled} + {c['sell_extra']})"
 
 def init_db():
     try:
