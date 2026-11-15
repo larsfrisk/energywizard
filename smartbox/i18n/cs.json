@@ -2717,5 +2717,12 @@
   "Solmål: solladdningen slutar vid målet (tomt = bilens egen laddgräns, som också måste vara minst lika hög). Balanspunkt 0 = noll export, plus tillåter lite köp, minus behåller lite export.": "Solární cíl: solární nabíjení končí na cíli (prázdné = vlastní limit nabíjení auta, který musí být alespoň stejně vysoký). Bod vyrovnání 0 = nulový export, plus povolí malý odběr, minus ponechá malý export.",
   "Solmålet ska vara 20–100 %": "Solární cíl musí být 20–100 %",
   "Starttröskeln ska vara 1,4–11 kW": "Prahová hodnota startu musí být 1,4–11 kW",
-  "Balanspunkten ska vara -2000–2000 W": "Bod vyrovnání musí být -2000–2000 W"
+  "Balanspunkten ska vara -2000–2000 W": "Bod vyrovnání musí být -2000–2000 W",
+  "Resplan för {name}": "Plán cesty pro {name}",
+  "Ett engångsmål: bilen laddas på de billigaste timmarna så att den är klar i tid. Veckoschemat ändras inte.": "Jednorázový cíl: auto se nabije v nejlevnějších hodinách, aby bylo včas připravené. Týdenní plán se nemění.",
+  "Nu: klar {when} med {soc} %.": "Nyní: připraveno {when} s {soc} %.",
+  "Spara resplanen": "Uložit plán cesty",
+  "Ta bort resplanen": "Odstranit plán cesty",
+  "Resplanen är borttagen": "Plán cesty byl odstraněn",
+  "Klar {when} med {soc} %": "Připraveno {when} s {soc} %"
 }

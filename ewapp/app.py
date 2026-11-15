@@ -544,7 +544,13 @@ def car_state(key: str, st: dict, ov: dict) -> dict:
                     "dest_home": None if d_dest is None else d_dest < 1.5, "dest_km_from_home": None if d_dest is None else round(d_dest), "car_km_from_home": None if d_car is None else round(d_car)}
         except Exception:
             away = None
+    try:
+        import trip_plan
+        _trip = trip_plan.parse(ov.get(f"{key}_trip"), dt.datetime.now(TZ))
+    except Exception:
+        _trip = None
     return {"key": key, "name": c["name"], "charge_now_target": charge_now_target or None,
+            "trip": {"at": _trip[0].isoformat(), "soc": _trip[1]} if _trip else None,
             "limit_note": (ov.get(f"{key}_limit_note") or None) if charging else None,     # #385
             "goal_risk": (ov.get(f"{key}_goal_risk") or None) if plugged else None,
             "soc": None if soc is None else round(soc), "soc_stale": soc_stale, "status": status, "plugged": plugged, "home": home, "charging": charging, "power_kw": round(power_kw, 1),
@@ -1067,6 +1073,27 @@ def save_schedule_row(car: str, day: int, t: str, enabled: bool, soc: int) -> No
                           ON CONFLICT (car_id, day_of_week) DO UPDATE SET target_time = EXCLUDED.target_time, enabled = EXCLUDED.enabled, target_soc = EXCLUDED.target_soc"""),
                   {"c": car, "d": day, "t": t, "e": bool(enabled), "s": max(20, min(100, int(soc)))})
     set_override("force_ev_recalc", "true")                    # smartbox räknar om laddplanen direkt
+
+
+@app.post("/api/car/{key}/trip")
+async def car_trip(key: str, request: Request):
+    """Resplan: engångsmål idag/imorgon med laddnivå (trip_plan.py). {"clear": true} tar bort den."""
+    import trip_plan
+    if key not in CARS:
+        raise HTTPException(404, "Okänd bil")
+    b = await request.json()
+    if b.get("clear"):
+        set_override(f"{key}_trip", "")
+        logact(request, f"Resplan {key}: borttagen")
+        return {"ok": True, "msg": "Resplanen är borttagen"}
+    try:
+        when = trip_plan.make(dt.datetime.now(TZ), intval(b.get("day")), str(b.get("time") or "07:00"), None)
+    except (TypeError, ValueError):
+        raise HTTPException(400, "Ogiltig tid")
+    soc = max(20, min(100, intval(b.get("soc") or 80)))
+    set_override(f"{key}_trip", trip_plan.encode(when, soc))
+    logact(request, f"Resplan {key}: {when:%Y-%m-%d %H:%M} {soc} %")
+    return {"ok": True, "msg": f"Klar {when:%d/%m %H:%M} med {soc} %", "trip": {"at": when.isoformat(), "soc": soc}}
 
 
 @app.post("/api/schedule")

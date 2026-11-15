@@ -2717,5 +2717,12 @@
  "Solmål: solladdningen slutar vid målet (tomt = bilens egen laddgräns, som också måste vara minst lika hög). Balanspunkt 0 = noll export, plus tillåter lite köp, minus behåller lite export.": "Solar target: solar charging stops at the target (empty = the car's own charge limit, which must also be at least as high). Balance point 0 = zero export, plus allows a little import, minus keeps a little export.",
  "Solmålet ska vara 20–100 %": "The solar target must be 20–100 %",
  "Starttröskeln ska vara 1,4–11 kW": "The start threshold must be 1.4–11 kW",
- "Balanspunkten ska vara -2000–2000 W": "The balance point must be -2000–2000 W"
+ "Balanspunkten ska vara -2000–2000 W": "The balance point must be -2000–2000 W",
+ "Resplan för {name}": "Trip plan for {name}",
+ "Ett engångsmål: bilen laddas på de billigaste timmarna så att den är klar i tid. Veckoschemat ändras inte.": "A one-off target: the car charges in the cheapest hours so it is ready on time. The weekly schedule is not changed.",
+ "Nu: klar {when} med {soc} %.": "Now: ready {when} with {soc} %.",
+ "Spara resplanen": "Save trip plan",
+ "Ta bort resplanen": "Remove trip plan",
+ "Resplanen är borttagen": "The trip plan has been removed",
+ "Klar {when} med {soc} %": "Ready {when} with {soc} %"
 }

@@ -1,5 +1,14 @@
 # Ändringar
 
+## 1.2.109 (2026-11-15)
+Genomlysning av hela systemet mot en veckas data:
+- **Resplan i appen:** knappen "Resplan" på bilkortet har funnits sedan första versionen men anropade en funktion som
+  aldrig byggdes, så den gjorde ingenting. Nu öppnar den ett engångsmål: klar idag eller imorgon vid ett klockslag
+  med en laddnivå. Laddplanen räknar med det som "klar senast", och veckoschemat ändras inte.
+- **Varmvattenvanorna lästes om varje minut** (60 dygns logg, cirka 86 000 rader). Nu en gång per dygn.
+- **Prisformen** för prognoser bortom Nord Pools horisont frågade databasen för varje kvart när den saknade data. Ett
+  tomt resultat gäller nu en timme.
+
 ## 1.2.108 (2026-11-15)
 - **Elbil: solladdning per bil (#428)** under "Laddregler" (förslag från Emlben, #420):
   - **Solmål:** solladdningen slutar vid målet, t.ex. 80 %. Tomt = bilens egen laddgräns som förut.

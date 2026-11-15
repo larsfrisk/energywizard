@@ -610,6 +610,25 @@ function hotwaterSheet() {
   $("#sheet").onclick = async (e) => { const b = e.target.closest("[data-x]"); if (!b) { if (e.target.id === "sheet") closeSheet(); return; } closeSheet(); if (b.dataset.x === "no") return;
     buzz(); try { const r = await api("home/hotwater", { value: "on", minutes: +b.dataset.x || null }); toast(r.msg); H = await api("home"); render(); } catch (er) { toast(er.message); } };
 }
+function tripSheet(key) {                              // Resplan: engångsmål idag/imorgon (trip_plan.py)
+  const c = S.cars.find((x) => x.key === key); if (!c) return;
+  const t = c.trip, at = t ? new Date(t.at) : null;
+  const cur = at ? `<div class="note">Nu: klar ${at.toLocaleString((window.I18N && I18N.lang) || "sv-SE", { weekday: "short", hour: "2-digit", minute: "2-digit" })} med ${t.soc} %.</div>` : "";
+  sheet(`<h3>Resplan för ${esc(c.name)}</h3><div class="note">Ett engångsmål: bilen laddas på de billigaste timmarna så att den är klar i tid. Veckoschemat ändras inte.</div>${cur}
+    <div class="seg" id="tp-day" style="margin-top:8px"><button data-d="0">Idag</button><button data-d="1" class="on">Imorgon</button></div>
+    <div class="numfield" style="margin-top:8px;display:flex;flex-wrap:wrap;gap:8px;align-items:center"><span>Klar</span> <input type="time" id="tp-t" value="07:00">
+      <input type="number" id="tp-s" min="20" max="100" step="5" value="${t ? t.soc : 80}" style="width:70px"> %</div>
+    <button class="big" data-x="ok" style="width:100%;margin-top:10px">Spara resplanen</button>
+    ${t ? `<button class="mini" data-x="clear" style="width:100%;margin-top:8px">Ta bort resplanen</button>` : ""}<button class="mini" data-x="no" style="width:100%;margin-top:8px">Avbryt</button>`);
+  $("#sheet").onclick = async (e) => {
+    const d = e.target.closest("[data-d]"); if (d) { document.querySelectorAll("#tp-day button").forEach((x) => x.classList.toggle("on", x === d)); return; }
+    const b = e.target.closest("[data-x]"); if (!b) { if (e.target.id === "sheet") closeSheet(); return; }
+    if (b.dataset.x === "no") return closeSheet();
+    const body = b.dataset.x === "clear" ? { clear: true } : { day: +(document.querySelector("#tp-day button.on") || {}).dataset.d || 0, time: $("#tp-t").value, soc: +$("#tp-s").value };
+    try { const r = await api(`car/${key}/trip`, body); closeSheet(); toast(r.msg); S = await api("state"); render(); } catch (er) { toast(er.message); }
+  };
+}
+
 function chargeNowSheet(key) {
   const c = S.cars.find((x) => x.key === key); if (!c) return;
   const soc = c.soc, tg = [40, 60, 80, 100].filter((t) => soc == null || t > soc);

@@ -754,6 +754,8 @@ def get_price_shape_profile(max_age_hours=24):
     if (_price_shape_cache is not None and _price_shape_cache_time
             and (now - _price_shape_cache_time).total_seconds() < max_age_hours * 3600):
         return _price_shape_cache
+    if _too_little_data_recently("price_shape", now):
+        return {}
     try:
         with sm_logger.get_db() as conn:
             df = pd.read_sql("""
@@ -762,6 +764,7 @@ def get_price_shape_profile(max_age_hours=24):
                 WHERE time_start >= NOW() - INTERVAL '365 days' AND sek_per_kwh IS NOT NULL
             """, conn)
         if df.empty:
+            _mark_too_little_data("price_shape", now)
             return {}
         df['ts'] = pd.to_datetime(df['ts'])
         df['month'] = df['ts'].dt.month
@@ -774,11 +777,33 @@ def get_price_shape_profile(max_age_hours=24):
         print(f"❌ Fel vid pris-form-profil: {e}")
         return {}
 
+_hw_habit_cache = None
+_hw_habit_cache_time = None
+
+
 def get_hot_water_habit_profile(max_age_hours=24):
     """
     Skapar en sannolikhetsmatris för när varmvatten används (duschar/bad)
     baserat på plötsliga temperaturfall i beredaren (lär sig över 60 dagar).
+    Genomlysningen 2026-11-15: saknade cache helt och läste 60 dygns logg varje minut. Nu max_age_hours (24 h),
+    och ett tomt resultat gäller TOO_LITTLE_DATA_RETRY.
     """
+    global _hw_habit_cache, _hw_habit_cache_time
+    from datetime import datetime
+    now = datetime.now()
+    if _hw_habit_cache is not None and _hw_habit_cache_time and (now - _hw_habit_cache_time).total_seconds() < max_age_hours * 3600:
+        return _hw_habit_cache
+    if _too_little_data_recently("hot_water", now):
+        return {}
+    prof = _hot_water_habit_compute()
+    if prof:
+        _hw_habit_cache, _hw_habit_cache_time = prof, now
+    else:
+        _mark_too_little_data("hot_water", now)
+    return prof
+
+
+def _hot_water_habit_compute():
     try:
         with sm_logger.get_db() as conn:
             df = pd.read_sql("""

@@ -16,6 +16,7 @@ import weather   # Hämtar och cachelagrar väderprognos inkl. solprognos
 import gps_home  # bilens hemkomst ur GPS (approaching)
 import indoor_hold  # håll givarnas innetemp när de glappar en kort stund
 import ev_rules  # per bil: bara sol / maxpris (#427, #429)
+import trip_plan  # appens resplan: engångsmål idag/imorgon
 import homeassistant    # Hämtar data från Home Assistant (temperaturer + Easee-laddare)
 import notifier         # Skickar push-notiser till Emil
 import energy_balance   # Husets energibalans (solgolv ur exporten, rimlig batterieffekt)
@@ -1460,6 +1461,10 @@ while True:
                     _rents = (_EV_BY_ID.get(_c) or {}).get("entities") or {}
                     car_data_for_plan[f"{_c}_ready_by"] = homeassistant.read_ready_by(_rents.get("ready_by"), now)
                     car_data_for_plan[f"{_c}_ready_soc"] = homeassistant._get_numeric_state(_rents["ready_soc"]) if _rents.get("ready_soc") else None
+                    if car_data_for_plan[f"{_c}_ready_by"] is None:          # appens resplan (engångsmål, trip_plan.py)
+                        _trip = trip_plan.parse(all_overrides.get(f"{_c}_trip"), now)
+                        if _trip:
+                            car_data_for_plan[f"{_c}_ready_by"], car_data_for_plan[f"{_c}_ready_soc"] = _trip
                     _rule = ev_rules.get(_c)                             # #427/#429
                     car_data_for_plan[f"{_c}_grid_allowed"] = _rule["grid"]
                     car_data_for_plan[f"{_c}_max_price"] = _rule["max_price"]
