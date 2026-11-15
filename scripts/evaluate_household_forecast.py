@@ -11,14 +11,16 @@ if __name__=='__main__':
     p.add_argument('samples',help='JSON array: timestamp, grid_w, pv_w, battery_w, controlled_w list')
     p.add_argument('--split',required=True,help='Chronological evaluation start, ISO time with offset')
     p.add_argument('--timezone',default='Europe/Stockholm')
+    p.add_argument('--candidate-method',choices=('median_blend','recent_trend'),default='median_blend',
+                   help='Offline candidate only; default preserves the existing median blend')
     p.add_argument('--planner-snapshot',type=Path,help='Optional local quarter-boundary planner snapshot for paired cash-flow evaluation')
     args=p.parse_args()
     path=Path(args.samples)
     if path.stat().st_size>50_000_000:p.error('Input limited to 50 MB')
     rows,coverage=aggregate(json.loads(path.read_text()))
-    result=evaluate(rows,args.split,args.timezone)
+    result=evaluate(rows,args.split,args.timezone,candidate_method=args.candidate_method)
     if args.planner_snapshot:
         if args.planner_snapshot.stat().st_size>2_000_000:p.error('Snapshot limited to 2 MB')
-        result['economic_evaluation']=evaluate_planner_snapshot(rows,json.loads(args.planner_snapshot.read_text()),args.timezone)
+        result['economic_evaluation']=evaluate_planner_snapshot(rows,json.loads(args.planner_snapshot.read_text()),args.timezone,candidate_method=args.candidate_method)
     result['coverage']=coverage
     print(json.dumps(result,indent=2))

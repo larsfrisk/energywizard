@@ -42,12 +42,13 @@ def planner_snapshot(**changes):
     return plan_snapshot.build(slots,params,battery_plan.optimize(slots,**params),origin)
 
 
-def test_paired_planner_uses_realized_load_but_never_as_forecast_features():
+@pytest.mark.parametrize('method',['median_blend','recent_trend'])
+def test_paired_planner_uses_realized_load_but_never_as_forecast_features(method):
     from load_forecast_evaluation import evaluate_planner_snapshot
     data=history();snapshot=planner_snapshot()
-    a=evaluate_planner_snapshot(data,snapshot,'UTC')
+    a=evaluate_planner_snapshot(data,snapshot,'UTC',candidate_method=method)
     for row in data[672:]:row['kw']=20
-    b=evaluate_planner_snapshot(data,snapshot,'UTC')
+    b=evaluate_planner_snapshot(data,snapshot,'UTC',candidate_method=method)
     assert a['predictions']==b['predictions']
     for label in ('baseline','candidate'):
         assert a['results'][label]['actions']==b['results'][label]['actions']
@@ -88,10 +89,11 @@ def test_causal_comparison_reports_metrics_but_never_adopts():
     assert r['training_quarters']==672
 
 
-def test_target_and_future_observations_cannot_change_earlier_predictions():
-    data=history();a=evaluate(data,START+timedelta(days=7))
+@pytest.mark.parametrize('method',['median_blend','recent_trend'])
+def test_target_and_future_observations_cannot_change_earlier_predictions(method):
+    data=history();a=evaluate(data,START+timedelta(days=7),candidate_method=method)
     for row in data[7*96:]:row['kw']=20
-    b=evaluate(data,START+timedelta(days=7))
+    b=evaluate(data,START+timedelta(days=7),candidate_method=method)
     assert a['predictions'][0]['candidate_kw']==b['predictions'][0]['candidate_kw']
     assert a['predictions'][0]['baseline_kw']==b['predictions'][0]['baseline_kw']
     # Previous completed test observations are legitimately available to the next origin.
@@ -103,17 +105,20 @@ def test_sparse_or_duplicate_history_rejected():
     with pytest.raises(ValueError):evaluate(history()+[history()[0]],START+timedelta(days=7))
 
 
-def test_offline_cli_has_no_adoption_side_effects(tmp_path):
+@pytest.mark.parametrize('method',[None,'recent_trend'])
+def test_offline_cli_has_no_adoption_side_effects(tmp_path,method):
     import json,subprocess,sys
     samples=[dict(timestamp=(START+timedelta(seconds=i)).isoformat(),grid_w=2000,pv_w=0,
                   battery_w=0,controlled_w=[]) for i in range(0,8*86400+1,60)]
     path=tmp_path/'samples.json';path.write_text(json.dumps(samples))
     run=subprocess.run([sys.executable,'scripts/evaluate_household_forecast.py',str(path),
-                        '--split',(START+timedelta(days=7)).isoformat(),'--timezone','UTC'],
+                        '--split',(START+timedelta(days=7)).isoformat(),'--timezone','UTC']+
+                       (['--candidate-method',method] if method else []),
                        text=True,capture_output=True)
     assert run.returncode==0,run.stderr
     result=json.loads(run.stdout)
     assert result['evaluation_quarters']==96 and not result['adoption_ready']
+    assert result['candidate_method']==(method or 'median_blend')
     assert list(tmp_path.iterdir())==[path]
 
 
@@ -124,3 +129,57 @@ def test_dst_repeated_hours_remain_distinct_physical_quarters():
                   pv_w=0,battery_w=0) for i in range(0,7201,60)]
     rows,_=aggregate(samples)
     assert len(rows)==8 and len({r['t'] for r in rows})==8
+
+
+def test_recent_trend_hand_calculation_decays_to_baseline_and_never_uses_future():
+    from load_forecast_evaluation import forecasts_at_origin
+    rows=history();origin=rows[672]['t']
+    for row in rows[664:668]:row['kw']=1
+    targets=[origin,origin+7200,origin+14400,origin+18000]
+    result=forecasts_at_origin(rows,origin,targets,'UTC',candidate_method='recent_trend')
+    assert [r['candidate_kw'] for r in result]==pytest.approx([2.35,2.175,2,2])
+    for row in rows[672:]:row['kw']=1000
+    assert forecasts_at_origin(rows,origin,targets,'UTC',candidate_method='recent_trend')==result
+
+
+@pytest.mark.parametrize('level,expected',[(100,2.7),(0,1.4)])
+def test_recent_trend_stays_within_declared_baseline_bounds(level,expected):
+    from load_forecast_evaluation import forecasts_at_origin
+    rows=history();origin=rows[672]['t']
+    for row in rows[668:672]:row['kw']=level
+    prediction=forecasts_at_origin(rows,origin,[origin],'UTC',candidate_method='recent_trend')[0]
+    assert prediction['candidate_kw']==pytest.approx(expected)
+
+
+def test_recent_trend_missing_quarter_falls_back_instead_of_using_old_samples():
+    from load_forecast_evaluation import forecasts_at_origin
+    rows=history();origin=rows[672]['t']
+    # Keep at least 672 other completed training quarters while creating a recent gap.
+    rows.insert(0,{'t':rows[0]['t']-900,'kw':2})
+    rows=[r for r in rows if r['t']!=origin-1800]
+    r=forecasts_at_origin(rows,origin,[origin],'UTC',candidate_method='recent_trend')[0]
+    assert r['candidate_kw']==r['baseline_kw']
+
+
+def test_recent_trend_dst_fold_uses_eight_physical_quarters():
+    from load_forecast_evaluation import _recent_trend
+    origin=datetime(2026,10,25,1,tzinfo=timezone.utc).timestamp()
+    values={origin-i*900:(1 if i>4 else 2) for i in range(1,9)}
+    assert _recent_trend(values,origin,origin,2)==pytest.approx((2.35,8))
+
+
+def test_recent_trend_does_not_treat_partial_current_quarter_as_completed():
+    from load_forecast_evaluation import _recent_trend
+    edge=START.timestamp()
+    values={edge-i*900:(1 if i>4 else 2) for i in range(1,9)}
+    values[edge]=1000
+    assert _recent_trend(values,edge+60,edge+60,2)==pytest.approx((2.35,8))
+
+
+def test_default_candidate_is_exactly_the_existing_explicit_method():
+    from load_forecast_evaluation import forecasts_at_origin,evaluate_planner_snapshot
+    rows=history();origin=rows[672]['t'];targets=[origin,origin+900]
+    assert forecasts_at_origin(rows,origin,targets)==forecasts_at_origin(rows,origin,targets,candidate_method='median_blend')
+    assert evaluate(rows,START+timedelta(days=7))==evaluate(rows,START+timedelta(days=7),candidate_method='median_blend')
+    assert evaluate_planner_snapshot(rows,planner_snapshot())==evaluate_planner_snapshot(rows,planner_snapshot(),candidate_method='median_blend')
+    with pytest.raises(ValueError):forecasts_at_origin(rows,origin,targets,candidate_method='unknown')
