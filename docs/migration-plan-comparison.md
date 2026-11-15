@@ -51,6 +51,47 @@ two planners may handle its remaining duration differently.
 
 ## Remaining comparison gates
 
+### Read-only installation check — 2026-11-15
+
+At 14:03 UTC, 132 consecutive current EW database price quarters were compared
+with explicit price intervals from the latest preceding Zenai capture (196 seconds
+old). All 132 numbers matched within 1e-9, with no missing intervals. Zenai's
+content and configuration hashes validated. Queries used read-only transactions
+and two-second statement timeouts; EW remained in shadow mode. No device calls,
+configuration updates or deployment occurred. Only the count-based report was
+retained locally; no credentials or price series are published here.
+
+This check used current database rows, not EW's original recorded planning inputs:
+the deployed capture format did not yet retain `spot`. It therefore establishes
+numerical agreement for that inspected price horizon only. It does not verify
+currency/VAT basis, supplier fees, invoice correctness, future feeds, matched
+forecasts or economic/physical equivalence. Existing final-tariff differences
+still need separate configuration reconciliation. A new EW capture after deploying
+spot evidence is required for a recorded-plan comparison.
+
+### Recorded spot-price evidence
+
+New EW snapshots retain optional finite `slots[].spot` evidence, the price actually
+passed to tariff calculation (including the existing forward-fill behavior).
+Older snapshots remain readable and replayable without this field. It does not
+change optimization or dispatch. Snapshots still contain private household data.
+
+`spot_price_comparison` compares these numbers with Zenai's recorded
+`inputs.prices` entries (`time_start`, `time_end`, `SEK_per_kWh`). One explicit
+interval must cover the complete physical quarter. Hourly intervals may cover
+four quarters; gaps are never filled or averaged and overlaps are rejected.
+Offsets are normalized to UTC, preserving repeated DST hours. Numeric zero and
+negative prices are valid. The absolute tolerance is 1e-9 in recorded price units.
+
+The report exposes counts only: `matched` requires full coverage, `different`
+means at least one observed difference, and `unavailable` means incomplete
+evidence without an observed difference. `complete` separately identifies full
+coverage. This diagnostic is separate from `selected_inputs_match`, which still
+compares final tariffs and the other documented effective inputs. Currency, VAT
+basis and feed identity are not inferred from numeric equality or a field name;
+`basis_qualified` is always false. A numeric difference can be caused by different
+price bases and is not itself proof that either feed is wrong.
+
 `selected_inputs_match` is an inventory aid, not a parity result. Numeric tariffs
 do not establish equal currency or measurement boundary. Equal total load does
 not establish identical hot-water/EV exclusions or prevent historical double

@@ -96,6 +96,10 @@ def normalize_inputs(slots, params):
             raise ValueError('Planner slots must be consecutive physical quarters')
         previous = dt
         out.append({'t': t, **{k: number(slot.get(k, 0.0)) for k in SLOT_NUMBERS}})
+        # Optional evidence only; the optimizer uses full buy/sell tariffs.
+        # Preserve old snapshots exactly when the recorded spot is absent.
+        if 'spot' in slot:
+            out[-1]['spot'] = number(slot['spot'])
     clean = {}
     for k, v in params.items():
         if k == 'allowed':
