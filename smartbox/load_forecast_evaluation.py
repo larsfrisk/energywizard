@@ -62,8 +62,36 @@ def percentile(values,q):
     return values[lo]+(values[hi]-values[lo])*(i-lo)
 
 
-def forecasts_at_origin(rows,origin,targets,timezone_name='Europe/Stockholm'):
+METHODS = ('median_blend', 'recent_trend')
+
+
+def _recent_trend(history, origin, target, baseline):
+    """Bounded two-hour trend, frozen at origin and decaying over four hours."""
+    horizon = target-origin
+    if not 0 <= horizon < 4*3600:
+        return baseline, 0
+    edge = int(origin//900)*900
+    times = [edge-i*900 for i in range(8,0,-1)]
+    if any(t not in history for t in times):
+        return baseline, 0
+    values = [history[t] for t in times]
+    recent = sum(v/4 for v in values[-4:])
+    previous = sum(v/4 for v in values[:4])
+    decay = 1-horizon/(4*3600)
+    adjustment = (.35*(recent-previous)+.20*(values[-1]-baseline))*decay
+    candidate = baseline+adjustment
+    return max(max(.05,baseline*.70), min(min(25.,baseline*1.35),candidate)), 8
+
+
+def _method(value):
+    if value not in METHODS:
+        raise ValueError('Unsupported offline forecast candidate')
+    return value
+
+
+def forecasts_at_origin(rows,origin,targets,timezone_name='Europe/Stockholm', *, candidate_method='median_blend'):
     """One frozen horizon: observations at/after origin never become features."""
+    _method(candidate_method)
     zone=ZoneInfo(timezone_name)
     history={}
     profile=defaultdict(list)
@@ -90,11 +118,13 @@ def forecasts_at_origin(rows,origin,targets,timezone_name='Europe/Stockholm'):
             values=local.get((day,dt.hour,dt.minute,dt.fold),[])
             if values:support.append(statistics.median(values))
         candidate=.5*baseline+.5*statistics.median(support) if support else baseline
+        if candidate_method=='recent_trend':
+            candidate,_ = _recent_trend(history,origin,t,baseline)
         predictions.append({'t':t,'baseline_kw':baseline,'candidate_kw':max(.05,min(25.,candidate))})
     return predictions
 
 
-def evaluate_planner_snapshot(rows,snapshot,timezone_name='Europe/Stockholm'):
+def evaluate_planner_snapshot(rows,snapshot,timezone_name='Europe/Stockholm', *, candidate_method='median_blend'):
     """Paired offline cash-flow counterfactual, never an adoption decision.
 
     Only exact quarter-boundary snapshots with supported simulation semantics
@@ -114,7 +144,7 @@ def evaluate_planner_snapshot(rows,snapshot,timezone_name='Europe/Stockholm'):
     if not (0<=params['reserve_kwh']<=params['soc0_kwh']<=params['max_kwh']<=params['capacity_kwh']
             and 0<params['eff']<=1 and params['charge_kw']>=0 and params['discharge_kw']>=0):
         raise ValueError('Invalid physical battery parameters')
-    predictions=forecasts_at_origin(rows,origin,targets,timezone_name)
+    predictions=forecasts_at_origin(rows,origin,targets,timezone_name,candidate_method=candidate_method)
     actual={number(r['t']):number(r['kw']) for r in rows}
     if any(t not in actual for t in targets):raise ValueError('Missing realized load quarter')
     if any(s['solar_kw']<0 or s['ev_kw']<0 for s in slots):raise ValueError('Invalid unsigned exogenous load')
@@ -133,7 +163,7 @@ def evaluate_planner_snapshot(rows,snapshot,timezone_name='Europe/Stockholm'):
         results[label]={'energy_cash_cost':cash,'ending_soc_kwh':simulation[-1]['soc_kwh'],
             'soc_bounds_respected':all(params['reserve_kwh']-1e-9<=r['soc_kwh']<=params['max_kwh']+1e-9 for r in simulation),
             'actions':actions}
-    return {'plan_id':snapshot['plan_id'],'origin':origin,'quarters':len(slots),
+    return {'plan_id':snapshot['plan_id'],'origin':origin,'quarters':len(slots),'candidate_method':candidate_method,
             'results':results,'predictions':predictions,
             'candidate_minus_baseline_cash_cost':results['candidate']['energy_cash_cost']-results['baseline']['energy_cash_cost'],
             'adoption_ready':False,
@@ -141,13 +171,14 @@ def evaluate_planner_snapshot(rows,snapshot,timezone_name='Europe/Stockholm'):
 
 
 def evaluate(rows,split_at,timezone_name='Europe/Stockholm',min_train=7*96,min_test=96,
-             min_relative_mae_improvement=.05):
+             min_relative_mae_improvement=.05, *, candidate_method='median_blend'):
     """Frozen p85 weekday/hour baseline vs causal recent/historical blend.
 
     Only slots that ended before the forecast origin can feed candidate features.
     Test observations may feed later forecasts, as they would in a rolling deployment.
     No held-out target is used to predict itself. No automatic model selection.
     """
+    _method(candidate_method)
     split=epoch(split_at);zone=ZoneInfo(timezone_name)
     rows=sorted(rows,key=lambda s:s['t'])
     if len({r['t'] for r in rows})!=len(rows):raise ValueError('Duplicate quarter')
@@ -180,9 +211,12 @@ def evaluate(rows,split_at,timezone_name='Europe/Stockholm',min_train=7*96,min_t
             if candidates:matching.append(statistics.median(candidates))
         support=recent+matching
         candidate=.5*baseline+.5*statistics.median(support) if support else baseline
+        support_count=len(support)
+        if candidate_method=='recent_trend':
+            candidate,support_count=_recent_trend(history,r['t'],r['t'],baseline)
         candidate=max(0.05,min(25.,candidate))
         predictions.append({'t':r['t'],'actual_kw':r['kw'],'baseline_kw':baseline,
-                            'candidate_kw':candidate,'support_count':len(support)})
+                            'candidate_kw':candidate,'support_count':support_count})
         history[r['t']]=r['kw']  # becomes usable only for subsequent forecast origins
         local_history[local_key(r['t'])].append(r['kw'])
     def metrics(name):
@@ -192,7 +226,7 @@ def evaluate(rows,split_at,timezone_name='Europe/Stockholm',min_train=7*96,min_t
     base,candidate=metrics('baseline_kw'),metrics('candidate_kw')
     improvement=(base['mae_kw']-candidate['mae_kw'])/base['mae_kw'] if base['mae_kw'] else 0
     return {'training_quarters':len(train),'evaluation_quarters':len(test),'split_at':split_at.isoformat() if hasattr(split_at,'isoformat') else split_at,
-            'baseline':base,'candidate':candidate,'relative_mae_improvement':improvement,
+            'baseline':base,'candidate':candidate,'candidate_method':candidate_method,'relative_mae_improvement':improvement,
             'required_relative_mae_improvement':min_relative_mae_improvement,
             'forecast_error_gate_passed':improvement>=min_relative_mae_improvement and candidate['rmse_kw']<=base['rmse_kw'],
             'economic_evaluation':None,'adoption_ready':False,

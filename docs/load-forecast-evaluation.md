@@ -56,6 +56,40 @@ paired planner-cost/constraint evaluation on recorded inputs, real household dat
 and a reviewed opt-in rollout/reversion decision are still required. A lower MAE
 alone does not establish economic improvement.
 
+## Optional near-term trend candidate
+
+Pass `--candidate-method recent_trend` to select a second offline candidate.
+The default `median_blend` keeps the existing numerical behavior. Reports identify
+the selected method; neither method is selected or adopted automatically.
+
+The trend candidate requires eight contiguous completed physical UTC quarters
+immediately before the origin. It compares the last hour's mean with the preceding
+hour's mean and anchors to the last completed quarter:
+
+```text
+adjustment = 0.35 × (last_hour_mean - preceding_hour_mean)
+             + 0.20 × (last_quarter - baseline)
+candidate = baseline + adjustment × max(0, 1 - horizon_hours / 4)
+```
+
+It clips to 70–135% of the existing baseline and 0.05–25 kW. At four hours or
+later it returns the baseline. Missing recent quarters cause baseline fallback;
+older samples are not substituted. Before-origin targets also use the baseline.
+The baseline and seven-day training/evaluation requirements remain unchanged.
+
+This is inspired by Zenai's bounded near-term activity shaping, not a port of its
+ML, seasonal or neighbouring-slot corrections. Here each feature is a reconstructed
+quarter; the support window is explicitly two hours. No claim of exact Zenai
+equivalence or forecast/economic improvement follows from the formula alone.
+
+In rolling error evaluation, completed test quarters may feed later origins.
+In the paired planner evaluation, every horizon feature stays frozen at the one
+snapshot origin; future actual load is used only to score the simulated actions.
+Repeated DST hours remain separate physical quarters. Qualified signed/excluded
+load data and held-out evaluation are still required; EW minute history is not
+automatically accepted as that dataset. No runtime forecast, live configuration,
+provider access or device ownership changes are made.
+
 ## Paired planner cash-flow counterfactual
 
 Optionally pass --planner-snapshot PATH to the same CLI. It validates the snapshot identity and exact planner replay, then freezes both full-horizon forecasts using only quarters completed before that snapshot origin. Both runs share the captured initial SOC, prices, PV, EV and planner settings; simulated realized load comes from the aligned reconstructed measurements. Future actuals never feed any forecast in that horizon.
