@@ -36,6 +36,30 @@ occur. Reconstruct physical UTC quarters with >=90% coverage; hold the left samp
 only until the next finite sample within 90 seconds. Longer gaps stay excluded.
 Repeated local DST hours retain distinct physical quarter keys.
 
+## Source-dated capture input
+
+Pass `--source-dated` to evaluate a private `contract`/`samples` capture from
+[source-evidence export and residual reconstruction](hot-water-residual-load.md):
+
+```text
+python scripts/evaluate_household_forecast.py private-source-export.json --source-dated --split 2026-11-11T00:00:00+01:00 --candidate-method recent_trend
+```
+
+The CLI reruns the actual source-date/AC-sign/residual validator; it never trusts
+precomputed `rows`, supplied quality summaries, or database insertion times as
+measurement dates. Existing age/skew/gap/coverage defaults apply, and missing
+readings stay gaps. `--allow-receipt` explicitly permits receipt evidence only in
+this mode; it never switches local REST to cloud or relabels receipt as source time.
+
+This target excludes dedicated hot-water electricity only. The output retains
+that contract and validation counts, and says physical measurement qualification
+is not established. EV/other separately planned loads are not silently removed.
+Pairing this mode with `--planner-snapshot` is refused: residual load cannot replace
+whole-house demand without matching controlled-load exclusions and reservations.
+This mode performs forecast-error evaluation only, retains the chronological
+minimum-data gates and never enables runtime adoption. Keep both inputs and
+prediction output private. The default raw-array input path remains unchanged.
+
 Predeclared minimum evaluation: 672 valid training quarters (one week's worth) and
 96 held-out quarters. Prefer multiple representative weeks and seasonal datasets
 before drawing conclusions. A frozen weekday/hour p85 profile is clamped 1–6 kW,
