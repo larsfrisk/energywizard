@@ -2679,5 +2679,14 @@
   "Prio {p} (BATTERISKYDD): {name} måste ladda {m} min i sträck för att skydda kontaktorerna. Tvingar fram {a}A. (Kört {r}/{t} min": "Prio {p} (OCHRANA BATERIE): {name} musí nabíjet {m} min v kuse, aby se chránily stykače. Vynucuji {a}A. (Běží {r}/{t} min",
   "Hemmets position hämtad från inställning.": "Poloha domova převzata z nastavení.",
   "Hemmets position hämtad från zone.home.": "Poloha domova převzata ze zone.home.",
-  "Hemmets position okänd (ingen zone.home i Home Assistant, ingen HOME_LATITUDE/HOME_LONGITUDE) - väderprognos och GPS-hemkomst använder ett reservläge som kan vara långt från huset.": "Poloha domova není známa (v Home Assistantu chybí zone.home, není nastaveno HOME_LATITUDE/HOME_LONGITUDE) - předpověď počasí a GPS návrat domů používají náhradní polohu, která může být daleko od domu."
+  "Hemmets position okänd (ingen zone.home i Home Assistant, ingen HOME_LATITUDE/HOME_LONGITUDE) - väderprognos och GPS-hemkomst använder ett reservläge som kan vara långt från huset.": "Poloha domova není známa (v Home Assistantu chybí zone.home, není nastaveno HOME_LATITUDE/HOME_LONGITUDE) - předpověď počasí a GPS návrat domů používají náhradní polohu, která může být daleko od domu.",
+  "Legionella": "Legionela",
+  "Värmer varmvattnet till legionellatemperaturen om det har gått för länge sedan sist.": "Ohřeje teplou vodu na teplotu proti legionele, pokud od posledního ohřevu uplynulo příliš dlouho.",
+  "Inte uppnådd de senaste 90 dygnen.": "Za posledních 90 dní nedosaženo.",
+  "Inte uppnådd de senaste # dygnen.": "Za posledních # dní nedosaženo.",
+  "Senast uppnådd {when}, {days} dygn sedan.": "Naposledy dosaženo {when}, před {days} dny.",
+  "Senast uppnådd {when}.": "Naposledy dosaženo {when}.",
+  "Var": "Každých",
+  "dygn, till": "dní, na",
+  "Värmepumpens eget legionellaprogram, om den har ett, ställs på pumpen.": "Vlastní program proti legionele tepelného čerpadla, pokud ho má, se nastavuje přímo na čerpadle."
 }

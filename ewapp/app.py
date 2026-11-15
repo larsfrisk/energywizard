@@ -907,6 +907,7 @@ async def car_access(car: str, request: Request):
 SETTING_RULES = {  # kolumn: (typ, min, max, steg)
     "peak_shaving_enabled": ("bool",), "power_limit_kw": ("float", 3.0, 25.0, 0.5), "fuse_size_a": ("float", 16.0, 63.0, 1.0),
     "temp_cheap": ("float", 17.0, 25.0, 0.5), "temp_expensive": ("float", 15.0, 24.0, 0.5), "spa_normal_temp": ("float", 20.0, 40.0, 0.5), "spa_max_temp": ("float", 30.0, 40.0, 0.5), "spa_low_temp": ("float", 10.0, 30.0, 0.5),
+    "legionella_days": ("int", 3, 60, 1), "legionella_temp": ("float", 55.0, 65.0, 1.0),
     "notify_spa_ready": ("bool",), "notify_ev_start": ("bool",), "notify_washer_start": ("bool",), "notify_spa_open": ("bool",),
 }
 
@@ -1037,6 +1038,8 @@ async def set_setting(request: Request):
             raise HTTPException(400, "Ogiltigt värde")
         if not (rule[1] <= v <= rule[2]):
             raise HTTPException(400, f"Måste vara mellan {rule[1]} och {rule[2]}")
+        if rule[0] == "int":
+            v = int(round(v))
     if key == "power_limit_kw" and not get_settings_row().get("peak_shaving_enabled"):
         raise HTTPException(409, "Effektgränsen gäller bara när effektvakten är på")
     with ENGINE.begin() as c:

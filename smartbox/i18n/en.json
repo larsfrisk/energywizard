@@ -2679,5 +2679,14 @@
  "Prio {p} (BATTERISKYDD): {name} måste ladda {m} min i sträck för att skydda kontaktorerna. Tvingar fram {a}A. (Kört {r}/{t} min": "Prio {p} (BATTERY PROTECTION): {name} must charge {m} min in a row to protect the contactors. Forcing {a}A. (Ran {r}/{t} min",
  "Hemmets position hämtad från inställning.": "Home location taken from the setting.",
  "Hemmets position hämtad från zone.home.": "Home location taken from zone.home.",
- "Hemmets position okänd (ingen zone.home i Home Assistant, ingen HOME_LATITUDE/HOME_LONGITUDE) - väderprognos och GPS-hemkomst använder ett reservläge som kan vara långt från huset.": "Home location unknown (no zone.home in Home Assistant, no HOME_LATITUDE/HOME_LONGITUDE) - the weather forecast and GPS homecoming use a fallback location that may be far from the house."
+ "Hemmets position okänd (ingen zone.home i Home Assistant, ingen HOME_LATITUDE/HOME_LONGITUDE) - väderprognos och GPS-hemkomst använder ett reservläge som kan vara långt från huset.": "Home location unknown (no zone.home in Home Assistant, no HOME_LATITUDE/HOME_LONGITUDE) - the weather forecast and GPS homecoming use a fallback location that may be far from the house.",
+ "Legionella": "Legionella",
+ "Värmer varmvattnet till legionellatemperaturen om det har gått för länge sedan sist.": "Heats the hot water to the legionella temperature if it has been too long since the last time.",
+ "Inte uppnådd de senaste 90 dygnen.": "Not reached in the last 90 days.",
+ "Inte uppnådd de senaste # dygnen.": "Not reached in the last # days.",
+ "Senast uppnådd {when}, {days} dygn sedan.": "Last reached {when}, {days} days ago.",
+ "Senast uppnådd {when}.": "Last reached {when}.",
+ "Var": "Every",
+ "dygn, till": "days, to",
+ "Värmepumpens eget legionellaprogram, om den har ett, ställs på pumpen.": "The heat pump's own legionella programme, if it has one, is set on the pump."
 }

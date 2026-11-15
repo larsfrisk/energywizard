@@ -149,6 +149,13 @@ const CLOCK_COL = { cheap: "#22d3a0", mid: "#38bdf8", dear: "#f87171", heat: "#f
   hold: "#38bdf8", idle: "#94a3b8", export: "#d946ef" };   // export = laddar ur och säljer överskottet (egen färg, Anders på Discord)
 const CAR_COL = ["#38bdf8", "#a78bfa", "#f472b6", "#22d3a0"];
 const kr = (v) => v == null ? "–" : v.toFixed(2).replace(".", ",");
+// Legionella: när varmvattnet senast nådde temperaturen (värmepumpssidan)
+function legLast(iso) {
+  if (!iso) return "Inte uppnådd de senaste 90 dygnen.";
+  const t = new Date(iso), days = Math.floor((Date.now() - t.getTime()) / 86400000);
+  const when = t.toLocaleString("sv-SE", { day: "numeric", month: "numeric", hour: "2-digit", minute: "2-digit" });
+  return days >= 1 ? `Senast uppnådd ${when}, ${days} dygn sedan.` : `Senast uppnådd ${when}.`;
+}
 const hhmm = (t) => new Date(t).toLocaleTimeString("sv-SE", { hour: "2-digit", minute: "2-digit" });
 
 function priceColor(p, lo, hi) {
@@ -1798,6 +1805,13 @@ async function renderVarmepump() {
         <h2>🚿 Varmvatten</h2>
         <div class="note" style="margin-bottom:8px">Samma princip som rumsvärmen, egen överstyrning.</div>
         <div class="seg" id="hotwaterseg">${["auto", "on", "off"].map(m => `<button data-m="${m}" class="${d.hotwater_mode === m ? "on" : ""}">${{ auto: "Auto", on: "Tvinga PÅ", off: "Tvinga AV" }[m]}</button>`).join("")}</div>
+        <h3 style="margin:14px 0 4px;font-size:15px">Legionella</h3>
+        <div class="note">Värmer varmvattnet till legionellatemperaturen om det har gått för länge sedan sist.</div>
+        <div class="note">${legLast(d.legionella_last)}</div>
+        <div class="numfield" style="margin-top:8px">Var <input type="number" id="legdays" step="1" min="3" max="60" value="${d.legionella_days ?? 14}"> dygn,
+          till <input type="number" id="legtemp" step="1" min="55" max="65" value="${d.legionella_temp ?? 60}"> °C
+          <button class="icobtn" id="legsave">Spara</button></div>
+        <div class="note">Värmepumpens eget legionellaprogram, om den har ett, ställs på pumpen.</div>
       </div>
     </div>
     <div class="card">
@@ -1815,6 +1829,11 @@ async function renderVarmepump() {
     </div>`;
   document.querySelectorAll("#heatseg button").forEach(b => b.onclick = () => postAction("api/home-action/heat", { value: b.dataset.m }).then(renderVarmepump));
   document.querySelectorAll("#hotwaterseg button").forEach(b => b.onclick = () => postAction("api/home-action/hotwater", { value: b.dataset.m }).then(renderVarmepump));
+  document.getElementById("legsave").onclick = async () => {
+    await postAction("api/settings-action", { key: "legionella_days", value: parseInt(document.getElementById("legdays").value, 10) });
+    await postAction("api/settings-action", { key: "legionella_temp", value: parseFloat(document.getElementById("legtemp").value) });
+    renderVarmepump();
+  };
   api("api/heat-feedback").then((r) => { document.querySelectorAll("#hfseg button").forEach((b) => b.classList.toggle("on", b.dataset.hf === r.mode));
     if (r.min_sp != null) document.getElementById("hfmin").value = r.min_sp; if (r.max_sp != null) document.getElementById("hfmax").value = r.max_sp; }).catch(() => {});
   document.getElementById("hfsave").onclick = async () => {
@@ -1885,7 +1904,7 @@ async function renderInstalls() {
     const verRow = h.version ? `<div class="note" style="padding-top:6px">Version ${esc(h.version)}</div>` : "";
     return `<div class="card" style="padding:14px${h.mine ? ";border-color:var(--acc)" : ""}${errs.length ? ";box-shadow:0 0 0 2px #e74c3c55" : ""}">
       <div style="display:flex;justify-content:space-between;gap:10px;align-items:baseline;margin-bottom:6px">
-        <div style="font-size:1.05rem;font-weight:800">🏠 ${esc(h.label)}${(h.devices.country || [])[0] ? ` <span class="note" style="font-weight:600">· ${FLAG[(h.devices.country || [])[0].split("@")[0].replace("country:", "")] || ""} ${labelOf((h.devices.country || [])[0])}</span>` : ""}${h.mine ? ` <span class="badge on">ditt hus</span>` : ""}</div>
+        <div style="font-size:1.05rem;font-weight:800">🏠 <span data-noi18n>${esc(h.label)}</span>${(h.devices.country || [])[0] ? ` <span class="note" style="font-weight:600">· ${FLAG[(h.devices.country || [])[0].split("@")[0].replace("country:", "")] || ""} ${labelOf((h.devices.country || [])[0])}</span>` : ""}${h.mine ? ` <span class="badge on">ditt hus</span>` : ""}</div>
         <div class="note">sedan ${esc(h.since)}</div></div>
       ${n ? rows : h.ping_only ? `<div class="note" style="padding:8px 0">Äldre version utan telemetri – utrustningen syns när installationen uppdaterat till 1.2.45.</div>` : `<div class="note" style="padding:8px 0">Har installerat men inte valt några enheter än.</div>`}${errRow}${verRow}</div>`;
   };
@@ -1924,7 +1943,7 @@ async function renderInstalls() {
     const list = houses.filter((h) => flt === "alla" || (flt === "fel" && realErr(h).length) || (flt === "gamla" && h.current === false) || (flt === "nya" && isNew(h)));
     const rows = list.map((h) => { const e = realErr(h); return `<details class="card" style="padding:0;margin-bottom:8px${e.length ? ";box-shadow:0 0 0 2px #e74c3c55" : h.mine ? ";border-color:var(--acc)" : ""}">
       <summary style="cursor:pointer;list-style:none;display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:12px 14px">
-        <b style="flex:0 0 auto">${e.length ? "⚠️" : "✅"} ${esc(h.label)}${h.mine ? ' <span class="note">(ditt)</span>' : ""}</b>
+        <b style="flex:0 0 auto">${e.length ? "⚠️" : "✅"} <span data-noi18n>${esc(h.label)}</span>${h.mine ? ' <span class="note">(ditt)</span>' : ""}</b>
         <span style="flex:1 1 200px;min-width:0">${esc(short(h))}</span>
         <span class="note" style="flex:0 0 auto;white-space:nowrap">${h.current === false ? '<span style="color:var(--warn)">äldre version</span>' : "aktuell"} · hörd ${ago(h.last_seen)} sedan${isNew(h) ? ' · <b style="color:var(--acc)">ny</b>' : ""}</span>
         ${e.length ? `<span style="flex:1 1 100%;color:#e74c3c;font-size:.9rem;overflow-wrap:anywhere">${e.map(esc).join(" · ")}</span>` : ""}
@@ -2288,7 +2307,7 @@ async function runDiscovery(ev, cached) {
   html += `<div class="card" style="margin-bottom:16px"><h2>🚗 Bilar (${d.cars.length})</h2>`;
   d.cars.forEach((c, i) => {
     html += `<div class="note" style="margin:10px 0;padding:10px;border:1px solid var(--line);border-radius:10px">
-      <label><input type="checkbox" class="car-pick" data-i="${i}" checked> <b>${c.device_name}</b></label> ${driverTag(c)}<br>
+      <label><input type="checkbox" class="car-pick" data-i="${i}" checked> <b data-noi18n>${esc(c.device_name)}</b></label> ${driverTag(c)}<br>
       id: <input type="text" class="car-id" data-i="${i}" value="${c.driver}" style="width:100px"> &nbsp;
       batteri (kWh): <input type="number" class="car-kwh" data-i="${i}" value="60" style="width:70px"><br>
       <span style="font-size:.8rem">SOC: ${c.soc_entity || "-"} · Kabel: ${c.plugged_in_entity || "-"} · Klimat: ${c.climate_entity || "-"}</span>
@@ -2304,12 +2323,12 @@ async function runDiscovery(ev, cached) {
       <label><input type="checkbox" class="pick" data-cat="${title}" checked> Använd detta fynd</label> ${driverTag(item, title)}
       <div class="note" style="margin-top:6px;font-size:.8rem">${fields}</div>${item.note ? `<div class="note" style="margin-top:6px">${esc(item.note)}</div>` : ""}</div>`;
   };
-  html += simpleCard("♨️", "Värmepump", d.heat_pump, d.heat_pump ? `${esc(d.heat_pump.device_name || "")} ${compressorPicker(d)}` : "");
+  html += simpleCard("♨️", "Värmepump", d.heat_pump, d.heat_pump ? `<span data-noi18n>${esc(d.heat_pump.device_name || "")}</span> ${compressorPicker(d)}` : "");
   if ((d.radiators || []).length) {
     html += `<div class="card" style="margin-bottom:16px"><h2>Radiatorer i Home Assistant</h2>
       <div class="note">Upptäckta radiatorer visas endast som inventering. Styr dem i Home Assistant; separat zonschemaläggning stöds ännu inte.</div>`;
     d.radiators.forEach(r => {
-      html += `<div class="note"><b>${esc(r.name)}</b> · <code>${esc(r.entity)}</code>${r.area ? ` · ${esc(r.area)}` : ""}</div>`;
+      html += `<div class="note"><b data-noi18n>${esc(r.name)}</b> · <code>${esc(r.entity)}</code>${r.area ? ` · <span data-noi18n>${esc(r.area)}</span>` : ""}</div>`;
     });
     html += `</div>`;
   }
@@ -2321,7 +2340,7 @@ async function runDiscovery(ev, cached) {
 
   html += `<div class="card" style="margin-bottom:16px"><h2>🔌 Laddare (${d.chargers.length})</h2>`;
   d.chargers.forEach((c, i) => {
-    html += `<label style="display:block;margin:6px 0"><input type="checkbox" class="charger-pick" data-i="${i}" checked> ${c.device_name}</label> ${driverTag(c, `charger:${i}`)}`;
+    html += `<label style="display:block;margin:6px 0"><input type="checkbox" class="charger-pick" data-i="${i}" checked> <span data-noi18n>${esc(c.device_name)}</span></label> ${driverTag(c, `charger:${i}`)}`;
   });
   if (!d.chargers.length) html += `<div class="note">Inga laddare hittades.</div>`;
   html += `</div>`;

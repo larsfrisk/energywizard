@@ -1,5 +1,16 @@
 # Ändringar
 
+## 1.2.102 (2026-11-15)
+- **Innetemperaturen när rumsgivarna glappar:** saknas alla valda rumsgivare en kort stund behålls deras senaste värde
+  i upp till 15 minuter, i stället för att värmepumpens egen innegivare tas. På en Thermia via Husdata är den ett fast
+  värde (20,0 °C), så rumsåterkopplingen höjde börvärdet i onödan.
+- **Legionella på webben:** under Varmvatten på värmepumpssidan kan intervallet (3-60 dygn) och temperaturen (55-65 °C)
+  ställas, och det syns när varmvattnet senast nådde temperaturen.
+- **Backtester för värmepumpen** i `scripts/backtest_heat/`: export (kvartsaggregerad, med tidsgräns), gemensam
+  husmodell, pausvarianter och rumsåterkopplingens regel som i motorn.
+- Namn från Home Assistant och användaren (enheter, radiatorer, områden, hus) översätts inte längre på webben, och
+  enhetsnamnen escapas.
+
 ## 1.2.101 (2026-11-15)
 - **Laddplanen hoppade över billiga kvartar på dagen** (#438). Alla kvartar 07-20 fick ett påslag på 1,50 kr/kWh i planens
   rangordning, även på helger och med effektvakten avstängd. En söndag valdes därför natten för ca 1,00 kr före 13:30

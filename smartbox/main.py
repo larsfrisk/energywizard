@@ -14,6 +14,7 @@ import logger    # Sparar logg till databas (varje minut)
 import settings  # Hanterar konfigurationsinställningar
 import weather   # Hämtar och cachelagrar väderprognos inkl. solprognos
 import gps_home  # bilens hemkomst ur GPS (approaching)
+import indoor_hold  # håll givarnas innetemp när de glappar en kort stund
 import homeassistant    # Hämtar data från Home Assistant (temperaturer + Easee-laddare)
 import notifier         # Skickar push-notiser till Emil
 import energy_balance   # Husets energibalans (solgolv ur exporten, rimlig batterieffekt)
@@ -362,6 +363,7 @@ spa_offline_since = None
 last_pump_zero_notify_time = None
 last_peak_shaving_notify_time = None
 last_valid_ha_temp_time = datetime.now(SWE_TZ)
+last_valid_ha_temp = None          # senaste innetemp ur rumsgivarna (indoor_hold.py)
 
 # Senast kända batterinivå per bil. En sovande bil ger 'unknown' i HA (och HA glömmer värdet vid omstart),
 # men bilen har samma nivå tills den körs/laddas. Värdet sparas i sensor_log (tesla_soc/nissan_soc + *_soc_stale)
@@ -1555,9 +1557,13 @@ while True:
                 else:
                     indoor_temp = sum(temps_to_avg) / len(temps_to_avg)
                 last_valid_ha_temp_time = now
+                last_valid_ha_temp = indoor_temp
                 ha_temp_alert_sent = False
             elif _pump_ok or pump_indoor_temp is not None:
-                indoor_temp = pump_indoor_temp
+                # Givarna tappade en kort stund: behåll deras senaste värde (indoor_hold.HOLD) i stället för pumpens egen
+                # innegivare, som på vissa pumpar bara är ett fast värde (Thermia/Husdata: 20,0 °C)
+                indoor_temp, _ = indoor_hold.choose(None, pump_indoor_temp, bool(_indoor_sensors), last_valid_ha_temp,
+                                                    last_valid_ha_temp_time, now)
                 # Larma bara om det finns valda innegivare som har tystnat
                 if _indoor_sensors and (now - last_valid_ha_temp_time) > timedelta(minutes=15) and not ha_temp_alert_sent:
                     notifier.alert_indoor_temp_sensor_offline()

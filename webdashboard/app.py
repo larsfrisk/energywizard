@@ -1120,7 +1120,8 @@ async def overview(request: Request):
         mode = str(row.get("active_mode") or "").upper()
         target_room = _temp_target(c, mode)
         ov = _overrides(c, ("heat", "hotwater"))
-        cfg = _settings_row(c, ("temp_cheap", "temp_expensive"))
+        cfg = _settings_row(c, ("temp_cheap", "temp_expensive", "legionella_days", "legionella_temp"))
+        leg_last = _legionella_last(c, cfg.get("legionella_temp"))
     is_high_load = _is_high_load_time(row["sthlm_time"])
     import nordpool
     high_load_source = nordpool.high_load_window()["source"]
@@ -1130,6 +1131,8 @@ async def overview(request: Request):
         "mode": mode,
         "heat_mode": ov.get("heat", "auto"), "hotwater_mode": ov.get("hotwater", "auto"),
         "temp_cheap": _n(cfg.get("temp_cheap")), "temp_expensive": _n(cfg.get("temp_expensive")),
+        "legionella_days": _n(cfg.get("legionella_days")) or 14, "legionella_temp": _n(cfg.get("legionella_temp")) or 60.0,
+        "legionella_last": leg_last.isoformat() if leg_last else None,
         "decision": row.get("active_decision") or "Utvärderar…",
         "decision_items": _json_list(row.get("decision_summary")),     # vad görs nu och varför, per enhet
         "price": _n(row.get("price")),
@@ -1860,6 +1863,17 @@ async def proxy_climate_schedule(request: Request):
     return await _ewapp_proxy("/api/schedule/climate", await request.json())
 
 
+def _legionella_last(c, temp):
+    """Senaste gången varmvattnet nådde legionellatemperaturen (samma regel som motorn: högst 0,5 °C under), inom 90 dygn."""
+    try:
+        t = float(temp if temp is not None else 60.0) - 0.5
+        r = c.execute(text("SELECT MAX(timestamp) FROM sensor_log WHERE timestamp > now() - interval '90 days' AND water_temp >= :t"),
+                      {"t": t}).first()
+        return r[0] if r and r[0] else None
+    except Exception:
+        return None
+
+
 @app.post("/api/settings-action")
 async def proxy_setting(request: Request):
     """Elförbrukning-sidan (effektvakt på/av + effektgräns) och Värmepump-sidan
@@ -1867,7 +1881,7 @@ async def proxy_setting(request: Request):
     webdashboards sidor faktiskt visar kontroller för."""
     body = await request.json()
     if body.get("key") not in ("peak_shaving_enabled", "power_limit_kw", "temp_cheap", "temp_expensive",
-                               "spa_normal_temp", "spa_max_temp", "spa_low_temp"):
+                               "spa_normal_temp", "spa_max_temp", "spa_low_temp", "legionella_days", "legionella_temp"):
         return JSONResponse({"detail": "Okänd inställning"}, status_code=400)
     return await _ewapp_proxy("/api/settings", body)
 
