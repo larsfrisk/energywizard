@@ -58,6 +58,10 @@ published here. Refer to installation-local reports for a new, time-bound check.
    compressor power, tank/COP estimates and sensor names do not establish that
    boundary. If that measurement is unavailable, agree a different explicit
    forecast-target/exclusion design rather than assuming a power value.
+   A [direct total-load capture target](direct-household-load-evidence.md) is an
+   alternative for a battery-only forecast-error experiment if a qualified AC
+   household-load signal is available. It includes hot water/EVs, changes no
+   runtime forecast, and does not qualify hot-water-excluded reservations.
 2. **Collect the declared target without double counting.** Configure source
    capture only after mapping review. Preserve gaps and source contexts. Qualify
    EV/other exclusions separately before adding their reservations to a forecast.

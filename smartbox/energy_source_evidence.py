@@ -42,6 +42,22 @@ def capture(house, cache, pump, *, now):
             return None
         if isinstance(now, bool) or not isinstance(now, (int, float)) or not math.isfinite(now):
             return None
+        target = cfg.get('target', 'hot_water_excluded')
+        if target == 'household_total':
+            mapping = cfg.get('household') or {}
+            if mapping.get('positive') != 'consumption':
+                return None
+            value, stamp, basis = _reading(cache, mapping.get('entity_id'))
+            if value is not None and value < 0:
+                value, stamp, basis = None, None, None
+            context = {'boundary':'ac_household','target':target,'session':_SESSION,
+                       'entity_id':mapping.get('entity_id'),'positive':'consumption'}
+            return {'schema':2,'timestamp':datetime.fromtimestamp(now, timezone.utc).isoformat(),
+                    'boundary':'ac_household','physical_verified':False,'target':target,
+                    'source_context':hashlib.sha256(json.dumps(context,sort_keys=True,allow_nan=False).encode()).hexdigest(),
+                    'load_w':value,'load_sample_at':stamp,'load_basis':basis}
+        if target != 'hot_water_excluded':
+            return None
         mappings = {role: cfg.get(role) or {} for role in ("grid", "pv", "battery")}
         hp = house.get("heat_pump") or {}
         water = log_fields(pump or {})
@@ -88,7 +104,7 @@ def log_value(evidence):
     if not isinstance(evidence, dict):
         return None
     try:
-        if (type(evidence["schema"]) is not int or evidence["schema"] != 1
+        if (type(evidence["schema"]) is not int or evidence["schema"] not in {1,2}
                 or evidence["boundary"] != "ac_household" or evidence["physical_verified"] is not False):
             return None
         context = evidence["source_context"]
@@ -97,15 +113,20 @@ def log_value(evidence):
         if _stamp(evidence["timestamp"]) is None:
             return None
         result = {k: evidence[k] for k in ("schema", "timestamp", "boundary", "physical_verified", "source_context")}
-        fields = [(r+"_w", r+"_sample_at", r+"_basis") for r in ("grid", "pv", "battery")]
-        fields.append(("hot_water_power_w", "hot_water_power_sample_at", "hot_water_power_basis"))
+        if evidence['schema']==2:
+            if evidence.get('target')!='household_total':return None
+            result['target']='household_total'
+            fields=[('load_w','load_sample_at','load_basis')]
+        else:
+            fields = [(r+"_w", r+"_sample_at", r+"_basis") for r in ("grid", "pv", "battery")]
+            fields.append(("hot_water_power_w", "hot_water_power_sample_at", "hot_water_power_basis"))
         for watts, date, basis in fields:
             value, stamp, label = (evidence[k] for k in (watts, date, basis))
             if value is None:
                 if stamp is not None or label is not None:
                     return None
             elif (isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value)
-                  or (watts in {"pv_w", "hot_water_power_w"} and value < 0)):
+                  or (watts in {"pv_w", "hot_water_power_w", "load_w"} and value < 0)):
                 return None
             elif stamp is None:
                 if label != "unknown":
@@ -114,6 +135,7 @@ def log_value(evidence):
                   or stamp < 0 or label not in {"source", "ha_report", "local_receipt"}):
                 return None
             result.update({watts: value, date: stamp, basis: label})
+        if evidence['schema']==2:return result
         source = evidence.get("hot_water_power_source")
         if source not in {None, "ha_sensor", "nibe_local"}:
             return None

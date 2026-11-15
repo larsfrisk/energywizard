@@ -14,18 +14,21 @@ if __name__=='__main__':
     p.add_argument('--candidate-method',choices=('median_blend','recent_trend'),default='median_blend',
                    help='Offline candidate only; default preserves the existing median blend')
     p.add_argument('--planner-snapshot',type=Path,help='Optional local quarter-boundary planner snapshot for paired cash-flow evaluation')
-    p.add_argument('--source-dated',action='store_true',help='Reconstruct a dated AC hot-water-excluded residual before error evaluation')
+    p.add_argument('--source-dated',action='store_true',help='Validate a dated AC residual or direct household-total capture before error evaluation')
     p.add_argument('--allow-receipt',action='store_true',help='Explicitly accept receipt dates with --source-dated; never changes transport preference')
     args=p.parse_args()
     if args.allow_receipt and not args.source_dated:p.error('--allow-receipt requires --source-dated')
     if args.source_dated and args.planner_snapshot:
-        p.error('Source-dated hot-water-excluded input cannot score a planner snapshot without separately aligned controlled-load reservations')
+        p.error('Source-dated input cannot score a planner snapshot without separately aligned controlled-load reservations')
     path=Path(args.samples)
     if path.stat().st_size>50_000_000:p.error('Input limited to 50 MB')
     if args.source_dated:
         from hot_water_residual import reconstruct
         try:
             data=json.loads(path.read_text(encoding='utf-8'))
+            if not isinstance(data['contract'],dict):raise ValueError('Explicit capture contract required')
+            if data['contract'].get('signal')=='household_total':
+                from household_load_evidence import reconstruct
             residual=reconstruct(data['samples'],data['contract'],allow_receipt=args.allow_receipt)
             rows,coverage=residual['rows'],residual['report']
             result=evaluate(rows,args.split,args.timezone,candidate_method=args.candidate_method)
