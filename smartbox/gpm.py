@@ -134,7 +134,9 @@ def _needy_morning_cars(state, car_ids, morning_soc, morning_hour, now):
         soc = state.get(f"{c}_soc")
         if not state.get(f"{c}_connected", False):
             continue
-        if soc is None or soc >= morning_soc:
+        _floor = state.get(f"{c}_floor_soc")
+        _floor = morning_soc if _floor is None else float(_floor)      # #426: golvet per bil (0 = av)
+        if soc is None or _floor <= 0 or soc >= _floor:
             continue
         if state.get(f"{c}_hold") or state.get(f"{c}_charge_completed"):
             continue

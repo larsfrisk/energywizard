@@ -2702,5 +2702,13 @@
   "Bara ägaren kan ändra laddreglerna": "Pravidla nabíjení může měnit jen vlastník",
   "Ogiltig regel": "Neplatné pravidlo",
   "Maxpriset ska vara ett tal": "Maximální cena musí být číslo",
-  "Maxpriset ska vara 0–20 kr/kWh": "Maximální cena musí být 0–20 Kč/kWh"
+  "Maxpriset ska vara 0–20 kr/kWh": "Maximální cena musí být 0–20 Kč/kWh",
+  "⚡ Laddregler": "⚡ Pravidla nabíjení",
+  "Mål utan klar-tid": "Cíl bez času dokončení",
+  "vänta högst": "čekat nejvýše",
+  "Morgongolv kl 06": "Ranní minimum v 06",
+  "Mål utan klar-tid gäller när laddschemat inte har något påslaget mål: laddningen läggs på de billigaste kvartarna bland alla kända priser, även morgondagens när de har publicerats. Morgongolvet 0 = av.": "Cíl bez času dokončení platí, když plán nabíjení nemá žádný aktivní cíl: nabíjení se umístí do nejlevnějších čtvrthodin ze všech známých cen, včetně zítřejších, jakmile jsou zveřejněny. Ranní minimum 0 = vypnuto.",
+  "Laddmålet ska vara 20–100 %": "Cíl nabíjení musí být 20–100 %",
+  "Väntetiden ska vara 6–72 timmar": "Doba čekání musí být 6–72 hodin",
+  "Morgongolvet ska vara 0–50 %": "Ranní minimum musí být 0–50 %"
 }

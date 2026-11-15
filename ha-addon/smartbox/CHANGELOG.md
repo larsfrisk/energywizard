@@ -1,5 +1,15 @@
 # Ändringar
 
+## 1.2.107 (2026-11-15)
+- **Elbil: mål utan klar-tid (#426)**, per bil under "Laddregler" på webbens Elbil-sida (förslag från Emlben, #420):
+  - Ett laddmål i % utan klockslag gäller när laddschemat inte har något påslaget mål. Laddningen läggs på de
+    billigaste kvartarna bland alla kända priser, även morgondagens när de har publicerats (runt kl 13). Planen räknas
+    om var 15:e minut, så den väntar in morgondagens priser om de är lägre. "Vänta högst" (standard 36 timmar) sätter
+    en gräns.
+  - **Morgongolvet går att ställa per bil** (standard 50 % kl 06, 0 = av). Med ett mål på 50 % och golvet på 50 %
+    laddar bilen alltid före 06, så för att vänta på morgondagens priser behöver golvet sänkas eller stängas av.
+    Golvlarmen och notisen om missad laddning följer bilens golv.
+
 ## 1.2.106 (2026-11-15)
 - **Elbil: bara sol (#427) och maxpris (#429)**, per bil på webbens Elbil-sida under "Laddning från nätet" (förslag från
   Emlben, #420):

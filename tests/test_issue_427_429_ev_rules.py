@@ -57,8 +57,9 @@ def test_morgongolvet_i_motorn_respekterar_bara_sol():
 
 def test_regler_valideras():
     import ev_rules
-    assert ev_rules.validate({"grid": False, "max_price": ""}) == ({"grid": False, "max_price": None}, None)
-    assert ev_rules.validate({"grid": True, "max_price": "1.5"})[0] == {"grid": True, "max_price": 1.5}
+    r, err = ev_rules.validate({"grid": False, "max_price": ""})
+    assert err is None and r["grid"] is False and r["max_price"] is None
+    assert ev_rules.validate({"grid": True, "max_price": "1.5"})[0]["max_price"] == 1.5
     assert ev_rules.validate({"max_price": "abc"})[1]
     assert ev_rules.validate({"max_price": 50})[1]
-    assert ev_rules.get("x", {"ev_rules": {}}) == {"grid": True, "max_price": None}
+    assert ev_rules.get("x", {"ev_rules": {}}) == ev_rules.DEFAULT

@@ -529,12 +529,22 @@ def _check_ev_stall(car_id, amps, charger_data, charger_id, phase_switch_active,
                 key="elbil",
             )
 
+def _car_floor(car_id):
+    """Bilens morgongolv (#426): inställt per bil, 0 när det är avstängt eller bilen bara laddar på sol (#427)."""
+    try:
+        r = ev_rules.get(car_id)
+        return 0.0 if not r["grid"] else float(r["floor_soc"])
+    except Exception:
+        return float(decisions.MORNING_MIN_SOC)
+
+
 def _check_morning_floor(car_id, soc, plugged_in, now_dt):
     """Oberoende larm-vakt: varnar Emil i god tid om en bil ser ut att missa 50%-golvet kl 06,
     istället för att han upptäcker det när han redan sitter i bilen (Leaf-incidenten natt 28/29 okt).
     Tar INTE över styrningen själv - planeraren (decisions.py) och stalled-vakten sköter det;
     detta är enbart ett larm om de ändå inte räcker."""
-    if soc is None or not plugged_in or soc >= decisions.MORNING_MIN_SOC:
+    _f = _car_floor(car_id)
+    if soc is None or not plugged_in or _f <= 0 or soc >= _f:
         return
     floor_today = now_dt.replace(hour=decisions.MORNING_HOUR, minute=0, second=0, microsecond=0)
     if now_dt >= floor_today:
@@ -546,9 +556,9 @@ def _check_morning_floor(car_id, soc, plugged_in, now_dt):
     if _morning_floor_alerted.get(car_id) == today_key:
         return
     _morning_floor_alerted[car_id] = today_key
-    print(f"🚨 Morgongolv-vakt: {car_id} på {soc:.0f}%, {minutes_left:.0f} min kvar till golvet (50% kl {decisions.MORNING_HOUR:02d}:00). Larmar.")
+    print(f"🚨 Morgongolv-vakt: {car_id} på {soc:.0f}%, {minutes_left:.0f} min kvar till golvet ({_f:.0f}% kl {decisions.MORNING_HOUR:02d}:00). Larmar.")
     notifier.send_emil(
-        f"🚨 {car_id.capitalize()} riskerar missa 50%-golvet kl 06",
+        f"🚨 {car_id.capitalize()} riskerar missa {_f:.0f}%-golvet kl 06",
         f"{soc:.0f}% nu, {minutes_left:.0f} min kvar till 06:00. Planen ska tvinga full ström, men kolla gärna att kabeln sitter i och att laddaren faktiskt drar ström.",
         {"tag": f"morning_floor_{car_id}"},
         key="elbil",
@@ -556,7 +566,8 @@ def _check_morning_floor(car_id, soc, plugged_in, now_dt):
 
 def _track_ev_need(car_id, soc, ordered_a, charger_data, sibling_charging, now_dt):
     """Ackumulera varför en bil under morgonmålet inte får ström - underlag till missad-laddning-notisen."""
-    if soc is None or soc >= decisions.MORNING_MIN_SOC:
+    _f = _car_floor(car_id)
+    if soc is None or _f <= 0 or soc >= _f:
         _ev_need_watch[car_id] = {
             "zero_order_min": 0.0, "stall_min": 0.0, "last_ordered": 0.0,
             "last_power": 0.0, "last_status": None, "sibling_power": False,
@@ -582,8 +593,11 @@ def _check_missed_charge(car_id, soc, plugged_in, now_dt):
     # Före kl 06 gäller dagens deadline senare i natt; efter 06 samma morgon.
     if now_dt < deadline:
         return
+    _f = _car_floor(car_id)
+    if _f <= 0:
+        return
     if not _ev_missed_mod.due_missed_alert(
-        soc=soc, target_soc=decisions.MORNING_MIN_SOC, plugged_in=plugged_in,
+        soc=soc, target_soc=_f, plugged_in=plugged_in,
         now=now_dt, deadline=deadline, already_key=_missed_charge_alerted.get(car_id),
     ):
         return
@@ -591,7 +605,7 @@ def _check_missed_charge(car_id, soc, plugged_in, now_dt):
     w = _ev_need_watch.get(car_id) or {}
     sibling = next((n for c, n in _EV_NAMES.items() if c != car_id), None)
     why = _ev_missed_mod.explain(
-        soc=soc, target_soc=decisions.MORNING_MIN_SOC,
+        soc=soc, target_soc=_f,
         ordered_a=float(w.get("last_ordered") or 0),
         power_kw=float(w.get("last_power") or 0),
         status=w.get("last_status"),
@@ -1449,6 +1463,9 @@ while True:
                     _rule = ev_rules.get(_c)                             # #427/#429
                     car_data_for_plan[f"{_c}_grid_allowed"] = _rule["grid"]
                     car_data_for_plan[f"{_c}_max_price"] = _rule["max_price"]
+                    car_data_for_plan[f"{_c}_floor_soc"] = _rule["floor_soc"]   # #426: golvet per bil, mål utan klar-tid
+                    car_data_for_plan[f"{_c}_open_soc"] = _rule["open_soc"]
+                    car_data_for_plan[f"{_c}_open_until"] = ev_rules.open_until(now, _rule["max_wait_h"]) if _rule["open_soc"] else None
                 car_data_for_plan.update({
                     "car_ids": list(car_ids), "car_specs": CAR_SPECS,     # bilarna ur installationen (laddplanen har inga bilnamn)
                     "heating_model": _ev_heating_model(now),
@@ -2092,6 +2109,7 @@ while True:
                     f'{_c}_plugged': ev_connection_state[_c]['connected'],     # faktiskt inkopplad (utan GPS-förallokering)
                     f'{_c}_grid_allowed': ev_rules.get(_c)["grid"],            # #427 bara sol
                     f'{_c}_max_price': ev_rules.get(_c)["max_price"],          # #429 maxpris
+                    f'{_c}_floor_soc': ev_rules.get(_c)["floor_soc"],          # #426 golvet per bil
                     f'{_c}_charge_completed': ev_connection_state[_c]['charge_completed'],
                     f'{_c}_phases': (car_charger_data.get(_c) or {}).get('phases'),
                     f'{_c}_habit_profile': _cached_ev_profiles.get(_c, {}),
@@ -2356,7 +2374,8 @@ while True:
                         _cdp = globals().get("car_data_for_plan") or {}
                         _bkwh = float(_sp.get("battery_kwh") or decisions.DEFAULT_BATTERY_KWH)
                         _t_dt, _t_soc, _kwh, _ = decisions.get_car_plan_details(now, car_id, ev_schedule, car_soc.get(car_id), _bkwh,
-                                                                              _cdp.get(f"{car_id}_ready_by"), _cdp.get(f"{car_id}_ready_soc"))
+                                                                              _cdp.get(f"{car_id}_ready_by"), _cdp.get(f"{car_id}_ready_soc"),
+                                                                              floor_soc=ev_rules.get(car_id)["floor_soc"])   # mål utan klar-tid varnas inte
                         _ph = charger_data.get("phases") if str(charger_data.get("phases")) in ("1", "3") else _sp.get("phases")
                         _risk = _ev_missed_mod.goal_at_risk(car_soc.get(car_id), _t_soc, _t_dt, now, _bkwh,
                                                             _ev_missed_mod.effective_kw(_sp.get("max_a"), 3 if str(_ph) in ("3", "auto") else 1, charger_data))

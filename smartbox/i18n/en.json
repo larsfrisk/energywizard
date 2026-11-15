@@ -2702,5 +2702,13 @@
  "Bara ägaren kan ändra laddreglerna": "Only the owner can change the charging rules",
  "Ogiltig regel": "Invalid rule",
  "Maxpriset ska vara ett tal": "The maximum price must be a number",
- "Maxpriset ska vara 0–20 kr/kWh": "The maximum price must be 0–20 SEK/kWh"
+ "Maxpriset ska vara 0–20 kr/kWh": "The maximum price must be 0–20 SEK/kWh",
+ "⚡ Laddregler": "⚡ Charging rules",
+ "Mål utan klar-tid": "Target without a ready time",
+ "vänta högst": "wait at most",
+ "Morgongolv kl 06": "Morning minimum at 06",
+ "Mål utan klar-tid gäller när laddschemat inte har något påslaget mål: laddningen läggs på de billigaste kvartarna bland alla kända priser, även morgondagens när de har publicerats. Morgongolvet 0 = av.": "A target without a ready time applies when the charging schedule has no active target: charging is placed in the cheapest quarters among all known prices, including tomorrow's once they are published. Morning minimum 0 = off.",
+ "Laddmålet ska vara 20–100 %": "The charging target must be 20–100 %",
+ "Väntetiden ska vara 6–72 timmar": "The waiting time must be 6–72 hours",
+ "Morgongolvet ska vara 0–50 %": "The morning minimum must be 0–50 %"
 }

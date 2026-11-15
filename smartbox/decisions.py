@@ -192,12 +192,16 @@ MORNING_HOUR = 6
 UNKNOWN_SOC_ASSUMED = 20   # #204: bilen saknar batterinivå i HA (t.ex. Zeekr) men har ett schema - planera som om den stod på 20 %
 
 
-def get_car_plan_details(now, car_id, schedule, current_soc, battery_kwh, ready_by=None, ready_soc=None):
+def get_car_plan_details(now, car_id, schedule, current_soc, battery_kwh, ready_by=None, ready_soc=None,
+                         floor_soc=None, open_goal=None):
     """Hjälpfunktion som beräknar nästa mål och energibehov för en bil. ready_by/ready_soc (#200): "klar senast" ur en
     HA-entitet - går före veckoschemat när den ligger framåt i tiden.
     Okänd batterinivå (#204): med ett påslaget schema eller "klar senast" planeras laddningen som om bilen stod på
     UNKNOWN_SOC_ASSUMED % (bilen slutar själv när den är full). Förut planerades ingenting, och bilen laddade bara tills
     EnergyWizard pausade laddboxen. Utan schema: som förut, ingen tvingad laddning."""
+    # floor_soc: bilens morgongolv (#426, standard MORNING_MIN_SOC, 0 = av). open_goal = (mål %, planera t.o.m.):
+    # laddmål utan klar-tid, gäller bara när veckoschemat inte har något påslaget mål.
+    floor = MORNING_MIN_SOC if floor_soc is None else float(floor_soc)
     target_dt, target_soc, panic_mode = None, 100, False
     if ready_by is not None and ready_by > now and current_soc is None:
         current_soc = UNKNOWN_SOC_ASSUMED
@@ -206,7 +210,7 @@ def get_car_plan_details(now, car_id, schedule, current_soc, battery_kwh, ready_
             soc_goal = float(ready_soc) if ready_soc is not None else 100.0
         except (TypeError, ValueError):
             soc_goal = 100.0
-        target_dt, target_soc = ready_by, max(min(soc_goal, 100.0), MORNING_MIN_SOC)
+        target_dt, target_soc = ready_by, max(min(soc_goal, 100.0), floor)
         if current_soc is None or current_soc >= target_soc:
             return None, target_soc, 0, False
         kwh_needed = max(0, (target_soc - current_soc) / 100.0 * battery_kwh) * 1.12
@@ -233,13 +237,17 @@ def get_car_plan_details(now, car_id, schedule, current_soc, battery_kwh, ready_
     # (avstängt/inget) gäller ändå nästa morgon kl MORNING_HOUR som deadline.
     if target_dt is not None and current_soc is None:
         current_soc = UNKNOWN_SOC_ASSUMED
-    if target_dt is None:
+    if target_dt is None and open_goal and open_goal[0] and open_goal[1] and open_goal[1] > now:
+        target_dt, target_soc = open_goal[1], max(float(open_goal[0]), floor)      # #426: mål utan klar-tid
+    elif target_dt is None:
+        if floor <= 0:
+            return None, 0, 0, False                                            # golvet avstängt och inget mål
         morning_dt = now.replace(hour=MORNING_HOUR, minute=0, second=0, microsecond=0)
         if morning_dt <= now:
             morning_dt += timedelta(days=1)
-        target_dt, target_soc = morning_dt, MORNING_MIN_SOC
+        target_dt, target_soc = morning_dt, floor
     else:
-        target_soc = max(target_soc, MORNING_MIN_SOC)
+        target_soc = max(target_soc, floor)
 
     if current_soc is None or current_soc >= target_soc:
         return None, target_soc, 0, False
@@ -261,17 +269,18 @@ def full_charge_deadline(now, target_dt, target_soc, margin_h=FULL_CHARGE_MARGIN
     return early if early > now else target_dt
 
 
-def get_morning_floor(now, current_soc, battery_kwh, target_dt):
+def get_morning_floor(now, current_soc, battery_kwh, target_dt, floor_soc=None):
     """Golvet (MORNING_MIN_SOC kl MORNING_HOUR) som ett eget första delmål: (deadline, kWh från nätet) eller None.
     Behövs bara när bilen är under golvet och schemats tid ligger EFTER kl 06 - då ska golvet nås först och resten till schemats tid."""
-    if current_soc is None or current_soc >= MORNING_MIN_SOC or target_dt is None:
+    floor = MORNING_MIN_SOC if floor_soc is None else float(floor_soc)
+    if current_soc is None or floor <= 0 or current_soc >= floor or target_dt is None:
         return None
     morning_dt = now.replace(hour=MORNING_HOUR, minute=0, second=0, microsecond=0)
     if morning_dt <= now:
         morning_dt += timedelta(days=1)
     if target_dt <= morning_dt:
         return None
-    return morning_dt, max(0.0, (MORNING_MIN_SOC - current_soc) / 100.0 * battery_kwh) * 1.12
+    return morning_dt, max(0.0, (floor - current_soc) / 100.0 * battery_kwh) * 1.12
 
 # Straff (kr/kWh i planens poäng) för att ladda under effekttariffens höglasttid med effektvakten på. Högt med avsikt:
 # en ny månadstopp kostar mer än nästan alla prisskillnader inom ett dygn.
@@ -305,8 +314,11 @@ def calculate_ev_charge_plan(now, ev_schedule, car_data, cfg):
         sp = specs.get(cid) or {}
         soc = car_data.get(f'{cid}_soc')
         bkwh = float(sp.get('battery_kwh') or DEFAULT_BATTERY_KWH)
+        _open = (car_data.get(f'{cid}_open_soc'), car_data.get(f'{cid}_open_until'))
         t_dt, t_soc, kwh, panic = get_car_plan_details(now, cid, ev_schedule, soc, bkwh,
-                                                       car_data.get(f'{cid}_ready_by'), car_data.get(f'{cid}_ready_soc'))
+                                                       car_data.get(f'{cid}_ready_by'), car_data.get(f'{cid}_ready_soc'),
+                                                       floor_soc=car_data.get(f'{cid}_floor_soc'),
+                                                       open_goal=_open if _open[0] else None)
         cars[cid] = {"soc": soc, "plugged": car_data.get(f'{cid}_plugged_in', False), "phases": _phases(cid),
                      "max_a": int(sp.get('max_a') or 16), "battery_kwh": bkwh,
                      "kw_per_amp": ev_power.kw_per_amp(sp.get('max_charge_kw'), int(sp.get('max_a') or 16), _phases(cid)),
@@ -314,7 +326,7 @@ def calculate_ev_charge_plan(now, ev_schedule, car_data, cfg):
                      "single_block": str(sp.get('charge_block', 'split')).lower() == 'single',
                      # #427/#429: bara sol (ingen planerad nätladdning) och maxpris, ur ev_rules via main
                      "grid": car_data.get(f'{cid}_grid_allowed', True) is not False,
-                     "max_price": car_data.get(f'{cid}_max_price')}
+                     "max_price": car_data.get(f'{cid}_max_price'), "floor_soc": car_data.get(f'{cid}_floor_soc')}
 
     max_dt = now
     for c in cars.values():
@@ -452,7 +464,7 @@ def calculate_ev_charge_plan(now, ev_schedule, car_data, cfg):
         if c["target_dt"] and c["kwh"] > 0 and c["plugged"]:
             cars_to_plan.append({'id': cid, 'deadline': full_charge_deadline(now, c["target_dt"], c["target_soc"]), 'kwh_needed': c["kwh"],
                                  'min_kw': 6 * c["kw_per_amp"], 'max_kw': min(c["max_a"], fuse_a) * c["kw_per_amp"],
-                                 'panic_mode': c["panic"], 'floor': get_morning_floor(now, c["soc"], c["battery_kwh"], c["target_dt"]),
+                                 'panic_mode': c["panic"], 'floor': get_morning_floor(now, c["soc"], c["battery_kwh"], c["target_dt"], c.get("floor_soc")),
                                  'single_block': c["single_block"], 'grid': c["grid"], 'max_price': c["max_price"]})
     cars_to_plan.sort(key=lambda x: x['deadline'])
 
