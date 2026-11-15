@@ -2690,5 +2690,6 @@
   "dygn, till": "dní, na",
   "Värmepumpens eget legionellaprogram, om den har ett, ställs på pumpen.": "Vlastní program proti legionele tepelného čerpadla, pokud ho má, se nastavuje přímo na čerpadle.",
   "Intervall": "Interval",
-  "dygn": "dní"
+  "dygn": "dní",
+  "HA svarar inte än (läser internal_url/external_url): {err}": "HA zatím neodpovídá (čtení internal_url/external_url): {err}"
 }

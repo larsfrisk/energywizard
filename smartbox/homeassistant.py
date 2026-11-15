@@ -1176,20 +1176,35 @@ def set_nordpool_vat(enabled: bool) -> bool:
     return False
 
 
-def get_own_base_url() -> str | None:
+def get_own_base_url(retries: int = 0, wait_s: float = 5.0) -> str | None:
     """HA:s egen, redan korrekt ifyllda internal_url/external_url (Inställningar →
     System → Nätverk) - mer pålitligt än att gissa värdens LAN-IP inifrån en
     bridge-nätverkad container (containerns egen IP är inte samma sak som värdens,
     skulle bli missvisande). Föredrar internal_url (lokalt nät, samma plats de flesta
     kör EnergyWizard ifrån)."""
-    try:
-        r = requests.get(f"{_BASE}/config", headers=_HEADERS, timeout=5, verify=_VERIFY)
-        r.raise_for_status()
-        d = r.json()
-        return d.get("internal_url") or d.get("external_url")
-    except Exception as e:
-        print(f"❌ Kunde inte läsa HA:s egen internal_url/external_url: {e}")
-        return None
+    # #434: vid start svarar HA ofta 502 eller inte alls medan den själv startar om. Det är inget fel i EnergyWizard:
+    # försök igen (retries) och logga som varning - bara oväntade fel (t.ex. 401/404) blir ❌ och når telemetrin.
+    import time as _t
+    for attempt in range(retries + 1):
+        try:
+            r = requests.get(f"{_BASE}/config", headers=_HEADERS, timeout=5, verify=_VERIFY)
+            r.raise_for_status()
+            d = r.json()
+            return d.get("internal_url") or d.get("external_url")
+        except (requests.ConnectionError, requests.Timeout) as e:
+            transient = e
+        except requests.HTTPError as e:
+            if e.response is None or e.response.status_code < 500:
+                print(f"❌ Kunde inte läsa HA:s egen internal_url/external_url: {e}")
+                return None
+            transient = e
+        except Exception as e:
+            print(f"❌ Kunde inte läsa HA:s egen internal_url/external_url: {e}")
+            return None
+        if attempt < retries:
+            _t.sleep(wait_s)
+    print(f"⚠️ HA svarar inte än (läser internal_url/external_url): {type(transient).__name__}")
+    return None
 
 
 def send_persistent_notification(notification_id: str, title: str, message: str) -> bool:

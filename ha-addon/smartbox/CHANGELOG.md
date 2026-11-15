@@ -1,5 +1,12 @@
 # Ändringar
 
+## 1.2.105 (2026-11-15)
+- **Sol- och baslastprofilerna tränades om flera gånger i minuten** när det fanns för lite data (ny installation,
+  eller nästan inget nätköp), med en fråga över ett års logg varje gång (#434). Ett tomt resultat gäller nu en timme
+  innan nästa försök.
+- **Startpåminnelsen för nya installationer:** när Home Assistant startar om samtidigt som EnergyWizard (502 eller
+  inget svar) görs nu tre nya försök, och det loggas som en varning i stället för ett fel (#434).
+
 ## 1.2.104 (2026-11-15)
 - **Solis RC-batteri (#443, rättning av Lars Frisk):**
   - Läget "håll" finns nu: tvångsladdning med 0 W. Utan det föll håll tillbaka till auto och husbatteriet laddade ur i

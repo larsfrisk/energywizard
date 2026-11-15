@@ -2690,5 +2690,6 @@
  "dygn, till": "days, to",
  "Värmepumpens eget legionellaprogram, om den har ett, ställs på pumpen.": "The heat pump's own legionella programme, if it has one, is set on the pump.",
  "Intervall": "Interval",
- "dygn": "days"
+ "dygn": "days",
+ "HA svarar inte än (läser internal_url/external_url): {err}": "HA is not responding yet (reading internal_url/external_url): {err}"
 }

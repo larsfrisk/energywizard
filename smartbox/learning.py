@@ -555,6 +555,23 @@ def get_vp_recovery_model(max_age_hours=24):
 _cached_solar_profile = None
 _cached_solar_time = None
 
+# #434: med för lite data (ny installation, eller nästan inget nätköp) returnerades en tom profil utan att den sparades,
+# så profilen tränades om vid varje anrop - flera gånger i minuten, med en fråga över ett års sensor_log. Ett tomt
+# resultat gäller nu i TOO_LITTLE_DATA_RETRY innan nästa försök.
+from datetime import timedelta as _td
+TOO_LITTLE_DATA_RETRY = _td(hours=1)
+_too_little_data_at: dict = {}
+
+
+def _too_little_data_recently(kind, now):
+    t = _too_little_data_at.get(kind)
+    return t is not None and now - t < TOO_LITTLE_DATA_RETRY
+
+
+def _mark_too_little_data(kind, now):
+    _too_little_data_at[kind] = now
+
+
 def get_solar_profile(max_age_hours=24, force_recalculation=False):
     """
     Skapar en Digital Tvilling-profil för solcellerna. Lär sig exakt hur mycket 
@@ -568,6 +585,8 @@ def get_solar_profile(max_age_hours=24, force_recalculation=False):
     if not force_recalculation and _cached_solar_profile and _cached_solar_time:
         if (now - _cached_solar_time) < timedelta(hours=max_age_hours):
             return _cached_solar_profile
+    if not force_recalculation and _too_little_data_recently("solar", now):
+        return {}
             
     try:
         with sm_logger.get_db() as conn:
@@ -601,6 +620,7 @@ def get_solar_profile(max_age_hours=24, force_recalculation=False):
             """, conn)
             
         if df.empty or len(df) < 100:
+            _mark_too_little_data("solar", now)
             return {}
             
         df['ts'] = pd.to_datetime(df['ts']).dt.tz_localize(None)
@@ -644,6 +664,8 @@ def get_base_load_profile(max_age_hours=24, force_recalculation=False):
     if not force_recalculation and _cached_base_load_profile and _cached_base_load_time:
         if (now - _cached_base_load_time) < timedelta(hours=max_age_hours):
             return _cached_base_load_profile
+    if not force_recalculation and _too_little_data_recently("base_load", now):
+        return {}
             
     try:
         with sm_logger.get_db() as conn:
@@ -682,6 +704,7 @@ def get_base_load_profile(max_age_hours=24, force_recalculation=False):
             """, conn)
             
         if df.empty or len(df) < 1000:
+            _mark_too_little_data("base_load", now)
             return {}
 
         df['ts'] = pd.to_datetime(df['ts']).dt.tz_localize(None)

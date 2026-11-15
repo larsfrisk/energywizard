@@ -263,7 +263,7 @@ telemetry.install_error_hook(house_cfg)    # "❌"-fel -> modul.funktion + felty
 # användaren) - vi kan inte pålitligt gissa värdens LAN-IP inifrån en bridge-container.
 if not car_drivers and isinstance(heat_pump_driver, house_config.NullHeatPumpDriver) \
         and isinstance(solar_driver, house_config.NullSolarDriver) and isinstance(spa_driver, house_config.NullSpaDriver):
-    ha_url = homeassistant.get_own_base_url()
+    ha_url = homeassistant.get_own_base_url(retries=3)       # HA kan starta om samtidigt (#434)
     if ha_url:
         parts = urlsplit(ha_url)
         # webdashboard terminerar ingen egen TLS (bekräftat: bara vanlig uvicorn-HTTP på
