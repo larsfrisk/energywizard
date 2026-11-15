@@ -1,5 +1,11 @@
 # Ändringar
 
+## 1.2.99 (2026-11-15)
+- **Rumsåterkopplingen slog inte igenom efter ett lägesbyte.** Kompressorskyddet (Prio 8) låser pumpen i dyrt eller
+  billigt läge i 45-60 minuter efter ett byte, och skrev då tillbaka lägets vanliga börvärde över återkopplingens.
+  Med återkopplingen på behålls nu dess börvärde när låset gäller samma läge som den räknade för.
+- Låsets klockslag i loggen visas i husets lokala tid i stället för UTC.
+
 ## 1.2.98 (2026-11-15)
 - **Värmepump via Home Assistant-entiteter: egna effektgivare** (#404). `heat_pump.entities.power_w` kan peka på en
   eller flera effektgivare (t.ex. en för värme och en för varmvatten), som summeras. W och kW känns igen. Då används

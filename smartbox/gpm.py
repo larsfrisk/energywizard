@@ -232,6 +232,14 @@ def no_sensor_heat(mode, outdoor_c, cheap_t, expensive_t, lowered_since, recover
         f"Utan innegivare: dyr el - sänker värmen {drop:.0f}°C (sänkt i {since_min} min, högst {NO_SENSOR_MAX_LOWERED_S // 3600} h i sträck).")
 
 
+def _local_hm(t):
+    """Klockslag i husets tid (TZ, svensk tid hos oss) - motorns now är UTC och loggen ska visa lokal tid."""
+    try:
+        return t.astimezone().strftime('%H:%M') if t.tzinfo else t.strftime('%H:%M')
+    except Exception:
+        return str(t)
+
+
 class GlobalPriorityManager:
     def __init__(self):
         self.pump_mode_lock_until = None
@@ -1041,6 +1049,8 @@ class GlobalPriorityManager:
                 actions["log"].append(f"🧪 Prio 5b (HUS): Rumsåterkoppling i skugga skulle sätta {fb_sp:.1f} °C, nu "
                                       f"{float(actions['pump_target_temp']):.1f} °C. {fb_why}.")
             actions["heat_feedback_sp"] = fb_sp
+            if fb_mode == "på":
+                actions["heat_feedback_for_mode"] = actions["pump_mode"]
 
         # --- Prio 5.5: BORTALÄGE (AWAY MODE) ---
         if state.get('away_mode_active'):
@@ -1089,11 +1099,15 @@ class GlobalPriorityManager:
         if self.pump_mode_lock_until and now < self.pump_mode_lock_until:
             actions["pump_mode"] = self.current_pump_mode
             # Säkerställ att tempen matchar det låsta läget
-            if self.current_pump_mode == "CHEAP":
+            # Rumsåterkopplingen (Prio 5b, läge "på") har redan valt börvärde för just detta läge - behåll det.
+            # Utan detta skrev låset över återkopplingen i 45-60 minuter efter varje lägesbyte (2026-11-15).
+            if actions.get("heat_feedback_for_mode") == self.current_pump_mode:
+                pass
+            elif self.current_pump_mode == "CHEAP":
                 actions["pump_target_temp"] = state.get('temp_cheap', 22.0)
             else:
                 actions["pump_target_temp"] = state.get('temp_expensive', 20.0)
-            actions["log"].append(f"⚙️ Prio 8 (KOMPRESSOR): Anti-Short-Cycle -> Låst i läge {self.current_pump_mode} till {self.pump_mode_lock_until.strftime('%H:%M')}.")
+            actions["log"].append(f"⚙️ Prio 8 (KOMPRESSOR): Anti-Short-Cycle -> Låst i läge {self.current_pump_mode} till {_local_hm(self.pump_mode_lock_until)}.")
         else:
             if actions["pump_mode"] != self.current_pump_mode:
                 lock_mins = 60 if actions["pump_mode"] == "CHEAP" else 45

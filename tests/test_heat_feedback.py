@@ -78,3 +78,48 @@ def test_intervallet_begränsas_till_15_25():
 def test_golvvakten_gäller_även_med_intervall():
     a, _ = run(20.3, 2.0, heat_feedback_min_sp=15.0, heat_feedback_max_sp=25.0)
     assert a["pump_target_temp"] == 21.0
+
+
+def _locked(mode):
+    g = GlobalPriorityManager()
+    g.current_pump_mode = mode
+    from datetime import timedelta
+    from datetime import timezone
+    g.pump_mode_lock_until = NOW.replace(tzinfo=timezone.utc) + timedelta(minutes=30)
+    return g
+
+
+def test_kompressorlåset_skriver_inte_över_återkopplingen():
+    # 2026-11-15: Prio 5b satte 19 °C men Prio 8 (låst EXPENSIVE efter lägesbyte) skrev tillbaka 20 °C i 45 min
+    g = _locked("EXPENSIVE")
+    st = {"now": NOW, "car_ids": [], "indoor_temp": 21.9, "indoor_min": 19.0, "indoor_max": 22.0,
+          "temp_cheap": 22.0, "temp_expensive": 20.0, "current_price": 2.0, "dynamic_limit": 1.0, "hysteresis": 0.1,
+          "outdoor_avg_5d": 2.0, "heat_stop_outdoor": 17.0, "heat_feedback": "på"}
+    a = g.evaluate(st)
+    assert any("Prio 8" in l and "Låst" in l for l in a["log"])
+    assert a["pump_mode"] == "EXPENSIVE" and a["pump_target_temp"] == 19.0
+
+
+def test_låst_i_annat_läge_ger_lägets_vanliga_temp():
+    # Återkopplingen räknade för billigt, men låset håller kvar dyrt läge -> dyra tempen, inte billig-värdet
+    g = _locked("EXPENSIVE")
+    st = {"now": NOW, "car_ids": [], "indoor_temp": 20.8, "indoor_min": 19.0, "indoor_max": 22.0,
+          "temp_cheap": 22.0, "temp_expensive": 20.0, "current_price": 0.2, "dynamic_limit": 1.0, "hysteresis": 0.1,
+          "outdoor_avg_5d": 2.0, "heat_stop_outdoor": 17.0, "heat_feedback": "på"}
+    a = g.evaluate(st)
+    assert a["pump_mode"] == "EXPENSIVE" and a["pump_target_temp"] == 20.0
+
+
+def test_låsets_klockslag_visas_i_lokal_tid(monkeypatch):
+    import time
+    monkeypatch.setenv("TZ", "Europe/Stockholm")
+    time.tzset()
+    try:
+        g = _locked("EXPENSIVE")      # låst till 13:30 UTC = 14:30 svensk vintertid
+        a = g.evaluate({"now": NOW, "car_ids": [], "indoor_temp": 21.0, "indoor_min": 19.0, "indoor_max": 22.0,
+                        "temp_cheap": 22.0, "temp_expensive": 20.0, "current_price": 2.0, "dynamic_limit": 1.0,
+                        "hysteresis": 0.1, "outdoor_avg_5d": 2.0, "heat_stop_outdoor": 17.0})
+        assert any("Prio 8" in l and "14:30" in l for l in a["log"])
+    finally:
+        monkeypatch.delenv("TZ")
+        time.tzset()
