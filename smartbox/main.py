@@ -1820,8 +1820,12 @@ while True:
             # schema (spa_schedule_enabled) går före.
             spa_bath_note = None
             if not (spa_schedule_active and target_dt and target_dt > now):
-                _in_bath, _next_bath, _bath_end = spa_bath.status(now, _ew_settings.get("spa_bath_windows"))
-                if _in_bath:
+                _bath_mode = _ew_settings.get("spa_bath_mode") or "bath"     # "nobath": tider då man inte badar (Emil 2026-11-15)
+                _in_bath, _next_bath, _bath_end = spa_bath.status(now, _ew_settings.get("spa_bath_windows"), _bath_mode)
+                if _in_bath and _bath_mode == "nobath":
+                    spa_bath_note = (f"Badtid till {_bath_end.strftime('%H:%M')} - håller badet varmt." if _bath_end
+                                     else "Badtid - håller badet varmt.")
+                elif _in_bath:
                     spa_bath_note = f"Badtid till {_bath_end.strftime('%H:%M')} - håller badet varmt."
                 elif _next_bath is not None:
                     spa_schedule_active, _spa_sched_temp = True, cfg.get("spa_normal_temp", 38.0)

@@ -311,15 +311,20 @@ async function spaBathSheet() {                           // badtider (smartbox/
   const ws = ((H && H.spa && H.spa.bath_windows) || []).map((w) => ({ ...w }));
   const days = ["Mån", "Tis", "Ons", "Tor", "Fre", "Lör", "Sön"];
   const inp = 'style="font-size:16px;padding:4px 6px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--txt);width:7.4em;min-width:0"';
-  sheet(`<h3>Badtider</h3><div class="note">När brukar ni bada? Utanför badtiderna får badet svalna till eco-golvet och värms upp i tid före nästa badtid, på de billigaste timmarna. Inga badtider = badet hålls varmt som idag.</div>
+  const mode0 = (H && H.spa && H.spa.bath_mode) || "bath";
+  sheet(`<h3>Badtider</h3><div class="seg" id="bmode" style="margin-bottom:8px"><button data-m="nobath" class="${mode0 === "nobath" ? "on" : ""}">Tider vi inte badar</button><button data-m="bath" class="${mode0 !== "nobath" ? "on" : ""}">Tider vi badar</button></div>
+    <div class="note">Tider vi inte badar: då får badet svalna, och det värms på de billigaste timmarna så att det är varmt när tiden tar slut. Hur långt det sjunker räknas fram ur hur fort just ert bad svalnar och värms. Tiden får gå över midnatt, t.ex. 22:00–16:00.</div>
+    <div class="note">Tider vi badar: utanför dem får badet svalna och värms upp i tid före nästa badtid. Inga påslagna dagar = badet hålls varmt som idag.</div>
     ${ws.map((w, i) => `<div class="setrow"><label style="display:flex;gap:8px;align-items:center;min-width:4.5em"><input type="checkbox" class="bon" data-i="${i}"${w.on ? " checked" : ""}>${days[i]}</label>
       <span style="display:flex;gap:6px;align-items:center"><input type="time" class="bfrom" data-i="${i}" value="${w.from}" ${inp}>–<input type="time" class="bto" data-i="${i}" value="${w.to}" ${inp}></span></div>`).join("")}
     <button class="big" id="bathsave">Spara</button><button class="mini" data-x="no">Avbryt</button>`);
   $("#bathsave").onclick = async () => {
     const q = (c, i) => document.querySelector(`#sheet .${c}[data-i="${i}"]`);
     const windows = ws.map((_, i) => ({ on: q("bon", i).checked, from: q("bfrom", i).value, to: q("bto", i).value }));
-    try { const r = await api("spa_bath", { windows }); closeSheet(); toast(r.msg); H = await api("home"); render(); } catch (er) { toast(er.message); }
+    const mode = (document.querySelector("#bmode button.on") || {}).dataset?.m || "bath";
+    try { const r = await api("spa_bath", { windows, mode }); closeSheet(); toast(r.msg); H = await api("home"); render(); } catch (er) { toast(er.message); }
   };
+  document.querySelectorAll("#bmode button").forEach((b) => b.onclick = () => document.querySelectorAll("#bmode button").forEach((x) => x.classList.toggle("on", x === b)));
   const no = document.querySelector('#sheet [data-x="no"]'); if (no) no.onclick = () => closeSheet();
 }
 function solarSheet() {                                    // exportgränsen (förut på Energi-sidan) – nu ett blad från Hem

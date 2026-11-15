@@ -2724,5 +2724,12 @@
  "Spara resplanen": "Save trip plan",
  "Ta bort resplanen": "Remove trip plan",
  "Resplanen är borttagen": "The trip plan has been removed",
- "Klar {when} med {soc} %": "Ready {when} with {soc} %"
+ "Klar {when} med {soc} %": "Ready {when} with {soc} %",
+ "Tider vi inte badar": "Times we don't bathe",
+ "Tider vi badar": "Times we bathe",
+ "Tider vi inte badar: då får badet svalna, och det värms på de billigaste timmarna så att det är varmt när tiden tar slut. Hur långt det sjunker räknas fram ur hur fort just ert bad svalnar och värms. Tiden får gå över midnatt, t.ex. 22:00–16:00.": "Times we don't bathe: the tub may cool down, and it is heated in the cheapest hours so it is warm when the time ends. How far it drops is worked out from how fast your tub cools and heats. The time may cross midnight, e.g. 22:00–16:00.",
+ "Tider vi badar: utanför dem får badet svalna och värms upp i tid före nästa badtid. Inga påslagna dagar = badet hålls varmt som idag.": "Times we bathe: outside them the tub may cool down and is heated in time before the next bathing time. No days switched on = the tub is kept warm as today.",
+ "Sparat - {n} dagar med tider utan bad. Då får badet svalna och värms på de billigaste timmarna till badtiden börjar.": "Saved - {n} days with times without bathing. The tub may then cool down and is heated in the cheapest hours until bathing time starts.",
+ "Sparat - inga tider utan bad, badet hålls varmt som förut.": "Saved - no times without bathing, the tub is kept warm as before.",
+ "Badtid - håller badet varmt.": "Bathing time - keeping the tub warm."
 }

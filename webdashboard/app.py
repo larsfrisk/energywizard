@@ -1732,7 +1732,7 @@ async def api_spa():
             "ready_enabled": bool(cfg.get("spa_schedule_enabled")),
             "ready_at": cfg["spa_target_datetime"].astimezone(zoneinfo.ZoneInfo("Europe/Stockholm")).strftime("%Y-%m-%dT%H:%M") if cfg.get("spa_target_datetime") else None,
             "ready_temp": _n(cfg.get("spa_target_temp")),
-            "bath_windows": _bath_windows(),
+            "bath_windows": _bath_windows(), "bath_mode": ew_settings.get("spa_bath_mode") or "bath",
             "history": [{"t": h.isoformat(), "temp": _n(a), "target": _n(b), "heating": _n(hr)} for h, a, b, hr in hist]}
 
 
@@ -1749,11 +1749,13 @@ async def spa_bath_set(request: Request):
         return JSONResponse({"error": "Bara ägaren kan ändra badtiderna"}, status_code=403)
     import spa_bath
     try:
-        saved = spa_bath.clean((await request.json()).get("windows"))
+        body = await request.json()
+        mode = "nobath" if body.get("mode") == "nobath" else "bath"
+        saved = spa_bath.clean(body.get("windows"), mode)
     except ValueError as e:
         return JSONResponse({"error": str(e)}, status_code=400)
-    ew_settings.update(spa_bath_windows=saved)
-    return {"ok": True, "message": spa_bath.summary(saved)}
+    ew_settings.update(spa_bath_windows=saved, spa_bath_mode=mode)
+    return {"ok": True, "message": spa_bath.summary(saved, mode)}
 
 
 @app.get("/api/temperatures")

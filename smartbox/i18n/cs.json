@@ -2724,5 +2724,12 @@
   "Spara resplanen": "Uložit plán cesty",
   "Ta bort resplanen": "Odstranit plán cesty",
   "Resplanen är borttagen": "Plán cesty byl odstraněn",
-  "Klar {when} med {soc} %": "Připraveno {when} s {soc} %"
+  "Klar {when} med {soc} %": "Připraveno {when} s {soc} %",
+  "Tider vi inte badar": "Kdy se nekoupeme",
+  "Tider vi badar": "Kdy se koupeme",
+  "Tider vi inte badar: då får badet svalna, och det värms på de billigaste timmarna så att det är varmt när tiden tar slut. Hur långt det sjunker räknas fram ur hur fort just ert bad svalnar och värms. Tiden får gå över midnatt, t.ex. 22:00–16:00.": "Kdy se nekoupeme: vířivka může vychladnout a ohřeje se v nejlevnějších hodinách, aby byla teplá, až tento čas skončí. Jak moc klesne, se vypočítá z toho, jak rychle vaše vířivka chladne a ohřívá se. Čas může přesahovat půlnoc, např. 22:00–16:00.",
+  "Tider vi badar: utanför dem får badet svalna och värms upp i tid före nästa badtid. Inga påslagna dagar = badet hålls varmt som idag.": "Kdy se koupeme: mimo tyto časy může vířivka vychladnout a ohřeje se včas před dalším koupáním. Žádné zapnuté dny = vířivka se udržuje teplá jako dnes.",
+  "Sparat - {n} dagar med tider utan bad. Då får badet svalna och värms på de billigaste timmarna till badtiden börjar.": "Uloženo - {n} dní s časy bez koupání. Vířivka pak může vychladnout a ohřeje se v nejlevnějších hodinách do začátku koupání.",
+  "Sparat - inga tider utan bad, badet hålls varmt som förut.": "Uloženo - žádné časy bez koupání, vířivka se udržuje teplá jako dřív.",
+  "Badtid - håller badet varmt.": "Čas koupání - vířivka se udržuje teplá."
 }

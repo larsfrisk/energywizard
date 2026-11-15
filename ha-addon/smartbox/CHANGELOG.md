@@ -1,5 +1,12 @@
 # Ändringar
 
+## 1.2.110 (2026-11-15)
+- **Spabad: tider vi inte badar.** Badtiderna kan nu anges omvänt, som tider då man inte badar, t.ex. 22:00–16:00
+  på vardagar (tiden får gå över midnatt). Då får badet svalna, och planeraren värmer det på de billigaste timmarna så
+  att det är varmt när tiden tar slut. Hur långt det sjunker räknas fram ur de inlärda modellerna för hur fort badet
+  svalnar och värms. Övrig tid hålls badet varmt. Val mellan "Tider vi inte badar" och "Tider vi badar" i webben
+  (Spabad) och appen (Badtider).
+
 ## 1.2.109 (2026-11-15)
 Genomlysning av hela systemet mot en veckas data:
 - **Resplan i appen:** knappen "Resplan" på bilkortet har funnits sedan första versionen men anropade en funktion som
