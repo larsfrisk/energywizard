@@ -51,6 +51,26 @@ two planners may handle its remaining duration differently.
 
 ## Remaining comparison gates
 
+### Read-only installation check — 2026-11-15
+
+At 14:03 UTC, 132 consecutive current EW database price quarters were compared
+with explicit price intervals from the latest preceding Zenai capture (196 seconds
+old). All 132 numbers matched within 1e-9, with no missing intervals. Zenai's
+content and configuration hashes validated. Queries used read-only transactions
+and two-second statement timeouts; EW remained in shadow mode. No device calls,
+configuration updates or deployment occurred. Only the count-based report was
+retained locally; no credentials or price series are published here.
+
+This check used current database rows, not EW's original recorded planning inputs:
+the deployed capture format did not yet retain `spot`. It therefore establishes
+numerical agreement for that inspected price horizon only. It does not verify
+currency/VAT basis, supplier fees, invoice correctness, future feeds, matched
+forecasts or economic/physical equivalence. Existing final-tariff differences
+still need separate configuration reconciliation. A new EW capture after deploying
+spot evidence is required for a recorded-plan comparison.
+
+### Recorded spot-price evidence
+
 New EW snapshots retain optional finite `slots[].spot` evidence, the price actually
 passed to tariff calculation (including the existing forward-fill behavior).
 Older snapshots remain readable and replayable without this field. It does not
