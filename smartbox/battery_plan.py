@@ -412,6 +412,8 @@ def plan_from_db(engine, now, soc_pct, settings, base_profile, supported, *, soc
     import learning
     import nordpool
     import weather
+    if settings.get('comparison_battery_model') is True and not comparison:
+        raise ValueError('Comparison battery model cannot feed active planning')
     if tariff_model is not None:
         if not comparison:
             raise ValueError('Comparison tariff model cannot feed active planning')
@@ -566,6 +568,8 @@ def plan_from_db(engine, now, soc_pct, settings, base_profile, supported, *, soc
         quality["pv_model"] = {"source": "open_meteo_pv", "state": state if state in {"ready","partial","unavailable","invalid_config"} else "unavailable",
                                "coverage": round(count/n,3), "fetched_at": pv_forecast.get("fetched_at"), "timestamp_basis": "host_receipt"}
     if comparison:
+        if settings.get('comparison_battery_model') is True:
+            quality['battery_model'] = {'source': 'explicit_comparison'}
         evidence = settings.get("comparison_learning") or {}
         if evidence.get("state") in {"learned", "insufficient", "unavailable"}:
             quality["learning"] = {"source": "ew_history", "state": evidence["state"], "age_s": evidence.get("age_s")}

@@ -21,6 +21,41 @@ declares a hypothetical planning model; it does not advertise or qualify driver
 capabilities. Include `auto` and select only the other intents being compared. Existing capacity, reserve,
 ceiling, power, efficiency, tariff and forecast settings still supply the inputs.
 
+## Optional comparison battery assumptions
+
+To compare a reviewed hypothetical battery model without changing active limits,
+optionally add a complete `battery.shadow_plan.battery_model`:
+
+```yaml
+battery_model:
+  capacity_kwh: 12
+  reserve_soc: 10
+  max_soc: 90
+  charge_kw: 3
+  discharge_kw: 3
+  charge_efficiency: 0.9
+  discharge_efficiency: 0.95
+```
+
+These are synthetic examples, not installation recommendations. All seven fields
+are required; extra fields, nonfinite values, nonpositive capacity/powers, invalid
+SOC bounds and efficiencies outside (0, 1] reject the candidate before starting a
+worker. Omit the model to preserve the existing behavior. Zero-power modelling is
+not supported by this option. No live configuration is enabled automatically.
+
+The model applies after optional history learning, so learned capacity/power
+cannot change the explicitly selected comparison assumptions. Forecast corrections
+remain available. Hypothetical powers replace the copied planning caps only;
+controller settings, fuse guards, device capabilities and dispatch limits remain
+untouched. The same sampled SOC percentage and provenance are used with the model
+capacity to derive initial model energy; this is not a new SOC measurement.
+
+Snapshot parameters bind the effective values and `input_quality.battery_model`
+labels their source as `explicit_comparison`. This marker is rejected by active
+planning. Higher simulated powers do not qualify hardware capability or authorize
+raising live limits. Tariffs, policies, forecasts, origin alignment and physical
+qualification still need separate reconciliation.
+
 The main loop submits its existing SOC reading, normalized battery settings and
 load profile at most once per physical quarter. One daemon worker and at most
 one waiting sample keep planning away from the control loop. The worker rechecks

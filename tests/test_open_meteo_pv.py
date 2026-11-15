@@ -119,7 +119,8 @@ def test_default_worker_combines_optional_history_learning_and_pv(monkeypatch):
 
 
 @pytest.mark.parametrize('explicit_tariff',[False, True])
-def test_real_candidate_uses_pv_periods_keeps_gaps_and_rejects_active_override(db, monkeypatch, tmp_path, explicit_tariff):
+@pytest.mark.parametrize('explicit_battery',[False, True])
+def test_real_candidate_uses_pv_periods_keeps_gaps_and_rejects_active_override(db, monkeypatch, tmp_path, explicit_tariff, explicit_battery):
     import battery_plan, ew_settings, ha_solar_forecast, learning, nordpool, plan_snapshot, weather
     from sqlalchemy import create_engine
     now=datetime.now(timezone.utc).replace(minute=0,second=0,microsecond=0)
@@ -142,6 +143,11 @@ def test_real_candidate_uses_pv_periods_keeps_gaps_and_rejects_active_override(d
     engine=create_engine('postgresql+psycopg://postgres:test@localhost/smartbox_test')
     settings=dict(capacity_kwh=10,reserve_soc=20,max_soc=90,max_power_w=1000,
                   comparison_learning={'state':'learned','age_s':0})
+    if explicit_battery:
+        from battery_shadow import _with_battery_model
+        settings=_with_battery_model({'settings':settings,'battery_model':dict(
+            capacity_kwh=12,reserve_soc=10,max_soc=90,charge_kw=3,discharge_kw=4,
+            charge_efficiency=.8,discharge_efficiency=.95)})['settings']
     model=dict(currency='SEK',spot_includes_vat=False,buy_spot_factor=1.25,buy_extra=.4,
                sell_positive_spot_factor=.95,sell_negative_spot_factor=1,sell_extra=.1)
     try:
@@ -161,5 +167,12 @@ def test_real_candidate_uses_pv_periods_keeps_gaps_and_rejects_active_override(d
         if explicit_tariff:
             assert snapshots[0]['input_quality']['tariff_model']=={'source':'explicit_comparison',**model}
         else: assert 'tariff_model' not in snapshots[0]['input_quality']
+        if explicit_battery:
+            assert snapshots[0]['input_quality']['battery_model']=={'source':'explicit_comparison'}
+            params=snapshots[0]['inputs']['params']
+            assert (params['capacity_kwh'],params['soc0_kwh'])==(12,6)
+            assert (params['charge_kw'],params['discharge_kw'])==(3,4)
+            assert (params['charge_efficiency'],params['discharge_efficiency'])==(.8,.95)
+        else: assert 'battery_model' not in snapshots[0]['input_quality']
         assert plan_snapshot.replay(snapshots[0])['matches'] and not result['control_ready']
     finally:engine.dispose()

@@ -18,6 +18,7 @@ QUALITY_KEYS = {'prices': ('source', 'coverage', 'missing', 'horizon_h'), 'solar
                 'load': ('source', 'coverage'), 'soc': ('source', 'known', 'age_s'),
                 'pv_model': ('source', 'state', 'coverage', 'fetched_at', 'timestamp_basis'),
                 'learning': ('source', 'state', 'age_s'),
+                'battery_model': ('source',),
                 'tariff_model': ('source', 'currency', 'spot_includes_vat', 'buy_spot_factor', 'buy_extra',
                                  'sell_positive_spot_factor', 'sell_negative_spot_factor', 'sell_extra')}
 MAX_BYTES = 2_000_000

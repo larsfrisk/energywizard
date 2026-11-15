@@ -15,6 +15,35 @@ def _eligible(event):
     return shadow.active() and -5 <= time.time() - event["now"].timestamp() <= 90
 
 
+MODEL_FIELDS = {'capacity_kwh', 'reserve_soc', 'max_soc', 'charge_kw',
+                'discharge_kw', 'charge_efficiency', 'discharge_efficiency'}
+
+
+def _battery_model(raw):
+    if raw is None:
+        return None
+    if not isinstance(raw, dict) or set(raw) != MODEL_FIELDS:
+        raise ValueError('Complete explicit comparison battery model required')
+    if any(isinstance(v, bool) or not isinstance(v, (int, float)) or not math.isfinite(v)
+           for v in raw.values()):
+        raise ValueError('Finite comparison battery assumptions required')
+    if not (raw['capacity_kwh'] > 0 and 0 <= raw['reserve_soc'] < raw['max_soc'] <= 100
+            and all(raw[k] > 0 and math.isfinite(raw[k]*1000) for k in ('charge_kw','discharge_kw'))
+            and all(0 < raw[k] <= 1 for k in ('charge_efficiency','discharge_efficiency'))):
+        raise ValueError('Invalid comparison battery assumptions')
+    return dict(raw)
+
+
+def _with_battery_model(event):
+    model = _battery_model(event.get('battery_model'))
+    if model is None:
+        return event
+    settings = {**event['settings'], **model, 'comparison_battery_model': True,
+                'max_charge_w': model['charge_kw']*1000,
+                'max_discharge_w': model['discharge_kw']*1000}
+    return {**event, 'settings': settings}
+
+
 def process(event):
     if not _eligible(event):
         return None
@@ -56,7 +85,7 @@ class Evaluator:
         if not _eligible(event):
             return None
         if event.get("learn_from_history") is not True:
-            return self._planner(event)
+            return self._planner(_with_battery_model(event))
         import battery_learning
         settings = event["settings"]
         # Only normalized primitive settings affect cache identity. Forecast/profile
@@ -76,7 +105,7 @@ class Evaluator:
                 pass  # Preserve configured fallback; never expose database/config errors.
         applied = battery_learning.apply(settings, self._model) if self._model and self._model["use"] else deepcopy(settings)
         applied["comparison_learning"] = {"state": self._state, "age_s": now - self._at}
-        return self._planner({**event, "settings": applied})
+        return self._planner(_with_battery_model({**event, "settings": applied}))
 
 
 class Monitor:
@@ -125,6 +154,7 @@ class Monitor:
                 return False
             slot = int(now.timestamp() // 900)
             event = {"now": now, "settings": deepcopy(settings), "profile": deepcopy(profile),
+                     "battery_model": _battery_model(config.get("battery_model")),
                      "tariff_model": comparison_tariff.validate(config.get('tariff_model')),
                      "pv_model": {k: (config.get("pv_model") or {}).get(k) for k in
                                   ("enabled", "source", "latitude", "longitude", "tilt_deg", "azimuth_deg", "kwp", "derate")},
