@@ -2688,5 +2688,7 @@
  "Senast uppnådd {when}.": "Last reached {when}.",
  "Var": "Every",
  "dygn, till": "days, to",
- "Värmepumpens eget legionellaprogram, om den har ett, ställs på pumpen.": "The heat pump's own legionella programme, if it has one, is set on the pump."
+ "Värmepumpens eget legionellaprogram, om den har ett, ställs på pumpen.": "The heat pump's own legionella programme, if it has one, is set on the pump.",
+ "Intervall": "Interval",
+ "dygn": "days"
 }

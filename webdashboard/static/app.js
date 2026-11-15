@@ -1808,8 +1808,9 @@ async function renderVarmepump() {
         <h3 style="margin:14px 0 4px;font-size:15px">Legionella</h3>
         <div class="note">Värmer varmvattnet till legionellatemperaturen om det har gått för länge sedan sist.</div>
         <div class="note">${legLast(d.legionella_last)}</div>
-        <div class="numfield" style="margin-top:8px">Var <input type="number" id="legdays" step="1" min="3" max="60" value="${d.legionella_days ?? 14}"> dygn,
-          till <input type="number" id="legtemp" step="1" min="55" max="65" value="${d.legionella_temp ?? 60}"> °C
+        <div class="numfield" style="margin-top:8px;display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px">
+          <span style="white-space:nowrap"><span>Intervall</span> <input type="number" id="legdays" step="1" min="3" max="60" value="${d.legionella_days ?? 14}"> <span>dygn</span></span>
+          <span style="white-space:nowrap"><span>Temperatur</span> <input type="number" id="legtemp" step="1" min="55" max="65" value="${d.legionella_temp ?? 60}"> °C</span>
           <button class="icobtn" id="legsave">Spara</button></div>
         <div class="note">Värmepumpens eget legionellaprogram, om den har ett, ställs på pumpen.</div>
       </div>
