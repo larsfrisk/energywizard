@@ -340,7 +340,7 @@ async def api_ev_rules_save(request: Request):
     cars = [c.get("id") for c in (_ev_house_cfg().get("evs") or []) if c.get("id")]
     if car not in cars:
         return JSONResponse({"detail": "Okänd bil"}, status_code=400)
-    rule, err = ev_rules.validate({k: body.get(k) for k in ("grid", "max_price", "open_soc", "max_wait_h", "floor_soc") if k in body})
+    rule, err = ev_rules.validate({k: body.get(k) for k in ("grid", "max_price", "open_soc", "max_wait_h", "floor_soc", "solar_soc", "solar_start_kw", "solar_balance_w") if k in body})
     if err:
         return JSONResponse({"detail": err}, status_code=400)
     rules = dict(ew_settings.get("ev_rules") or {})

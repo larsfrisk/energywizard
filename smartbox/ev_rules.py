@@ -11,11 +11,19 @@ Priset jämförs med spotpriset i samma skala som EnergyWizards prisgraf (elpris
     kända priser (även morgondagens när de publicerats) men högst max_wait_h timmar framåt.
   - floor_soc: morgongolvet för bilen (standard 50 % kl 06, 0 = av). Med ett mål på 50 % och golvet på 50 % blir det
     alltid laddning före 06 - därför går golvet att sänka eller stänga av per bil.
+
+#428 (också #420): solladdning per bil.
+  - solar_soc: solladdningen slutar vid detta mål (t.ex. 80 %). Utan värde laddar solen upp till bilens egen
+    laddgräns. Bilens laddgräns måste vara minst lika hög för att målet ska nås.
+  - solar_start_kw: solladdningen startar först vid så stort överskott (kW ut på nätet), lägst 1,4 kW.
+  - solar_balance_w: balanspunkt över mätaren under solladdning. 0 = noll export, +300 = tillåt 300 W köp,
+    -300 = behåll 300 W export.
 """
 from datetime import timedelta
 
 FLOOR_DEFAULT = 50
-DEFAULT = {"grid": True, "max_price": None, "open_soc": None, "max_wait_h": 36, "floor_soc": FLOOR_DEFAULT}
+DEFAULT = {"grid": True, "max_price": None, "open_soc": None, "max_wait_h": 36, "floor_soc": FLOOR_DEFAULT,
+           "solar_soc": None, "solar_start_kw": None, "solar_balance_w": 0}
 
 
 def _clean(rule) -> dict:
@@ -32,6 +40,9 @@ def _clean(rule) -> dict:
         out["open_soc"] = _num(rule.get("open_soc"), None, 20, 100)
         out["max_wait_h"] = _num(rule.get("max_wait_h"), 36, 6, 72)
         out["floor_soc"] = _num(rule.get("floor_soc"), FLOOR_DEFAULT, 0, 50)
+        out["solar_soc"] = _num(rule.get("solar_soc"), None, 20, 100)
+        out["solar_start_kw"] = _num(rule.get("solar_start_kw"), None, 1.4, 11)
+        out["solar_balance_w"] = _num(rule.get("solar_balance_w"), 0, -2000, 2000)
     return out
 
 
@@ -97,7 +108,9 @@ def validate(rule) -> tuple[dict | None, str | None]:
         if not 0 <= mp <= 20:
             return None, "Maxpriset ska vara 0–20 kr/kWh"
     for key, lo, hi, msg in (("open_soc", 20, 100, "Laddmålet ska vara 20–100 %"), ("max_wait_h", 6, 72, "Väntetiden ska vara 6–72 timmar"),
-                             ("floor_soc", 0, 50, "Morgongolvet ska vara 0–50 %")):
+                             ("floor_soc", 0, 50, "Morgongolvet ska vara 0–50 %"), ("solar_soc", 20, 100, "Solmålet ska vara 20–100 %"),
+                             ("solar_start_kw", 1.4, 11, "Starttröskeln ska vara 1,4–11 kW"),
+                             ("solar_balance_w", -2000, 2000, "Balanspunkten ska vara -2000–2000 W")):
         v = rule.get(key)
         if v in (None, ""):
             continue

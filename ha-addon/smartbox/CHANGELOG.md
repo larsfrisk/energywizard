@@ -1,5 +1,12 @@
 # Ändringar
 
+## 1.2.108 (2026-11-15)
+- **Elbil: solladdning per bil (#428)** under "Laddregler" (förslag från Emlben, #420):
+  - **Solmål:** solladdningen slutar vid målet, t.ex. 80 %. Tomt = bilens egen laddgräns som förut.
+  - **Start vid överskott:** solladdningen startar först när överskottet ut på nätet är så stort, t.ex. 4 kW (lägst
+    1,4 kW som förut).
+  - **Balanspunkt:** 0 = noll export som förut, plus tillåter lite köp, minus behåller lite export.
+
 ## 1.2.107 (2026-11-15)
 - **Elbil: mål utan klar-tid (#426)**, per bil under "Laddregler" på webbens Elbil-sida (förslag från Emlben, #420):
   - Ett laddmål i % utan klockslag gäller när laddschemat inte har något påslaget mål. Laddningen läggs på de

@@ -2710,5 +2710,12 @@
  "Mål utan klar-tid gäller när laddschemat inte har något påslaget mål: laddningen läggs på de billigaste kvartarna bland alla kända priser, även morgondagens när de har publicerats. Morgongolvet 0 = av.": "A target without a ready time applies when the charging schedule has no active target: charging is placed in the cheapest quarters among all known prices, including tomorrow's once they are published. Morning minimum 0 = off.",
  "Laddmålet ska vara 20–100 %": "The charging target must be 20–100 %",
  "Väntetiden ska vara 6–72 timmar": "The waiting time must be 6–72 hours",
- "Morgongolvet ska vara 0–50 %": "The morning minimum must be 0–50 %"
+ "Morgongolvet ska vara 0–50 %": "The morning minimum must be 0–50 %",
+ "Solmål": "Solar target",
+ "start vid överskott": "start at surplus",
+ "balanspunkt": "balance point",
+ "Solmål: solladdningen slutar vid målet (tomt = bilens egen laddgräns, som också måste vara minst lika hög). Balanspunkt 0 = noll export, plus tillåter lite köp, minus behåller lite export.": "Solar target: solar charging stops at the target (empty = the car's own charge limit, which must also be at least as high). Balance point 0 = zero export, plus allows a little import, minus keeps a little export.",
+ "Solmålet ska vara 20–100 %": "The solar target must be 20–100 %",
+ "Starttröskeln ska vara 1,4–11 kW": "The start threshold must be 1.4–11 kW",
+ "Balanspunkten ska vara -2000–2000 W": "The balance point must be -2000–2000 W"
 }

@@ -2110,6 +2110,9 @@ while True:
                     f'{_c}_grid_allowed': ev_rules.get(_c)["grid"],            # #427 bara sol
                     f'{_c}_max_price': ev_rules.get(_c)["max_price"],          # #429 maxpris
                     f'{_c}_floor_soc': ev_rules.get(_c)["floor_soc"],          # #426 golvet per bil
+                    f'{_c}_solar_soc': ev_rules.get(_c)["solar_soc"],          # #428 solmål, starttröskel, balanspunkt
+                    f'{_c}_solar_start_kw': ev_rules.get(_c)["solar_start_kw"],
+                    f'{_c}_solar_balance_w': ev_rules.get(_c)["solar_balance_w"],
                     f'{_c}_charge_completed': ev_connection_state[_c]['charge_completed'],
                     f'{_c}_phases': (car_charger_data.get(_c) or {}).get('phases'),
                     f'{_c}_habit_profile': _cached_ev_profiles.get(_c, {}),

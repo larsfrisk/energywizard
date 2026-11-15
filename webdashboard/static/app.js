@@ -631,9 +631,14 @@ async function renderElbil() {
             <span style="white-space:nowrap"><span>Mål utan klar-tid</span> <input type="number" class="evopen" data-car="${c.id}" min="20" max="100" step="5" placeholder="–" style="width:70px"> %</span>
             <span style="white-space:nowrap"><span>vänta högst</span> <input type="number" class="evwait" data-car="${c.id}" min="6" max="72" step="1" style="width:64px"> <span>timmar</span></span></div>
           <div class="numfield" style="margin-top:8px;display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px">
+            <span style="white-space:nowrap"><span>Solmål</span> <input type="number" class="evsolsoc" data-car="${c.id}" min="20" max="100" step="5" placeholder="–" style="width:70px"> %</span>
+            <span style="white-space:nowrap"><span>start vid överskott</span> <input type="number" class="evsolkw" data-car="${c.id}" min="1.4" max="11" step="0.1" placeholder="1,4" style="width:70px"> kW</span>
+            <span style="white-space:nowrap"><span>balanspunkt</span> <input type="number" class="evsolbal" data-car="${c.id}" min="-2000" max="2000" step="50" style="width:80px"> W</span></div>
+          <div class="numfield" style="margin-top:8px;display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px">
             <span style="white-space:nowrap"><span>Morgongolv kl 06</span> <input type="number" class="evfloor" data-car="${c.id}" min="0" max="50" step="5" style="width:64px"> %</span>
             <button class="icobtn evrule-save" data-car="${c.id}">Spara</button></div>
           <div class="note">Bara sol: ingen planerad laddning från nätet, inte heller morgongolvet. Maxpriset jämförs med spotpriset i prisgrafen och gäller inte morgongolvet. Ladda nu fungerar alltid.</div>
+          <div class="note">Solmål: solladdningen slutar vid målet (tomt = bilens egen laddgräns, som också måste vara minst lika hög). Balanspunkt 0 = noll export, plus tillåter lite köp, minus behåller lite export.</div>
           <div class="note">Mål utan klar-tid gäller när laddschemat inte har något påslaget mål: laddningen läggs på de billigaste kvartarna bland alla kända priser, även morgondagens när de har publicerats. Morgongolvet 0 = av.</div>
         </div>
         ${heatCard(c)}
@@ -660,12 +665,16 @@ async function renderElbil() {
       if (q("evopen") && r.open_soc != null) q("evopen").value = r.open_soc;
       if (q("evwait")) q("evwait").value = r.max_wait_h ?? 36;
       if (q("evfloor")) q("evfloor").value = r.floor_soc ?? 50;
+      if (q("evsolsoc") && r.solar_soc != null) q("evsolsoc").value = r.solar_soc;
+      if (q("evsolkw") && r.solar_start_kw != null) q("evsolkw").value = r.solar_start_kw;
+      if (q("evsolbal")) q("evsolbal").value = r.solar_balance_w ?? 0;
     });
   }).catch(() => {});
   document.querySelectorAll(".evrule-save").forEach((b) => b.onclick = async () => {
     const car = b.dataset.car, on = document.querySelector(`.evgrid[data-car="${car}"] button.on`);
     const v = (cls) => document.querySelector(`.${cls}[data-car="${car}"]`).value;
-    try { await postJSON("api/ev-rules", { car, grid: !on || on.dataset.g === "1", max_price: v("evmax"), open_soc: v("evopen"), max_wait_h: v("evwait"), floor_soc: v("evfloor") });
+    try { await postJSON("api/ev-rules", { car, grid: !on || on.dataset.g === "1", max_price: v("evmax"), open_soc: v("evopen"), max_wait_h: v("evwait"), floor_soc: v("evfloor"),
+                                          solar_soc: v("evsolsoc"), solar_start_kw: v("evsolkw"), solar_balance_w: v("evsolbal") });
           toast("Sparat - gäller från nästa laddplan (inom 15 min)"); } catch (e) { toast(e.message); }
   });
   document.querySelectorAll(".sch-save").forEach(b => b.onclick = async () => {        // alla sju dagarna (#142)

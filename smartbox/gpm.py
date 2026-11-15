@@ -444,6 +444,16 @@ class GlobalPriorityManager:
         # --- Prio 3.5: REAL-TIME SOLAR EV CHARGING (5-min intervall) ---
         THREE_PHASE_MIN_SURPLUS_W = -4200 # ~6A 3-fas
         ONE_PHASE_MIN_SURPLUS_W   = -1400 # ~6A 1-fas
+        # #428: per bil solmål, starttröskel och balanspunkt. En bil över sitt solmål solladdar inte. Starttröskeln och
+        # balanspunkten tas från den prioriterade bilen bland dem som vill solladda.
+        solar_needs = {c: needs[c] and (state.get(f"{c}_solar_soc") is None or soc[c] is None
+                                        or soc[c] < float(state.get(f"{c}_solar_soc"))) for c in car_ids}
+        _solar_cars = sorted([c for c in car_ids if solar_needs[c]], key=lambda c: prios.get(c, 9))
+        _lead = _solar_cars[0] if _solar_cars else None
+        _start_kw = state.get(f"{_lead}_solar_start_kw") if _lead else None
+        if _start_kw:
+            ONE_PHASE_MIN_SURPLUS_W = min(ONE_PHASE_MIN_SURPLUS_W, -1000.0 * float(_start_kw))
+        solar_balance_w = float(state.get(f"{_lead}_solar_balance_w") or 0.0) if _lead else 0.0
 
         max_possible_phases = 3 if any(needs[c] and specs[c]["phases"] != "1" for c in car_ids) else 1
 
@@ -452,7 +462,7 @@ class GlobalPriorityManager:
             self.ev_solar_target_amps = 0
             self.ev_solar_target_phases = 0
             
-        if any_ev_needs_charge:
+        if any(solar_needs.values()):
             time_since_eval = (now - self.ev_solar_last_eval_time).total_seconds() / 60.0 if self.ev_solar_last_eval_time else 999.0
             
             if not self.ev_solar_charge_active:
@@ -486,11 +496,11 @@ class GlobalPriorityManager:
                 if time_since_eval >= 5.0 or (dyr_import and time_since_eval >= SOLAR_EV_FAST_EVAL_MIN):
                     self.ev_solar_last_eval_time = now
                     current_voltage = 690.0 if self.ev_solar_target_phases == 3 else 230.0
-                    delta_amps = -avg_net / current_voltage
+                    delta_amps = -(avg_net - solar_balance_w) / current_voltage          # #428: balanspunkt
                     
                     new_amps = self.ev_solar_target_amps + delta_amps
 
-                    rolling_delta_amps = -rolling_avg_net / current_voltage
+                    rolling_delta_amps = -(rolling_avg_net - solar_balance_w) / current_voltage
                     rolling_new_amps = self.ev_solar_target_amps + rolling_delta_amps
 
                     # FIX #16: Skilj på "tillfällig paus pga kontaktorspärr" och "slut på solöverskott".
@@ -546,7 +556,7 @@ class GlobalPriorityManager:
                 phase_change_in_progress = False
                 for car_id in car_ids:
                     phases_str = state.get(f'{car_id}_phases')
-                    if needs[car_id]:
+                    if solar_needs[car_id]:
                         fixed = specs[car_id]["phases"]
                         target_phases_for_car = 1 if fixed == "1" else 3 if fixed == "3" else target_phases
                         if phases_str:
@@ -584,7 +594,7 @@ class GlobalPriorityManager:
                     if final_ev_amps >= EV_MIN_CHARGE_AMPS:
                         # --- Prioritetslogik fördelar strömmen (den prioriterade 60 %, den andra 40 %) ---
                         # Solströmmen delas bara mellan bilar som sitter i laddaren (inte en som är på väg hem)
-                        _cars = [c for c in car_ids if needs[c] and state.get(f"{c}_plugged", True)] or [c for c in car_ids if needs[c]]
+                        _cars = [c for c in car_ids if solar_needs[c] and state.get(f"{c}_plugged", True)] or [c for c in car_ids if solar_needs[c]]
                         for c, a in _split_amps(final_ev_amps, _cars, prios, specs, EV_MIN_CHARGE_AMPS, other_share=0.4).items():
                             actions[f"{c}_limit_a"] = a
                     else:

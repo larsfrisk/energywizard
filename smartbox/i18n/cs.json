@@ -2710,5 +2710,12 @@
   "Mål utan klar-tid gäller när laddschemat inte har något påslaget mål: laddningen läggs på de billigaste kvartarna bland alla kända priser, även morgondagens när de har publicerats. Morgongolvet 0 = av.": "Cíl bez času dokončení platí, když plán nabíjení nemá žádný aktivní cíl: nabíjení se umístí do nejlevnějších čtvrthodin ze všech známých cen, včetně zítřejších, jakmile jsou zveřejněny. Ranní minimum 0 = vypnuto.",
   "Laddmålet ska vara 20–100 %": "Cíl nabíjení musí být 20–100 %",
   "Väntetiden ska vara 6–72 timmar": "Doba čekání musí být 6–72 hodin",
-  "Morgongolvet ska vara 0–50 %": "Ranní minimum musí být 0–50 %"
+  "Morgongolvet ska vara 0–50 %": "Ranní minimum musí být 0–50 %",
+  "Solmål": "Solární cíl",
+  "start vid överskott": "start při přebytku",
+  "balanspunkt": "bod vyrovnání",
+  "Solmål: solladdningen slutar vid målet (tomt = bilens egen laddgräns, som också måste vara minst lika hög). Balanspunkt 0 = noll export, plus tillåter lite köp, minus behåller lite export.": "Solární cíl: solární nabíjení končí na cíli (prázdné = vlastní limit nabíjení auta, který musí být alespoň stejně vysoký). Bod vyrovnání 0 = nulový export, plus povolí malý odběr, minus ponechá malý export.",
+  "Solmålet ska vara 20–100 %": "Solární cíl musí být 20–100 %",
+  "Starttröskeln ska vara 1,4–11 kW": "Prahová hodnota startu musí být 1,4–11 kW",
+  "Balanspunkten ska vara -2000–2000 W": "Bod vyrovnání musí být -2000–2000 W"
 }
