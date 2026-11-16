@@ -112,6 +112,8 @@ def ha_toggle_switch(entity_id, turn_on=True):
 print("🤖 Startar Smartbox (v8.0) – ML-Optimerad (1-minutslogg, 15-min-styrning, AsyncIO)...")
 logger.init_log_db()
 logger.init_overrides_db()
+logger.init_load_breakdown_db()
+nordpool.init_db()
 settings.init_settings_db()
 weather.init_weather_db()
 

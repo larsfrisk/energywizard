@@ -621,19 +621,33 @@ def log_spa_phase(phase_a_w, phase_b_w, phase_c_w, activities: dict):
         return False
 
 
+def _ensure_load_breakdown(cur):
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS load_breakdown (
+            id BIGSERIAL PRIMARY KEY,
+            timestamp TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+            total_w REAL, ev_w REAL, pump_w REAL, spa_w REAL, unexplained_w REAL
+        )
+    """)
+    cur.execute("ALTER TABLE load_breakdown ADD COLUMN IF NOT EXISTS extra_w TEXT")
+
+
+def init_load_breakdown_db():
+    """Create the publisher's load table before the first successful main-loop cycle."""
+    try:
+        with get_db() as conn, conn.cursor() as cur:
+            _ensure_load_breakdown(cur)
+            conn.commit()
+    except Exception as e:
+        print(f"❌ init_load_breakdown_db: {e}")
+
+
 def log_load_breakdown(total_w, ev_w, pump_w, spa_w, unexplained_w, extra=None):
     """Loggar last-nedbrytningen varje minut → dashboarden visar 'vad drar just nu' + historik,
     och den oförklarade lasten kan larmas på. Skapar tabellen vid behov, sväljer fel tyst."""
     try:
         with get_db() as conn, conn.cursor() as cur:
-            cur.execute("""
-                CREATE TABLE IF NOT EXISTS load_breakdown (
-                    id BIGSERIAL PRIMARY KEY,
-                    timestamp TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-                    total_w REAL, ev_w REAL, pump_w REAL, spa_w REAL, unexplained_w REAL
-                )
-            """)
-            cur.execute("ALTER TABLE load_breakdown ADD COLUMN IF NOT EXISTS extra_w TEXT")     # #192: egna laster som JSON
+            _ensure_load_breakdown(cur)
             cur.execute("""
                 INSERT INTO load_breakdown (total_w, ev_w, pump_w, spa_w, unexplained_w, extra_w)
                 VALUES (%s,%s,%s,%s,%s,%s)
