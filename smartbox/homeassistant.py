@@ -1004,25 +1004,54 @@ def _already(entity_id: str, want) -> bool:
         return False
 
 
+def _call_service(entity_id: str, service: str, payload: dict) -> bool:
+    """POST /services/<service> med en omprövning vid transient drift: read-timeout,
+    avbrott eller 502/503/504 från Supervisor-proxyn medan HA är upptagen eller startar om.
+    En enstaka sådan avbrott är drift (⚠️) och förtjänar en omprövning, inte ett ❌ som
+    tappad styrsignal (#486: "skriv fel myUplink" - en enstaka read-timeout mot supervisor
+    tappade värmepumpens kurvförskjutning number.offset_47011). timeout=10 som övriga
+    skrivningar i den här filen (reads använder 5). Riktiga fel (401/404/...) är kvar
+    som ❌ utan omprövning."""
+    for attempt in (1, 2):
+        try:
+            r = requests.post(
+                f"{_BASE}/services/{service}",
+                headers=_HEADERS,
+                json=payload,
+                timeout=10,
+                verify=_VERIFY,
+            )
+            r.raise_for_status()
+            return True
+        except requests.HTTPError as e:
+            status = getattr(getattr(e, "response", None), "status_code", None)
+            if status in (502, 503, 504) and attempt == 1:
+                print(f"⚠️ {service} på {entity_id}: HA svarade inte än (HTTP {status}) - försöker igen")
+                time.sleep(2)
+                continue
+            print(f"❌ Fel vid {service} på {entity_id}: {e}")
+            return False
+        except requests.RequestException as e:
+            if attempt == 1:
+                print(f"⚠️ {service} på {entity_id} svarade inte ({type(e).__name__}) - försöker igen")
+                time.sleep(2)
+                continue
+            print(f"❌ Fel vid {service} på {entity_id}: {e}")
+            return False
+        except Exception as e:
+            print(f"❌ Fel vid {service} på {entity_id}: {e}")
+            return False
+    return False
+
+
 def set_number(entity_id: str, value: float, force: bool = False) -> bool:
     """Genuint generisk number.set_value på en valfri entitet - samma mönster som
     set_solaredge_limit redan gör mot en hårdkodad entitet, återanvändbar av generiska
     drivrutiner (laddström, exportgräns m.fl.). force=True skriver även om värdet redan stämmer (håll-vid-liv)."""
     if not force and _already(entity_id, value):
         return True
-    try:
-        r = requests.post(
-            f"{_BASE}/services/number/set_value",
-            headers=_HEADERS,
-            json={"entity_id": entity_id, "value": str(value)},
-            timeout=5,
-            verify=_VERIFY,
-        )
-        r.raise_for_status()
-        return True
-    except Exception as e:
-        print(f"❌ Fel vid number.set_value på {entity_id}: {e}")
-        return False
+    return _call_service(entity_id, "number/set_value",
+                         {"entity_id": entity_id, "value": str(value)})
 
 
 def set_select(entity_id: str, option: str, force: bool = False) -> bool:
@@ -1031,19 +1060,8 @@ def set_select(entity_id: str, option: str, force: bool = False) -> bool:
     inte number/switch. Återanvänds av generiska drivrutiner. Läs före skriv som set_number (#194)."""
     if not force and _already(entity_id, option):
         return True
-    try:
-        r = requests.post(
-            f"{_BASE}/services/select/select_option",
-            headers=_HEADERS,
-            json={"entity_id": entity_id, "option": option},
-            timeout=5,
-            verify=_VERIFY,
-        )
-        r.raise_for_status()
-        return True
-    except Exception as e:
-        print(f"❌ Fel vid select.select_option på {entity_id}: {e}")
-        return False
+    return _call_service(entity_id, "select/select_option",
+                         {"entity_id": entity_id, "option": option})
 
 
 
