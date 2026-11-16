@@ -1,0 +1,25 @@
+const fs = require('node:fs'), vm = require('node:vm'), assert = require('node:assert/strict');
+const ctx = vm.createContext({ window: {} });
+vm.runInContext(fs.readFileSync('smartbox/static/liveflow.js', 'utf8'), ctx);
+const flow = ctx.window.EWLiveFlow;
+
+// Both overview consumers use this renderer: compact in EWApp, full-size on the web.
+for (const compact of [true, false]) {
+  for (const [w, state] of [[1500, 'Laddar'], [-1500, 'Laddar ur'], [0, 'Vilar']]) {
+    for (const soc of [0, 57, 100, null]) {
+      const battery = { key: 'batteri', label: 'Batteri', icon: '🔋', role: 'battery',
+        w, active: w !== 0, detail: state + (soc == null ? '' : ` · ${soc} %`) };
+      const html = flow.svg({ nodes: [battery] }, { compact });
+      assert.match(html, new RegExp(`>${state.toLowerCase()}</text>`));
+      assert.match(html, w === 0 ? />0<tspan/ : />1,5<tspan/);
+      if (soc == null) assert.doesNotMatch(html, /\d+ %/);
+      else assert.match(html, new RegExp(`y="${compact ? 41 : 26}"[^>]*>${soc} %</text>`));
+      assert.doesNotMatch(html, /undefined|NaN|null/);
+      assert.equal(html.includes('<animateMotion'), w !== 0);
+    }
+  }
+  const solar = flow.svg({ nodes: [{ key: 'sol', label: 'Sol', role: 'source', w: 500,
+    detail: 'Laddar · 57 %' }] }, { compact });
+  assert.doesNotMatch(solar, /57 %/);
+}
+console.log('Battery SoC, zero/full/unknown charge, power and operating states passed in both overview layouts');
