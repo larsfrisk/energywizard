@@ -31,7 +31,8 @@ def test_invalid_or_future_reset_cannot_postpone_hygiene(reset):
 
 def test_engine_and_dashboard_use_same_explicit_reset_without_temperature_history():
     root = Path(__file__).resolve().parents[1]
-    config = {'heat_pump': {'hygiene_reset_at': NOW}}
+    reset = datetime.now(timezone.utc).timestamp() - 60
+    config = {'heat_pump': {'hygiene_reset_at': reset}}
     cursor = MagicMock(); cursor.__enter__.return_value = cursor; cursor.fetchone.return_value = (None,)
     connection = MagicMock(); connection.__enter__.return_value = connection; connection.cursor.return_value = cursor
     scope = {'house_cfg': config, 'logger': SimpleNamespace(get_db=lambda: connection),
@@ -41,9 +42,9 @@ def test_engine_and_dashboard_use_same_explicit_reset_without_temperature_histor
         exec(compile(ast.Module(body=[node], type_ignores=[]), str(path), 'exec'), scope)
         return scope[name]
     engine = load(root/'smartbox/main.py', 'get_last_legionella', scope)
-    assert engine(60).timestamp() == NOW
+    assert engine(60).timestamp() == reset
     connection.execute.return_value.first.return_value = (None,)
     scope = {'text': lambda sql: sql, 'HOUSE_CONFIG_FILE': 'synthetic',
              'house_config': SimpleNamespace(load_house_config=lambda path: config)}
     dashboard = load(root/'webdashboard/app.py', '_legionella_last', scope)
-    assert dashboard(connection, 60).timestamp() == NOW
+    assert dashboard(connection, 60).timestamp() == reset
