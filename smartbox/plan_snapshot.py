@@ -31,7 +31,7 @@ PARAMS = {
     'charge_wear_cost_sek_per_kwh', 'discharge_wear_cost_sek_per_kwh',
     'reversal_cost_sek', 'ev_mode', 'allowed',
     'balance_target_kwh', 'balance_hold_slots', 'balance_deadline_slots',
-    'charge_efficiency', 'discharge_efficiency',
+    'charge_efficiency', 'discharge_efficiency', 'standby_kw',
 }
 SLOT_NUMBERS = ('buy', 'sell', 'load_kw', 'solar_kw', 'ev_kw')
 _queue = Queue(maxsize=1)
@@ -106,7 +106,7 @@ def normalize_inputs(slots, params):
     clean = {}
     for k, v in params.items():
         if k == 'allowed':
-            if not set(v) <= set(ACTIONS):
+            if not set(v) <= set(ACTIONS) | {'standby'}:
                 raise ValueError('Unsupported actions')
             clean[k] = sorted(set(v))
         elif k == 'ev_mode':
@@ -124,6 +124,8 @@ def normalize_inputs(slots, params):
     from battery_plan import optimize
     bound = inspect.signature(optimize).bind(slots=out, **clean)
     bound.apply_defaults()
+    if 'standby' not in bound.arguments['allowed']:
+        bound.arguments.pop('standby_kw', None)  # Irrelevant new option must not rewrite old capture identities.
     from battery_efficiency import resolve
     resolve(bound.arguments['eff'], bound.arguments['charge_efficiency'], bound.arguments['discharge_efficiency'])
     clean = {k: (sorted(v) if k == 'allowed' else v) for k, v in bound.arguments.items() if k != 'slots'}

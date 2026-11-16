@@ -32,7 +32,9 @@ heat_pump:
 
 Exclusive ownership is an explicit installation handover acknowledgement; the
 software cannot stop Zenai or discover every other writer. Global shadow still
-blocks commands. Disabled/unqualified/unsupported installations start no worker,
+blocks the ordinary driver. Explicitly isolated boost control can be approved
+separately as described in the [combined cutover](personal-migration-cutover.md).
+Disabled/unqualified/unsupported installations start no worker,
 query no prices and open no control journal. This opt-in is local REST only.
 
 The engine ticks the controller each regular evaluation, after battery/EV grants.

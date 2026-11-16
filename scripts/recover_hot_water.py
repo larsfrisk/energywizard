@@ -24,7 +24,8 @@ def main(argv=None):
         with args.config.open(encoding='utf-8') as source:
             house = yaml.safe_load(source)
         hp = house['heat_pump']
-        driver = NibeLocalHeatPumpDriver(connection=hp.get('connection'), points=hp.get('points'),
+        hw = hp.get('hot_water_control') or {}
+        driver = NibeLocalHeatPumpDriver(connection=hw.get('connection', hp.get('connection')), points=hw.get('points', hp.get('points')),
                                          control_enabled=False)
         result = recover_released(args.journal, house, driver, now=time.time(),
             exclusive_owner_confirmed=True, pending_commands_settled=True)

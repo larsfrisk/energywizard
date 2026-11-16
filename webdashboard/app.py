@@ -550,7 +550,12 @@ async def shadow_get():
                                   "ORDER BY ts DESC LIMIT 60")).fetchall()
     except Exception:          # tabellen finns först när något loggats
         rows = []
+    try:
+        scopes = shadow.scoped_controls(house_config.load_house_config(HOUSE_CONFIG_FILE))
+    except Exception:
+        scopes = None
     return {"ok": True, "active": shadow.active(), "forced_by_env": os.environ.get("SHADOW_MODE", "").lower() in ("1", "true", "ja", "yes"),
+            "scoped_controls": scopes,
             "actions": [{"ts": str(r[0])[:16], "what": r[1], "detail": r[2]} for r in rows]}
 
 

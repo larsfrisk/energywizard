@@ -60,7 +60,7 @@ class Journal:
 
 def selected(house):
     hp = house.get('heat_pump') or {}
-    return (hp.get('enabled') is True and hp.get('driver') == 'nibe_local'
+    return (hp.get('enabled') is True and (hp.get('hot_water_control') or {}).get('driver', hp.get('driver')) == 'nibe_local'
             and (hp.get('hot_water_control') or {}).get('enabled') is True)
 
 
@@ -68,10 +68,11 @@ def control_context(house, driver):
     hp = house['heat_pump']
     cfg = hp['hot_water_control']
     return hashlib.sha256(json.dumps(
-        {'connection': hp.get('connection'), 'points': hp.get('points'),
+        {'connection': cfg.get('connection', hp.get('connection')), 'points': cfg.get('points', hp.get('points')),
          'local_identity': {k: getattr(driver, k, None) for k in
                             ('_host', '_port', '_index', '_expected_product', '_expected_serial')},
-         'policy': cfg['comfort_policy'], 'max_runtime_s': cfg['max_runtime_s']},
+         'policy': cfg['comfort_policy'], 'max_runtime_s': cfg['max_runtime_s'],
+         **({'priority_boosts': cfg.get('priority_boosts', False)} if cfg.get('driver') == 'nibe_local' else {})},
         sort_keys=True, allow_nan=False).encode()).hexdigest()
 
 
@@ -114,7 +115,8 @@ class Runtime:
     def _new_controller(self, driver, saved):
         return BoostController(driver, lambda: saved, self._cycle_save, context_id=self.context)
 
-    def tick(self, house, driver, observation, *, now, shadow, manual, away, hygiene, guard_ok):
+    def tick(self, house, driver, observation, *, now, shadow, manual, away, hygiene, guard_ok,
+             manual_request=None, hygiene_target_c=None):
         """Called serially by main. No implicit ownership takeover or recovery."""
         hp = house.get('heat_pump') or {}
         cfg = hp.get('hot_water_control') or {}
@@ -131,13 +133,17 @@ class Runtime:
             # does not authorize recovery of an old process's active command.
             owner = cfg.get('exclusive_owner_confirmed') is True
             policy = cfg['comfort_policy']
+            isolated = cfg.get('driver') == 'nibe_local'
+            live_scope = (isolated and cfg.get('live_control_confirmed') is True
+                          and getattr(driver, '_boost_live_in_shadow', False) is True)
+            effective_shadow = shadow and not live_scope
             context = control_context(house, driver)
             if self.context is not None and context != self.context:
                 self.failed = True
             if self.failed:
                 self.report = {'state': 'unavailable'}
                 return self.report
-            blocked = (shadow or not owner or hp.get('control_enabled') is not True
+            blocked = (effective_shadow or not owner or (not isolated and hp.get('control_enabled') is not True)
                        or cfg.get('temperature_role_verified') is not True
                        or 'hot_water_boost' not in driver.capabilities())
             if blocked:
@@ -157,7 +163,14 @@ class Runtime:
                 if self.state and (self.state.get('schema') != 1 or self.state.get('context_id') != context):
                     raise ValueError('Runtime journal context changed')
                 if not self.state:
-                    self._save(schema=1, context_id=context, demand={}, cycle={})
+                    seed = cfg.get('initial_trigger_at')
+                    fields = {}
+                    if seed is not None:
+                        stamp = datetime.fromisoformat(seed.replace('Z', '+00:00'))
+                        if stamp.utcoffset() is None or not math.isfinite(stamp.timestamp()) or stamp.timestamp() > now:
+                            raise ValueError('Initial trigger must be an explicitly dated past record')
+                        fields['last_trigger_at'] = stamp.timestamp()
+                    self._save(schema=1, context_id=context, demand={}, cycle={}, **fields)
                 self.controller = self._new_controller(driver, self.state['cycle'])
                 self.recovery_blocked = self.controller.recovery
                 if self.controller.state.get('reason') == 'restart_before_start':
@@ -175,7 +188,36 @@ class Runtime:
                 # history and demand anchors across every subsequent schedule.
                 self._save(cycle={})
                 self.controller = c = self._new_controller(driver, {})
-            if not c.state and not (manual or away or hygiene) and guard_ok and now >= self.retry_at:
+            priority = isolated and cfg.get('priority_boosts') is True
+            if manual_request not in (None, 'on', 'off'):
+                raise ValueError('Explicit bounded hot-water override required')
+            manual_on = priority and manual_request == 'on'
+            if priority and manual_request != 'on' and self.state.get('manual_consumed'):
+                self._save(manual_consumed=False)
+            if manual_on and c.state.get('phase') in {'active', 'start_pending', 'release_pending'} and not self.state.get('manual_consumed'):
+                self._save(manual_consumed=True)
+            force = priority and not away and ((manual_on and not self.state.get('manual_consumed')) or hygiene)
+            cancel = priority and manual_request == 'off' and not hygiene
+            target = policy['target_c']
+            if priority and hygiene:
+                if type(hygiene_target_c) not in (int, float) or not math.isfinite(hygiene_target_c) or not 0 < hygiene_target_c <= 65:
+                    raise ValueError('Explicit hygiene target required')
+                target = max(target, hygiene_target_c)
+                if c.state.get('phase') == 'active' and c.state['target_c'] < target:
+                    if not c._store(target_c=target):
+                        self.report = c.status()
+                        return self.report
+            if force and (not c.state or c.state.get('phase') == 'planned'):
+                if guard_ok and getattr(driver, 'hot_water_ready', lambda: True)():
+                    self._save(cycle={}, manual_consumed=manual_on or self.state.get('manual_consumed', False))
+                    self.controller = c = self._new_controller(driver, {})
+                    c.arm(now=now, start=now, end=now+cfg['max_runtime_s'], deadline=now+cfg['max_runtime_s'],
+                          target_c=target, max_runtime_s=cfg['max_runtime_s'], max_age_s=policy['max_age_s'],
+                          allow_receipt=policy['allow_receipt'])
+            if priority:
+                manual = manual and manual_request is None
+                hygiene = False  # This explicit boost owner executes the bounded hygiene request.
+            if not c.state and not (manual or away or hygiene or cancel or force or manual_on) and guard_ok and now >= self.retry_at:
                 demand_state, demand = derive(self.state['demand'], observation, now=now,
                     policy=policy, last_trigger_at=self.state.get('last_trigger_at'))
                 self._save(demand=demand_state)
@@ -191,9 +233,10 @@ class Runtime:
                         self.retry_at = now + 60
                         self.report = {'state': 'schedule_unavailable'}
             if c.state:
-                self.report = c.tick(observation, now=now, shadow=shadow, ownership_confirmed=owner,
-                                     permitted=guard_ok, manual=manual, away=away, hygiene=hygiene)
-            elif manual or away or hygiene:
+                ready = c.state.get('phase') != 'planned' or getattr(driver, 'hot_water_ready', lambda: True)()
+                self.report = c.tick(observation, now=now, shadow=effective_shadow, ownership_confirmed=owner,
+                                     permitted=guard_ok and ready, manual=manual, away=away, hygiene=hygiene, cancel=cancel)
+            elif manual or away or hygiene or cancel or manual_on:
                 self.report = {'state': 'precedence_blocked'}
             elif not guard_ok:
                 self.report = {'state': 'guard_blocked'}

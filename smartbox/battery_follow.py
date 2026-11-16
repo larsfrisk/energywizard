@@ -32,6 +32,10 @@ def mismatch(intent, wanted_w, actual_w, soc, reserve_soc):
         if actual_w < -TOL_W or (soc is not None and reserve_soc is not None and soc <= reserve_soc + 1):
             return None
         return f"Bad om urladdning{want}, men batteriet {doing}."
+    if intent == 'standby':
+        if abs(actual_w + (wanted_w or 0)) <= TOL_W * 2:
+            return None
+        return "Standby följs inte av batteriet."
     if intent in ("hold", "idle"):
         # "sparas" får ta emot sol (laddning) men ska inte ladda ur; "vila" ska stå still
         if intent == "hold" and actual_w >= -TOL_W * 2:

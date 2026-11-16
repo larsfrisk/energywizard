@@ -11,10 +11,10 @@
   "use strict";
   const T = {
     sv: { now: "Nu", today: "Idag", tomorrow: "Imorgon", sky: "Skyline", clock: "Klocka", charge: "Laddar", discharge: "Laddar ur",
-          export: "Laddar ur · säljer", hold: "Sparas", idle: "Vilar", heatOn: "Värmer på", heatOff: "Värmen sänkt", nothing: "Inget särskilt",
+          export: "Laddar ur · säljer", hold: "Sparas", idle: "Vilar", standby: "Standby", heatOn: "Värmer på", heatOff: "Värmen sänkt", nothing: "Inget särskilt",
           legend: ["Högt hus = dyr el", "Tänt fönster = huset använder el", "Batteriet", "Solen"] },
     en: { now: "Now", today: "Today", tomorrow: "Tomorrow", sky: "Skyline", clock: "Clock", charge: "Charging", discharge: "Discharging",
-          export: "Discharging · selling", hold: "Holding", idle: "Idle", heatOn: "Pre-heating", heatOff: "Heat lowered", nothing: "Nothing special",
+          export: "Discharging · selling", hold: "Holding", idle: "Idle", standby: "Standby", heatOn: "Pre-heating", heatOff: "Heat lowered", nothing: "Nothing special",
           legend: ["Tall building = expensive", "Lit window = house uses power", "Battery", "Sun"] },
   };
   // Keep English compatibility and source other languages from the shared catalog.
@@ -24,7 +24,7 @@
     const src = { ...T.sv, charge: "Laddning pågår" };
     return Object.fromEntries(Object.entries(src).map(([k, v]) => [k, Array.isArray(v) ? v.map(tr) : tr(v)]));
   }
-  const BATC = { charge: "#2dd4bf", discharge: "#f59e0b", export: "#e879f9", hold: "#94a3b8", idle: "#94a3b8" };
+  const BATC = { charge: "#2dd4bf", discharge: "#f59e0b", export: "#e879f9", hold: "#94a3b8", idle: "#94a3b8", standby: "#94a3b8" };
   const CARC = ["#a78bfa", "#60a5fa", "#f472b6", "#34d399"];
   const esc = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   let styled = false;
@@ -129,7 +129,7 @@
     const day0 = new Date(S[0].t).getDate();
     const pills = (s) => {
       const o = [];
-      if (s.bat && BATC[s.bat] && s.soc != null) o.push(`<span class="pill" style="border-color:${BATC[s.bat]}99">🔋 ${esc(L[s.bat])}${s.bat_kw ? " " + Math.abs(s.bat_kw).toFixed(1) + " kW" : ""} · ${s.soc} %</span>`);
+      if (s.bat && BATC[s.bat] && s.soc != null) o.push(`<span class="pill" style="border-color:${BATC[s.bat]}99">🔋 ${esc(L[s.bat])}${s.bat_kw ? " " + (Math.abs(s.bat_kw) < .1 ? Math.round(Math.abs(s.bat_kw)*1000) + " W" : Math.abs(s.bat_kw).toFixed(1) + " kW") : ""} · ${s.soc} %</span>`);
       Object.entries(s.ev || {}).forEach(([c, kw]) => kw > 0.05 && o.push(`<span class="pill" style="border-color:${carCol(c)}99">🚗 ${esc(carName(c))} ${kw.toFixed(1)} kW</span>`));
       if (s.heat === "CHEAP") o.push(`<span class="pill">♨️ ${esc(L.heatOn)}</span>`); else if (s.heat === "EXPENSIVE") o.push(`<span class="pill">♨️ ${esc(L.heatOff)}</span>`);
       if ((s.sun_w || 0) > 50) o.push(`<span class="pill">☀ ${(s.sun_w / 1000).toFixed(1)} kW</span>`);

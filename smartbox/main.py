@@ -162,6 +162,8 @@ def _build_or_null(name, build, null):
 
 
 heat_pump_driver = _build_or_null("Värmepumpen", house_config.build_heat_pump_driver, house_config.NullHeatPumpDriver)
+hot_water_driver = _build_or_null("Varmvattnet", lambda cfg: house_config.build_hot_water_driver(cfg, heat_pump_driver),
+                                house_config.NullHeatPumpDriver)
 solar_driver = _build_or_null("Solcellerna", house_config.build_solar_driver, house_config.NullSolarDriver)
 spa_driver = _build_or_null("Spabadet", house_config.build_spa_driver, house_config.NullSpaDriver)
 HAS_SPA = not isinstance(spa_driver, house_config.NullSpaDriver)   # inget spa i installationen: ingen spa-bevakning eller -styrning
@@ -1239,6 +1241,12 @@ while True:
                     asyncio.to_thread(nordpool.get_price_info, cfg["cheap_hours_count"])
                 )
             pump_data, price_tuple = asyncio.run(fetch_heavy_data())
+            _hw_data = pump_data or {}
+            if hot_water_driver is not heat_pump_driver and hot_water_runtime.selected(house_cfg):
+                try:
+                    _hw_data = hot_water_driver.read_sensors() or {}
+                except Exception:
+                    _hw_data = {}
             if pump_data:
                 pump_data = dict(pump_data, **hot_water_power.read(house_cfg.get("heat_pump") or {},
                                                                 pump_data, homeassistant._states_cache))
@@ -1644,6 +1652,8 @@ while True:
             # Thermia ger water_temp_top, övriga drivrutiner (NIBE, HeishaMon, generisk) water_temp (#145)
             water_temp   = (pump_data.get("water_temp_top") if pump_data.get("water_temp_top") is not None
                             else pump_data.get("water_temp")) if pump_data else None
+            if hot_water_driver is not heat_pump_driver and hot_water_runtime.selected(house_cfg):
+                water_temp = _hw_data.get("water_temp")
             forward_temp = pump_data.get("forward_temp")      if pump_data else None
             return_temp  = pump_data.get("return_temp")       if pump_data else None
             calc_forward = pump_data.get("calc_forward_temp") if pump_data else None
@@ -2282,7 +2292,7 @@ while True:
                     if battery_control.should_apply(_bdec, _battery["last"], _battery["at"], now,
                                                     battery_cfg["min_change_minutes"]):
                         if battery_commands.apply(_battery_commands, battery_driver, _bdec["intent"], _bdec.get("power_w")):
-                            if _bdec["intent"] == "charge":     # #399: ökningen räknas mot bilens utrymme tills den syns
+                            if _bdec["intent"] == "charge" and (not shadow.active() or getattr(battery_driver, '_live_in_shadow', False) is True):
                                 _ramp.grant("battery", ((_bdec.get("power_w") or battery_cfg["max_power_w"])
                                                         - max(0.0, float(battery_state.get("power_w") or 0.0))) / 230.0 / battery_cfg["phases"])
                             _battery.update(last=_bdec, at=now)
@@ -2415,7 +2425,8 @@ while True:
                     if not ev_phase_switch_active[car_id]:
                         if ev_amps[car_id] != last_sent_ev_limit.get(car_id):
                             if charger_set_limit(charger_id, ev_amps[car_id], reason=ev_reason_stop.get(car_id)):
-                                _ramp.grant("ev", ev_amps[car_id] - (last_sent_ev_limit.get(car_id) or 0))   # #399
+                                if not shadow.active():
+                                    _ramp.grant("ev", ev_amps[car_id] - (last_sent_ev_limit.get(car_id) or 0))
                                 last_sent_ev_limit[car_id] = ev_amps[car_id]
                         if ev_amps[car_id] > 0 and charger_data.get("status") in ["awaiting_start", "paused", "off"]:
                             charger_turn_on(charger_id)
@@ -2739,10 +2750,12 @@ while True:
                         peak_ok=not bool(cfg.get("peak_shaving_enabled", True)) or
                             float(consumed_kwh_this_hour) < float(allowed_kwh_now),
                         additional_kw=0 if _hw_owned else (_hw_cfg.get("comfort_policy") or {}).get("electrical_power_kw", 0))
-                    _hot_water_runtime.tick(house_cfg, heat_pump_driver,
-                        (pump_data or {}).get("water_temp_observation") or {}, now=time.time(),
+                    _hot_water_runtime.tick(house_cfg, hot_water_driver,
+                        _hw_data.get("water_temp_observation") or {}, now=time.time(),
                         shadow=shadow.active(), manual=_hw_manual, away=bool(away_mode_enabled),
-                        hygiene=_hw_hygiene, guard_ok=_hw_guard)
+                        hygiene=_hw_hygiene, guard_ok=_hw_guard,
+                        manual_request=all_overrides.get("hotwater") if all_overrides.get("hotwater") in {"on", "off"} else None,
+                        hygiene_target_c=leg_temp)
                     if (not _hw_owned and _hot_water_runtime.controller is not None and
                             _hot_water_runtime.controller.state.get("phase") in {"start_pending", "active"}):
                         _ramp.grant("hot_water", _hw_cfg["comfort_policy"]["electrical_power_kw"] * 1000 / 230)
@@ -2773,7 +2786,8 @@ while True:
                 for log_msg in gpm_actions["log"]:
                     print(f"  {log_msg}")
 
-                if ov_smart_mode != "manual" and (not _hw_selected or _hw_manual or _hw_hygiene):
+                if (ov_smart_mode != "manual" and (not _hw_selected or _hw_manual or _hw_hygiene)
+                        and not (_hw_selected and hot_water_driver is not heat_pump_driver)):
                     water_sp.apply(heat_pump_driver, gpm_actions["water_target_temp"], sleep=time.sleep)
                         
                     ov_water = all_overrides.get("hotwater", "auto")

@@ -18,6 +18,23 @@ _last: dict = {}           # (vad) -> senast loggad, för att inte logga samma s
 REPEAT_S = 600
 
 
+def scoped_controls(house):
+    """Code-owned names only; configured exceptions, not proof of delivery."""
+    hp = house.get('heat_pump') or {}
+    hw = hp.get('hot_water_control') or {}
+    bat = house.get('battery') or {}
+    result = []
+    if (hp.get('enabled') is True and hw.get('enabled') is True and hw.get('driver') == 'nibe_local'
+            and hw.get('temperature_role_verified') is True
+            and hw.get('exclusive_owner_confirmed') is True and hw.get('live_control_confirmed') is True):
+        result.append('hot_water')
+    if (bat.get('enabled') is True and bat.get('driver') == 'ferroamp_modbus'
+            and bat.get('control') == 'styr' and bat.get('default_mode_verified') is True
+            and bat.get('exclusive_owner_confirmed') is True and bat.get('live_control_confirmed') is True):
+        result.append('battery')
+    return result
+
+
 def active() -> bool:
     if os.environ.get("SHADOW_MODE", "").strip().lower() in ("1", "true", "ja", "yes"):
         return True

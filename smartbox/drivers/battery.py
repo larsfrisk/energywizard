@@ -81,6 +81,7 @@ INTENTS = {
     "idle": "Varken ladda eller ladda ur (solöverskottet går vidare, t.ex. till elbilen)",
     "charge": "Ladda, även från nätet",
     "discharge": "Ladda ur, även när huset inte drar så mycket",
+    "standby": "Explicit small discharge reference; also prevents solar charging, unlike hold",
 }
 
 
