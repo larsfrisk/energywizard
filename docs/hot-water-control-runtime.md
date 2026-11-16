@@ -112,3 +112,10 @@ state or invalid clocks require separate review, not an automatic reset.
 Personal live commissioning remains outstanding; this tool was tested only with
 synthetic heater transport and private temporary journals.
 Storage failures, process downtime and transport outages cannot guarantee release.
+# Manual hygiene timer reset
+
+An explicit `heat_pump.hygiene_reset_at` Unix timestamp resets the hygiene reminder
+interval in both the engine and dashboard. It records an operator reset, not a
+temperature measurement or proof of completed treatment. A newer measured qualifying
+temperature takes precedence. Invalid or future reset values are ignored.
+

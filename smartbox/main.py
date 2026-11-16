@@ -61,6 +61,7 @@ import water_setpoints  # Varmvattnets start/stopp: stoppet aldrig under normal,
 import hot_water_monitor  # Default-off advisory shadow monitor; no device writes
 import hot_water_runtime  # Explicit opt-in bounded local boost owner
 import hot_water_status
+import hot_water_hygiene
 import hot_water_power  # Optional dedicated electrical-load evidence, cache/read-only
 import energy_source_evidence  # Optional raw source snapshot, separate from corrected balance
 import ev_heating       # Temperaturberoende baslast för laddplanen (ev_planning.heating_adjustment), natanoj
@@ -956,16 +957,17 @@ _bat_meter_freeze = battery_control.MeterFreeze()   # samma värde i 10 min = m�
 _meter_ok_at = {"t": None}                           # senaste lyckade avläsning av elmätaren   # köpt energi denna timme (reserv när mätaren saknar timsensor)
 
 def get_last_legionella(target_temp):
+    reset = (house_cfg.get("heat_pump") or {}).get("hygiene_reset_at")
     try:
         with logger.get_db() as conn:
             with conn.cursor() as cur:
                 cur.execute("SELECT MAX(timestamp) FROM sensor_log WHERE water_temp >= %s", (target_temp - 0.5,))
                 row = cur.fetchone()
         if row and row[0]:
-            return row[0].replace(tzinfo=zoneinfo.ZoneInfo("UTC")).astimezone(SWE_TZ) if row[0].tzinfo is None else row[0].astimezone(SWE_TZ)
+            return hot_water_hygiene.last_event(row[0], reset).astimezone(SWE_TZ)
     except Exception as e:
         print(f"Kunde inte hämta legionellahistorik: {e}")
-    return None
+    return hot_water_hygiene.last_event(None, reset)
 
 while True:
     try:

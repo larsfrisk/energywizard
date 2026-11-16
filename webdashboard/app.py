@@ -1973,7 +1973,9 @@ def _legionella_last(c, temp):
         t = float(temp if temp is not None else 60.0) - 0.5
         r = c.execute(text("SELECT MAX(timestamp) FROM sensor_log WHERE timestamp > now() - interval '90 days' AND water_temp >= :t"),
                       {"t": t}).first()
-        return r[0] if r and r[0] else None
+        import hot_water_hygiene
+        hp = house_config.load_house_config(HOUSE_CONFIG_FILE).get("heat_pump") or {}
+        return hot_water_hygiene.last_event(r[0] if r and r[0] else None, hp.get("hygiene_reset_at"))
     except Exception:
         return None
 
