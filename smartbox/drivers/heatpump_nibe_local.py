@@ -1,7 +1,8 @@
 """NIBE local REST: pinned HTTPS, device discovery and metadata-checked settings.
 
 Enable menu 7.5.15. Local variable IDs, Modbus addresses and cloud IDs are distinct.
-Writes require explicit configuration; no timed boosts, AUX blocks or cloud replay.
+Writes require explicit configuration; boost lifetime belongs to its caller.
+No AUX blocks or cloud replay.
 See docs/nibe-local-rest.md for the evidence and hardware verification limits.
 """
 import base64
@@ -126,6 +127,54 @@ def _number(point):
 
 
 class NibeLocalHeatPumpDriver(HeatPumpDriver):
+    def _boost_binding(self):
+        binding = self._bindings.get('hot_water_boost')
+        if not isinstance(binding, dict):
+            return None
+        if (type(binding.get('register')) is not int or not 0 <= binding['register'] <= 65535
+                or binding.get('register_type') != 'MODBUS_HOLDING_REGISTER'
+                or 'unit' not in binding or binding['unit'] is not None and not isinstance(binding['unit'], str)
+                or isinstance(binding.get('variable_id'), bool)
+                or not re.fullmatch(r'[0-9]+', str(binding.get('variable_id', '')))):
+            return None
+        values = binding.get('allowed_values')
+        start, release = binding.get('start_value'), binding.get('release_value')
+        if (not isinstance(values, list) or not 2 <= len(values) <= 64
+                or any(type(v) is not int for v in values) or len(set(values)) != len(values)
+                or type(start) is not int or type(release) is not int or start == release
+                or start not in values or release not in values):
+            return None
+        return binding
+
+    def capabilities(self):
+        caps = set(super().capabilities())
+        if self._control and self._expected_product and self._boost_binding():
+            caps.add('hot_water_boost')
+        return frozenset(caps)
+
+    def read_hot_water_boost(self):
+        binding = self._boost_binding()
+        if binding is None:
+            return None
+        try:
+            _, point = self._resolve(self._read_points(), binding)
+            if point['metadata']['divisor'] != 1:
+                return None
+            value = _number(point)
+            if value == binding['start_value']:
+                return True
+            if value == binding['release_value']:
+                return False
+        except (LocalRestError, KeyError, TypeError, ValueError, OverflowError):
+            pass
+        return None
+
+    def set_hot_water_boost(self, active):
+        binding = self._boost_binding()
+        if type(active) is not bool or binding is None:
+            return False
+        return self._write('hot_water_boost', binding['start_value'] if active else binding['release_value'])
+
     def __init__(self, connection=None, points=None, control_enabled=False, mode_values=None):
         cfg = connection or {}
         self._host = cfg.get("host", _HOST)
@@ -264,7 +313,7 @@ class NibeLocalHeatPumpDriver(HeatPumpDriver):
         binding = self._bindings[field]
         if not isinstance(binding, dict):
             return False
-        if field != "operating_mode" and binding.get("unit") != "°C":
+        if field not in {'operating_mode', 'hot_water_boost'} and binding.get("unit") != "°C":
             return False
         if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
             return False
@@ -298,12 +347,23 @@ class NibeLocalHeatPumpDriver(HeatPumpDriver):
             if not math.isfinite(raw) or not raw.is_integer() or not low <= raw <= high:
                 return False
             minimum, maximum = meta.get("minValue"), meta.get("maxValue")
+            if field == 'hot_water_boost':
+                # Validate release as well as start before issuing either request.
+                # Equal firmware bounds mean unknown, not a guessed enum range.
+                endpoints = (binding['start_value'], binding['release_value'])
+                sentinel = {'s16':-32768,'s32':-2147483648,'u16':65535,'u32':4294967295}.get(width[0])
+                if (meta['divisor'] != 1 or any(not low <= v <= high or v == sentinel for v in endpoints)
+                        or isinstance(minimum, bool) or isinstance(maximum, bool)):
+                    return False
+                if isinstance(minimum,(int,float)) and isinstance(maximum,(int,float)) and minimum != maximum:
+                    if not all(minimum <= v <= maximum for v in endpoints):
+                        return False
             if (isinstance(minimum, (int, float)) and isinstance(maximum, (int, float))
                     and minimum != maximum and not minimum <= raw <= maximum):
                 return False
             # Unknown firmware bounds require explicit installation bounds, never an unbounded write.
-            limits = binding.get("allowed_values") if field == "operating_mode" else binding.get("limits")
-            if field == "operating_mode":
+            limits = binding.get("allowed_values") if field in {'operating_mode','hot_water_boost'} else binding.get("limits")
+            if field in {'operating_mode','hot_water_boost'}:
                 if not isinstance(limits, list) or value not in limits:
                     return False
             elif not (isinstance(limits, list) and len(limits) == 2 and limits[0] <= value <= limits[1]):
