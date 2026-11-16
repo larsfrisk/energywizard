@@ -1873,6 +1873,18 @@ async function mountBatteryPlanSettings() {
   const cb = document.getElementById("batexport");
   cb.checked = d.allow_export;
   cb.onchange = () => postJSON("api/battery-plan-settings", { allow_export: cb.checked }).catch(() => { cb.checked = !cb.checked; });
+  for (const [id, key] of [["batnormalmax", "normal_max_soc"], ["batreservebuffer", "discharge_buffer_soc"]]) {
+    const input = document.getElementById(id);
+    input.value = d[key];
+    input.onchange = async () => {
+      try {
+        const value = String(input.value).trim();
+        if (!value || !Number.isFinite(Number(value))) throw new Error("Ogiltiga batterigränser");
+        const result = await postJSON("api/battery-plan-settings", { [key]: Number(value) });
+        d[key] = result[key]; input.value = d[key]; toast("Sparat");
+      } catch (e) { input.value = d[key]; toast(e.message); }
+    };
+  }
 }
 
 function mountLangSelect(slotId, saveForInstall) {
@@ -2260,6 +2272,12 @@ async function renderInstallningar() {
       <div class="seg" id="batstyle" style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap"></div>
       <div style="display:flex;justify-content:space-between;font-size:.8rem;opacity:.7;margin-top:4px"><span>Sparar mer i batteriet</span><span>Litar mer på prognosen</span></div>
       <div class="note" id="batstyledesc" style="margin-top:8px"></div>
+      <label style="display:block;margin-top:12px">Normal laddgräns (%)
+        <input id="batnormalmax" type="number" min="1" max="100" step="1"></label>
+      <div class="note">Gäller vanlig laddning. Balansering kan använda batteriets separata underhållsgräns.</div>
+      <label style="display:block;margin-top:12px">Marginal över reservnivån (%)
+        <input id="batreservebuffer" type="number" min="0" max="20" step="1"></label>
+      <div class="note">Styrd urladdning stoppas vid reservnivån plus denna marginal.</div>
       <label style="display:flex;gap:8px;align-items:flex-start;margin-top:12px"><input type="checkbox" id="batexport">
         <span>Tillåt batteriet att sälja till nätet när planen räknar med en lönsam försäljning.<br><span class="note">Av: batteriet täcker bara husets egen förbrukning. Solelen kan fortfarande säljas.</span></span></label>
     </div>

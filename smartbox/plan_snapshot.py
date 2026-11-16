@@ -16,6 +16,7 @@ SCHEMA = 2          # 2: valfri input_quality (#389). Version 1 spelas fortfaran
 REPLAYABLE = (1, 2)
 QUALITY_KEYS = {'prices': ('source', 'coverage', 'missing', 'horizon_h'), 'solar': ('source', 'coverage'),
                 'load': ('source', 'coverage'), 'soc': ('source', 'known', 'age_s'),
+                'hot_water': ('source', 'power_kw', 'background_kw'),
                 'pv_model': ('source', 'state', 'coverage', 'fetched_at', 'timestamp_basis'),
                 'learning': ('source', 'state', 'age_s'),
                 'battery_model': ('source',),
@@ -99,6 +100,9 @@ def normalize_inputs(slots, params):
             raise ValueError('Planner slots must be consecutive physical quarters')
         previous = dt
         out.append({'t': t, **{k: number(slot.get(k, 0.0)) for k in SLOT_NUMBERS}})
+        for key in ('hot_water_kw', 'background_load_kw'):
+            if key in slot:
+                out[-1][key] = number(slot[key])
         # Optional evidence only; the optimizer uses full buy/sell tariffs.
         # Preserve old snapshots exactly when the recorded spot is absent.
         if 'spot' in slot:

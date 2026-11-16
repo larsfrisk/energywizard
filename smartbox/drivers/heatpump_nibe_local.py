@@ -318,6 +318,12 @@ class NibeLocalHeatPumpDriver(HeatPumpDriver):
         result.update(_raw_point_count=len(points), _received_at=datetime.now(timezone.utc).isoformat(),
                       _timestamp_basis="local_receipt")
         result["water_temp_observation"] = temperature(result["water_temp"], result["_received_at"], "local_receipt")
+        import hot_water_reservations
+        try:
+            result.update(hot_water_reservations.boost_fields(points, self._bindings, self._resolve,
+                                                             _number, result['_received_at']))
+        except LocalRestError:
+            result.update(hot_water_boost_active=None, hot_water_boost_sample_at=None)
         return result
 
     def _write(self, field, value):

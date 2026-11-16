@@ -427,7 +427,7 @@ def _charge_samples(engine, now):
     return [(float(t), float(p)) for t, p in rows if t is not None and p is not None]
 
 
-def plan_from_db(engine, now, soc_pct, settings, base_profile, supported, *, soc_evidence=None, comparison=False, pv_forecast=None, tariff_model=None):
+def plan_from_db(engine, now, soc_pct, settings, base_profile, supported, *, soc_evidence=None, comparison=False, pv_forecast=None, tariff_model=None, hot_water=None):
     """Bygger kvartarna från nu till slutet av kända elpriser och kör optimize(). Sparar planen i
     battery_plan_slots. Returnerar resultatet + 'action_now' för pågående kvart.
     comparison=True only captures a labelled candidate; no active/learning writes or dispatch fields."""
@@ -450,6 +450,9 @@ def plan_from_db(engine, now, soc_pct, settings, base_profile, supported, *, soc
     if pv_forecast is not None and not comparison:
         raise ValueError("PV comparison model cannot feed active planning")
 
+    import battery_limits
+    import ew_settings
+    settings = battery_limits.resolve(settings, ew_settings.load() if not comparison else {})
     cap = settings.get("capacity_kwh")
     if not cap or soc_pct is None:
         return None
@@ -538,11 +541,18 @@ def plan_from_db(engine, now, soc_pct, settings, base_profile, supported, *, soc
         t += timedelta(minutes=15)
     if not slots:
         return None
+    if hot_water is not None:
+        if comparison:
+            raise ValueError('Live hot-water reservations cannot feed comparison models implicitly')
+        import hot_water_reservations
+        water_background = hot_water_reservations.off_profile(engine, now)
+        slots = hot_water_reservations.apply(slots, hot_water, water_background, now.timestamp())
+        forecast = [(t, slots[i]['load_kw'], solar) for i, (t, _, solar) in enumerate(forecast)]
     command_kw = battery_learning.planning_kw(settings, "charge")
     schedule_kw = command_kw if comparison else live_charge_kw(command_kw, _charge_samples(engine, now))
     params = dict(soc0_kwh=soc_pct / 100.0 * cap, capacity_kwh=cap,
-                  reserve_kwh=settings["reserve_soc"] / 100.0 * cap,
-                  max_kwh=settings["max_soc"] / 100.0 * cap,
+                  reserve_kwh=settings["discharge_floor_soc"] / 100.0 * cap,
+                  max_kwh=settings["normal_max_soc"] / 100.0 * cap,
                   charge_kw=schedule_kw,
                   discharge_kw=battery_learning.planning_kw(settings, "discharge"),
                   eff=settings.get("efficiency", 0.9), allowed=tuple(supported),
@@ -587,6 +597,13 @@ def plan_from_db(engine, now, soc_pct, settings, base_profile, supported, *, soc
         "soc": soc_input_quality(soc_pct, soc_evidence, now.timestamp()),
     }
     r["input_quality"] = quality
+    if hot_water is not None:
+        coverage = sum((s['t'].weekday(), s['t'].hour) in water_background for s in slots) / n
+        quality['load'] = {'source': 'boost_excluded_profile' if coverage == 1 else
+                          'boost_excluded_model' if coverage == 0 else 'mixed_boost_excluded', 'coverage': coverage}
+        quality['hot_water'] = {'source': 'scheduled_boost_model',
+                               'power_kw': hot_water['window']['power_kw'] if hot_water['window'] else 0,
+                               'background_kw': hot_water['background_kw']}
     if tariff_model is not None:
         quality['tariff_model'] = {'source': 'explicit_comparison', **tariff_model}
     if pv_forecast is not None:

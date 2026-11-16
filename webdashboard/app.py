@@ -430,12 +430,15 @@ async def api_heat_feedback_save(request: Request):
 @app.get("/api/battery-plan-settings")
 async def api_battery_plan_settings():
     import battery_plan
+    import battery_limits
     st = ew_settings.load()
     try:
         bs = house_config.battery_settings(house_config.load_house_config(HOUSE_CONFIG_FILE))
     except Exception:
         bs = {}
+    limits = battery_limits.resolve(bs, st)
     return {"style": st.get("battery_plan_style") or bs.get("plan_style") or battery_plan.DEFAULT_STYLE,
+            **{k: limits[k] for k in ('normal_max_soc', 'discharge_buffer_soc', 'reserve_soc', 'max_soc')},
             "allow_export": st.get("battery_allow_export", bs.get("allow_export", True)) is not False,
             "styles": list(battery_plan.PLAN_STYLES), "has_battery": bs.get("control", "av") != "av"}
 
@@ -443,6 +446,7 @@ async def api_battery_plan_settings():
 @app.post("/api/battery-plan-settings")
 async def api_battery_plan_settings_save(request: Request):
     import battery_plan
+    import battery_limits
     role, _ = AUTH.session(request)
     if role != "owner":
         return JSONResponse({"detail": "Bara ägaren kan ändra batteriets planering"}, status_code=403)
@@ -454,8 +458,21 @@ async def api_battery_plan_settings_save(request: Request):
         upd["battery_plan_style"] = body["style"]
     if "allow_export" in body:
         upd["battery_allow_export"] = bool(body["allow_export"])
+    for field in ('normal_max_soc', 'discharge_buffer_soc'):
+        if field in body:
+            upd['battery_' + field] = body[field]
+    try:
+        bs = house_config.battery_settings(house_config.load_house_config(HOUSE_CONFIG_FILE))
+        limits = battery_limits.resolve(bs, {**ew_settings.load(), **upd})
+    except (ValueError, TypeError, OverflowError):
+        return JSONResponse({"detail": "Ogiltiga batterigränser"}, status_code=400)
+    if any(k in body for k in ('normal_max_soc', 'discharge_buffer_soc')):
+        # Save a validated pair atomically, so concurrent edits cannot combine
+        # a lower ceiling with an independently raised reserve margin.
+        upd.update(battery_normal_max_soc=limits['normal_max_soc'],
+                   battery_discharge_buffer_soc=limits['discharge_buffer_soc'])
     ew_settings.update(**upd)
-    return {"ok": True, **upd}
+    return {"ok": True, **upd, **{k: limits[k] for k in ('normal_max_soc', 'discharge_buffer_soc')}}
 
 
 @app.get("/api/solar-forecast-settings")

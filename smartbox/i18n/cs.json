@@ -2784,5 +2784,10 @@
   "Varmvattenstart väntar på elutrymme och färska mätvärden": "Zahájení ohřevu vody čeká na elektrickou rezervu a aktuální měření",
   "Väntar på ett varmvattenfönster": "Čeká se na časové okno pro ohřev vody",
   "Planerad start": "Plánovaný začátek",
-  "Booststyrningen ersätter ordinarie varmvattenplanering. Manuell styrning och hygienkörning har företräde.": "Řízení zvýšeného ohřevu nahrazuje běžné plánování teplé vody. Ruční řízení a hygienické cykly mají přednost."
+  "Booststyrningen ersätter ordinarie varmvattenplanering. Manuell styrning och hygienkörning har företräde.": "Řízení zvýšeného ohřevu nahrazuje běžné plánování teplé vody. Ruční řízení a hygienické cykly mají přednost.",
+ "Normal laddgräns (%)": "Běžný limit nabití (%)",
+ "Gäller vanlig laddning. Balansering kan använda batteriets separata underhållsgräns.": "Platí pro běžné nabíjení. Vyvažování může použít samostatný limit baterie pro údržbu.",
+ "Marginal över reservnivån (%)": "Rezerva nad minimální úrovní (%)",
+ "Styrd urladdning stoppas vid reservnivån plus denna marginal.": "Řízené vybíjení se zastaví na minimální úrovni zvýšené o tuto rezervu.",
+ "Ogiltiga batterigränser": "Neplatné limity baterie"
 }
