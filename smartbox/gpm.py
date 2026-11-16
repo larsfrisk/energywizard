@@ -465,7 +465,8 @@ class GlobalPriorityManager:
         _spa_w = state.get('spa_measured_w') if (state.get('spa_measured_w') or 0) > 1000 else 3000.0
         _in_cd = bool(self.spa_cooldown_until and now < self.spa_cooldown_until)
         _ind, _indmax = state.get('indoor_temp'), state.get('indoor_max', 22.5)
-        _summer = state.get('outdoor_avg_5d') is not None and state.get('outdoor_avg_5d') >= state.get('heat_stop_outdoor', 17.0)
+        _heat_stop = state.get('heat_stop_outdoor')
+        _summer = state.get('outdoor_avg_5d') is not None and state['outdoor_avg_5d'] >= (_heat_stop if _heat_stop is not None else 17.0)
         s_info = {
             "ev": {"wants": any(solar_needs.values()), "active": bool(self.ev_solar_charge_active),
                    "since": getattr(self, 'ev_solar_started_at', None), "min_w": -ONE_PHASE_MIN_SURPLUS_W},
@@ -979,6 +980,8 @@ class GlobalPriorityManager:
         indoor_min = state.get('indoor_min', 19.0)
         indoor_max = state.get('indoor_max', 22.5)
         outdoor_avg_5d = state.get('outdoor_avg_5d', 10.0)
+        if outdoor_avg_5d is None:
+            outdoor_avg_5d = 10.0
         
         # SAMVERKAN MED THERMIA: använd pumpens EGEN värmestopp-tröskel (reg 19 "Heating
         # setpnt./start", utetemp där värmesäsongen slutar) i stället för en hårdkodad gräns.
