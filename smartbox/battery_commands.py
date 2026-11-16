@@ -82,17 +82,19 @@ class Tracker:
         if self.current:
             self._emit('superseded','new_decision',now)
         self.current={'command_id':str(uuid.uuid4()),'intent':intent,
-                      'driver_kind':driver_kind if driver_kind in _DRIVER_KINDS.values() else 'unknown',
+                      'driver_kind':driver_kind if driver_kind in (*_DRIVER_KINDS.values(), 'ferroamp_mqtt') else 'unknown',
                       'requested_w':float(power_w) if finite(power_w) else None,'created_at':now}
         self.last=None
         self._emit('queued','awaiting_transport',now)
         return self.current['command_id']
 
-    def sent(self,command_id,ok,now,reference_verified=False):
+    def sent(self,command_id,ok,now,reference_verified=False,protocol_acknowledged=False):
         if not self.current or command_id!=self.current['command_id']:return
         self.current['sent_at']=now
         self.current['accepted']=bool(ok)
         if not ok:self._emit('failed','transport_not_confirmed',now)
+        elif protocol_acknowledged and not reference_verified:
+            self._emit('protocol_acknowledged','device_completion_acknowledged',now)
         else:self._emit('reference_verified' if reference_verified else 'sent',
                         'reference_readback' if reference_verified else 'transport_accepted',now)
 
@@ -133,6 +135,8 @@ def apply(tracker,driver,intent,power_w,now=None):
     try:
         cls=type(driver)
         kind=_DRIVER_KINDS.get((cls.__module__,cls.__name__),'unknown')
+        if kind == 'ferroamp_modbus' and getattr(driver, 'command_transport', 'modbus') == 'mqtt':
+            kind = 'ferroamp_mqtt'
         command_id=tracker.begin(intent,power_w,now,driver_kind=kind)
     except Exception:command_id=None
     try:ok=driver.apply_intent(intent,power_w)
@@ -146,6 +150,7 @@ def apply(tracker,driver,intent,power_w,now=None):
             tracker.current['accepted']=False
             tracker._emit('unconfirmed','shadow_mode_no_physical_command',time.time())
         else:
-            tracker.sent(command_id,ok,time.time(),getattr(driver,'command_reference_verified',False) is True)
+            tracker.sent(command_id,ok,time.time(),getattr(driver,'command_reference_verified',False) is True,
+                         getattr(driver,'command_protocol_acknowledged',False) is True)
     except Exception:pass
     return ok

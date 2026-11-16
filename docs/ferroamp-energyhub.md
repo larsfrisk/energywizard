@@ -22,9 +22,63 @@ The optimizer, house priorities and existing `cycle_cost` remain unchanged.
 | EV/heat pump/spa | Separate HA/local drivers coordinated by the house engine | Those drivers remain in charge; this addition does not configure EnergyHub OCPP or control other loads through it |
 | Grid import and metering | HA-connected meter, e.g. Tibber Pulse/P1 | Keep the existing meter. No new direct meter driver, import-limit writer or ACE/phase-balancing control is added |
 
-Telemetry and control both use Modbus. A failed Modbus operation is reported without
+By default, telemetry and control both use Modbus. A failed Modbus operation is reported without
 silently switching to MQTT. Command acceptance is not proof that requested power is physically
 delivered: battery limits, temperature and other system controllers can constrain it.
+
+### Explicit MQTT commands
+
+`command_transport: mqtt` selects Ferroamp's External API for battery commands while
+retaining Modbus SOC/power telemetry and the existing planning and electrical guards.
+Modbus remains the default. There is no automatic transport fallback after an
+uncertain command. The selected channel requires its own `mqtt_control_verified: true`
+qualification; `default_mode_verified` only authorizes the Modbus channel.
+
+```yaml
+battery:
+  enabled: true
+  driver: ferroamp_modbus
+  control: samarbete             # Read only until installation commissioning passes
+  command_transport: mqtt
+  mqtt_control_verified: false
+  mqtt:
+    host: 192.0.2.10
+    port: 1883
+    timeout_s: 5                 # Protocol wait, 0.1–10s; not BMS activation timeout
+    username_env: FERROAMP_MQTT_USERNAME
+    password_env: FERROAMP_MQTT_PASSWORD
+    # tls: true
+    # tls_ca: /path/to/ca.pem
+  modbus:
+    host: 192.0.2.10
+    port: 502
+    unit_id: 1
+```
+
+Credentials are read from the named environment variables, never from literal YAML
+username/password fields. The global shadow and explicit live/exclusive-owner flags
+apply to either channel. The existing Settings scope indicator reports MQTT exceptions
+as well. Near-zero standby retains its separate verification and power bound.
+
+Each request publishes once, non-retained, with a unique transaction ID. Matching
+non-retained response **and** result acknowledgements establish protocol completion;
+neither establishes physical delivery or Modbus reference verification. The command
+tracker keeps its existing 120-second measured-response settling period, so a delayed
+BMS response does not fail after a few seconds.
+
+A private atomic journal and process lock record an attempt before publishing. Missing
+or negative responses, disconnects and storage failures cannot trigger a replay or a
+different-channel retry. Late matching completion can reconcile the same transaction
+in the running process without publishing it again. An unresolved journal blocks a
+restarted writer; preserve it for operator investigation rather than deleting it to
+retry. A completed MQTT `auto` returns authority to the native system; it does not
+promise that another interface reports a particular mode or that the battery stays
+at zero power under native operation. Unresolved installation release evidence still
+blocks the personal cutover.
+
+The wire contract follows the [Ferroamp External API RevE, section 5](https://ferroamp.com/wp-content/uploads/2023/04/Ferroamp-External-API-specification-E-1.pdf).
+This option does not establish that the installation's unresolved Modbus mode readback
+is stale or safe to disregard. Hardware commissioning remains necessary.
 
 ## Why hold and idle are not implemented
 

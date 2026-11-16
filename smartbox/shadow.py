@@ -28,8 +28,11 @@ def scoped_controls(house):
             and hw.get('temperature_role_verified') is True
             and hw.get('exclusive_owner_confirmed') is True and hw.get('live_control_confirmed') is True):
         result.append('hot_water')
+    transport = bat.get('command_transport', 'modbus')
+    battery_verified = ((transport == 'modbus' and bat.get('default_mode_verified') is True)
+                        or (transport == 'mqtt' and bat.get('mqtt_control_verified') is True))
     if (bat.get('enabled') is True and bat.get('driver') == 'ferroamp_modbus'
-            and bat.get('control') == 'styr' and bat.get('default_mode_verified') is True
+            and bat.get('control') == 'styr' and battery_verified
             and bat.get('exclusive_owner_confirmed') is True and bat.get('live_control_confirmed') is True):
         result.append('battery')
     return result

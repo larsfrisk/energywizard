@@ -357,6 +357,8 @@ def build_battery_driver(cfg: dict) -> BatteryDriver:
         return FerroampBatteryDriver(modbus=bat.get("modbus"),
                                      control_enabled=str(bat.get("control", "samarbete")).strip().lower() == "styr",
                                      default_mode_verified=bat.get("default_mode_verified", False),
+                                     command_transport=bat.get('command_transport', 'modbus'),
+                                     mqtt=bat.get('mqtt'), mqtt_control_verified=bat.get('mqtt_control_verified', False),
                                      live_control_confirmed=bat.get("live_control_confirmed", False),
                                      exclusive_owner_confirmed=bat.get("exclusive_owner_confirmed", False),
                                      standby_reference_w=bat.get("standby_reference_w"),
