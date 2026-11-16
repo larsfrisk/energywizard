@@ -68,6 +68,16 @@ def test_warm_target_does_not_invent_trigger_history_or_cycle_completion(policy)
     assert "last_trigger_at" not in state and result["request"] is None
 
 
+def test_trigger_age_longer_than_price_horizon_preserves_fixed_deadline(policy):
+    policy['max_trigger_age_s'] = 42 * 3600
+    state, result = derive({}, observation(), now=T, policy=policy)
+    assert result['deadline'] == T + 42 * 3600
+    assert datetime.fromisoformat(result['request']['deadline']).timestamp() == T + 36 * 3600
+    _, later = derive(state, observation(T+3600), now=T+3600, policy=policy)
+    assert later['deadline'] == result['deadline']
+    assert datetime.fromisoformat(later['request']['deadline']).timestamp() == T + 37 * 3600
+
+
 def test_policy_change_and_clock_rollback_do_not_reinterpret_history(policy):
     state, _ = derive({}, observation(), now=T, policy=policy)
     assert derive(state, observation(T-1), now=T-1, policy=policy)[1]["state"] == "clock_moved_backwards"
