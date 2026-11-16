@@ -241,7 +241,7 @@ def power_meter_entities(cfg: dict) -> dict:
     Tom dict = ingen elmätare konfigurerad."""
     pm = (cfg or {}).get("power_meter") or {}
     ents = dict(pm.get("entities") or {})
-    for k in ("power_w_invert",):
+    for k in ("power_w_invert", "frame_timestamp", "frame_coherent", "max_age_s"):
         if k in pm and k not in ents:
             ents[k] = pm[k]
     return ents
@@ -353,6 +353,7 @@ def build_battery_driver(cfg: dict) -> BatteryDriver:
                                     modes=(bat.get("modes") or {}), power_invert=bat.get("power_invert"),
                                     keepalive_s=bat.get("keepalive_s"), max_power_w=bat.get("max_power_w"))
     if driver_cls is FerroampBatteryDriver:
+        balance = battery_settings(cfg)['balance']
         return FerroampBatteryDriver(modbus=bat.get("modbus"),
                                      control_enabled=str(bat.get("control", "samarbete")).strip().lower() == "styr",
                                      default_mode_verified=bat.get("default_mode_verified", False),
@@ -360,6 +361,8 @@ def build_battery_driver(cfg: dict) -> BatteryDriver:
                                      exclusive_owner_confirmed=bat.get("exclusive_owner_confirmed", False),
                                      standby_reference_w=bat.get("standby_reference_w"),
                                      standby_verified=bat.get("standby_verified", False),
+                                     module_telemetry=bat.get('module_telemetry'),
+                                     maintenance_soc=balance['target_soc'] if balance['enabled'] and balance['full_charge_verified'] and balance['standby_dwell_verified'] else None,
                                      max_power_w=bat.get("max_power_w", 5000),
                                      reserve_soc=bat.get("reserve_soc", 20), max_soc=bat.get("max_soc", 100))
     return driver_cls()

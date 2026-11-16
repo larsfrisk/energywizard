@@ -172,7 +172,7 @@ def optimize(slots, soc0_kwh, capacity_kwh, reserve_kwh, max_kwh, charge_kw, dis
              terminal_pct=25, allow_export=True, charge_wear_cost_sek_per_kwh=0.0,
              discharge_wear_cost_sek_per_kwh=0.0, reversal_cost_sek=0.0, ev_mode="block",
              balance_target_kwh=0.0, balance_hold_slots=0, balance_deadline_slots=0,
-             charge_efficiency=None, discharge_efficiency=None, standby_kw=0.01):
+             charge_efficiency=None, discharge_efficiency=None, standby_kw=0.01, balance_standby=False):
     """ev_mode: vad batteriet får göra medan elbilen laddar - "block" (ladda inte ur alls, som förut),
     "offload" (Martins förslag 2026-11-07: täck bara husets egen förbrukning, aldrig bilen) eller "free" (även bilen).
     slots: [{'t', 'buy', 'sell', 'load_kw', 'solar_kw', 'ev_kw'}] (kvartar, i tidsordning).
@@ -215,6 +215,19 @@ def optimize(slots, soc0_kwh, capacity_kwh, reserve_kwh, max_kwh, charge_kw, dis
         raise ValueError("Invalid balancing deadline")
     P *= Q
     eff_c, eff_d = resolve_efficiencies(eff, charge_efficiency, discharge_efficiency)
+    if type(balance_standby) is not bool:
+        raise ValueError('Explicit standby dwell qualification required')
+    standby_margin = standby_kw * balance_hold_slots * DT_H / eff_d if balancing and balance_standby else 0
+    if balancing and balance_standby and ('standby' not in acts or standby_margin > capacity_kwh*.005):
+        return {"rows": [], "cost": 0.0, "baseline_cost": 0.0, "saving_kr": 0.0, "balance_feasible": False}
+
+    def dwell(energy, next_energy, power, action, phase):
+        if balance_standby:
+            floor = balance_target_kwh-standby_margin
+            return (energy >= (floor if phase else balance_target_kwh)-1e-9
+                    and next_energy >= floor-1e-9
+                    and (action == 'standby' or power > 1e-9))
+        return energy >= balance_target_kwh-1e-9 and next_energy >= balance_target_kwh-1e-9 and power >= -1e-9
     step = step_kwh or max(0.05, capacity_kwh / 100.0)
     lo, hi = max(0.0, reserve_kwh), min(capacity_kwh, max_kwh)
     n_states = int(round(capacity_kwh / step)) + 1
@@ -253,6 +266,9 @@ def optimize(slots, soc0_kwh, capacity_kwh, reserve_kwh, max_kwh, charge_kw, dis
                         b = 0.0
                 upper = max(hi, balance_target_kwh) if balancing else hi
                 new, b = _step(soc, b, min(lo, soc), upper if soc <= upper else soc, eff_c, eff_d)
+                if balancing and balance_standby and a == 'charge' and abs(b) < 1e-9:
+                    row.append(None)  # Native charge at its ceiling cannot be an imaginary hold.
+                    continue
                 if a == 'standby' and abs(b + standby_kw) > 1e-9:
                     row.append(None)  # A fixed native reference cannot be clipped into imaginary zero power.
                     continue
@@ -294,7 +310,7 @@ def optimize(slots, soc0_kwh, capacity_kwh, reserve_kwh, max_kwh, charge_kw, dis
                         continue
                     next_phase = phase
                     if balancing:
-                        at_target = i * step >= balance_target_kwh - 1e-9 and t[0] * step >= balance_target_kwh - 1e-9 and t[1] >= -1e-9
+                        at_target = dwell(i*step,t[0]*step,t[1],acts[k],phase)
                         next_phase = done if phase == done else min(done, phase + 1) if at_target else 0
                     if track_direction:
                         direction = 1 if t[1] > 1e-9 else 2 if t[1] < -1e-9 else 0
@@ -327,19 +343,19 @@ def optimize(slots, soc0_kwh, capacity_kwh, reserve_kwh, max_kwh, charge_kw, dis
         total += c
         a = acts[k]
         maintenance = balancing and phase != done
-        next_phase = (min(done, phase + 1) if i * step >= balance_target_kwh - 1e-9 and nxt * step >= balance_target_kwh - 1e-9 and b >= -1e-9 else 0) if maintenance else phase
+        next_phase = (min(done, phase + 1) if dwell(i*step,nxt*step,b,acts[k],phase) else 0) if maintenance else phase
         # Ladda med fullt batteri / ladda ur vid reservnivån gör i praktiken ingenting - visa och
         # skicka det som "håll", så planen inte ser ut att ladda i timmar.
         if a in ("charge", "discharge") and abs(b) < 0.05 and "hold" in acts:
             a = "hold"
-        holding = maintenance and i * step >= balance_target_kwh - 1e-9 and nxt * step >= balance_target_kwh - 1e-9 and b >= -1e-9
+        holding = maintenance and dwell(i*step,nxt*step,b,acts[k],phase)
         if holding and abs(b) < 0.05 and "hold" in acts:
             a = "hold"  # Do not release to self-consumption during the dwell.
         rows.append({"t": s["t"], "action": a, "soc_kwh": nxt * step, "battery_kw": round(b, 3),
                      "grid_kw": round(grid, 3), "cost": c, "buy": s["buy"],
                      "wear_cost_sek": wear, "direction_reversal": reversal})
         if balancing:
-            rows[-1]["balance"] = maintenance and (b > 0 or i * step >= balance_target_kwh - 1e-9)
+            rows[-1]["balance"] = maintenance and (b > 0 or holding if balance_standby else b > 0 or i * step >= balance_target_kwh-1e-9)
             rows[-1]["balance_ceiling"] = maintenance
             rows[-1]["balance_hold"] = holding
         last_direction = direction or last_direction
@@ -543,12 +559,14 @@ def plan_from_db(engine, now, soc_pct, settings, base_profile, supported, *, soc
         params.update(balance_target_kwh=balance["target_soc"] / 100.0 * cap,
                       balance_hold_slots=balance["hold_slots"],
                       balance_deadline_slots=balance["deadline_slots"])
+        if (settings.get('balance') or {}).get('standby_dwell_verified') is True and 'hold' not in supported:
+            params['balance_standby'] = True
     r = optimize(slots, **params)
     deferred = r.get("balance_feasible") is False
     if deferred:
         # Insufficient horizon/power: keep the ordinary safe plan, never force
         # an immediate charge or pretend maintenance has completed.
-        for key in ("balance_target_kwh", "balance_hold_slots", "balance_deadline_slots"):
+        for key in ("balance_target_kwh", "balance_hold_slots", "balance_deadline_slots", "balance_standby"):
             params.pop(key, None)
         r = optimize(slots, **params)
     r["balance_deferred"] = deferred

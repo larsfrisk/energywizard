@@ -50,7 +50,70 @@ native release verification and export guards remain required.
 Battery `control: styr` and `default_mode_verified` remain prerequisites. Ambiguous
 native power/release attempts are latched and reconciled by readback, not replayed
 each loop. The latch is in memory; startup release/ownership and operator recovery
-remain necessary after a crash. Verified standby does not qualify module balancing.
+remain necessary after a crash. Verified standby alone does not qualify module balancing.
+
+## Independent metering and module maintenance
+
+EW can read the existing direct HA ESPHome P1 integration instead of Zenai's
+HTTP bridge. An optional complete-telegram contract handles HA's change-only
+cache: unchanged zeros may have old sensor timestamps while the device telegram
+timestamp advances. This requires explicit qualification that every configured
+role belongs to the same device's complete telegram, not a mix of independent
+sources. Missing/unavailable values, wrong units, future timestamps and stale
+device or HA frame receipts fail closed. No cache read refreshes the device time.
+
+Example structure (entity IDs are placeholders; do not apply without qualification):
+
+```yaml
+power_meter:
+  frame_timestamp: sensor.p1_meter_timestamp
+  frame_coherent: true
+  max_age_s: 30
+  entities:
+    import_w: sensor.p1_active_import
+    export_w: sensor.p1_active_export
+    current_l1: sensor.p1_l1_current
+    current_l2: sensor.p1_l2_current
+    current_l3: sensor.p1_l3_current
+```
+
+The timestamp must be DSMR `YYMMDDhhmmssS`/`W` with explicit summer/winter
+offset; power must have W/kW units and current A. Optional per-phase power roles
+use paired `import_l1_w`/`export_l1_w` (likewise L2/L3). Existing meter behavior
+is unchanged without `frame_timestamp`.
+
+Native Ferroamp can independently subscribe to `extapi/data/eso` with
+`battery.module_telemetry.enabled: true`, explicit broker `host`/`port` and a
+complete `module_ids` list. Optional `username_env`/`password_env` name existing
+environment secrets; `tls: true` and optional `tls_ca` enable broker TLS. The
+reader never publishes. Retained/duplicate messages do not establish freshness;
+missing, invalid, disconnected or older-than-120-second module receipts block
+maintenance. Unknown module IDs latch a blocked inventory until restart with a
+reviewed configuration. Public snapshots hash module identities.
+
+The existing balance monitor schedules confirmed divergence at the cheapest
+feasible window, with ordinary safety priorities retained. Native maintenance
+requires the existing verified standby reference plus **both**
+`battery.balance.full_charge_verified: true` and
+`battery.balance.standby_dwell_verified: true`, alongside enabled balance and
+control/ownership gates. These attestations require physical commissioning;
+they are not established by receiving telemetry. The temporary target ceiling
+applies only to an active scheduled balance decision; daily `max_soc` remains
+unchanged. No vendor SOC-limit register is modified.
+
+Standby dwell models its actual small discharge, never a fictitious zero-power
+charge at the ceiling. A conservative total drift budget of 0.5% of capacity
+limits feasibility. Live completion still requires **every** configured module
+to remain freshly at the monitor's target tolerance for the entire dwell;
+planner completion alone cannot complete maintenance. Infeasible windows defer
+maintenance and retain the ordinary safe plan. Existing balancing status explains
+why normal scheduling yields; the existing English/Czech translations apply.
+
+Read-only verification on 2026-11-16 matched the configured source dongle to one
+direct HA ESPHome entry, verified kW/A sensor units and advancing DSMR receipts,
+and ran the new EW reader against two live ESO modules with publishing blocked.
+This proves independent telemetry access, not complete-frame or physical
+full-charge/standby qualification. Site bindings remain in private review files.
 
 ## One reviewed commissioning session
 
@@ -82,9 +145,10 @@ remain necessary after a crash. Verified standby does not qualify module balanci
    read-only. No repeated feature-by-feature approval is needed within the
    specifically approved session and its limits.
 7. Retire source services only after independent metering and module-maintenance
-   obligations are accounted for. Native Ferroamp does not yet establish a true
-   solar hold or supply native module SOCs for balancing. Do not silently remove
-   those obligations or stop a still-required meter feed.
+   obligations are accounted for. Qualify/apply the independent P1 mapping and
+   complete module inventory, and verify full-charge/standby dwell behavior
+   before enabling maintenance confirmations. Native standby remains distinct
+   from true solar hold. Do not stop a still-required meter feed.
 
 ## Rollback
 

@@ -221,6 +221,11 @@ def _on_sigterm(signum, frame):
     # docker stop / Watchtower-uppdatering: släpp batteriet innan vi går ner, så det aldrig
     # blir kvar i "ladda ur" eller "håll" utan att någon styr det (FTW:s dead-man-princip).
     _battery_to_auto("motorn stängs av")
+    if hasattr(battery_driver, 'close'):
+        try:
+            battery_driver.close()
+        except Exception:
+            pass
     raise SystemExit(0)
 
 
@@ -985,7 +990,7 @@ while True:
         _trip_grid = {}
         tibber = homeassistant.read_power_meter()
         if tibber is not None and not _bat_meter_freeze.update(tibber["net_power_w"], time.time()):
-            _meter_ok_at["t"] = time.time()
+            _meter_ok_at["t"] = tibber.get('sample_at', time.time())
             fast_net.append(tibber["net_power_w"])
             # Fasströmmar är valfria (en mätare med bara nettoeffekt har inga) - då får säkrings-
             # modellen ingen data och gpm.py använder den gamla formeln.
@@ -993,7 +998,7 @@ while True:
                 fast_hl1.append(tibber["l1_a"])
                 fast_hl2.append(tibber["l2_a"])
                 fast_hl3.append(tibber["l3_a"])
-                fuse_model.update([tibber["l1_a"], tibber["l2_a"], tibber["l3_a"]])
+                fuse_model.update([tibber["l1_a"], tibber["l2_a"], tibber["l3_a"]], ts=tibber.get('phase_sample_at'))
             # Reserv för effektvakten när mätaren saknar en timsensor: köpt energi denna timme,
             # integrerad ur nettoeffekten (10-sekundersloopen).
             _hk = now.replace(minute=0, second=0, microsecond=0)
@@ -2211,7 +2216,8 @@ while True:
                 _balance = _battery_balance.update(battery_state, battery_cfg["balance"], time.time(),
                     battery_cfg["control"] == "styr" and battery_cfg.get("plan") and
                     bool(battery_cfg.get("capacity_kwh")) and
-                    {"charge", "hold"} <= battery_driver.supported_intents(),
+                    battery_driver.supports_maintenance() and
+                    (not shadow.active() or getattr(battery_driver, '_live_in_shadow', False) is True),
                     active=_battery.get("balance_active", False))
                 # A trigger, completion or loss of fresh module data invalidates
                 # the cached maintenance plan immediately, not next quarter.
