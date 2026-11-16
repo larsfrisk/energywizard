@@ -52,6 +52,13 @@ native power/release attempts are latched and reconciled by readback, not replay
 each loop. The latch is in memory; startup release/ownership and operator recovery
 remain necessary after a crash. Verified standby alone does not qualify module balancing.
 
+An [explicit MQTT command channel](ferroamp-energyhub.md#explicit-mqtt-commands)
+is also available, with its own disabled-by-default qualification flag and durable
+transaction journal. Selecting it does not resolve ambiguous release evidence from
+an earlier Modbus session or authorize transport fallback during commissioning.
+Protocol completion and measured delivery remain separate checks; the existing
+120-second BMS settling period still applies.
+
 ## Independent metering and module maintenance
 
 EW can read the existing direct HA ESPHome P1 integration instead of Zenai's

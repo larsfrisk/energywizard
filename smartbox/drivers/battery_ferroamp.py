@@ -18,9 +18,18 @@ class FerroampBatteryDriver(BatteryDriver):
                  max_power_w=5000.0, reserve_soc=20.0, max_soc=100.0,
                  live_control_confirmed=False, exclusive_owner_confirmed=False,
                  standby_reference_w=None, standby_verified=False, module_telemetry=None,
-                 maintenance_soc=None):
+                 maintenance_soc=None, command_transport='modbus', mqtt=None, mqtt_control_verified=False):
         self._bus = EnergyHubConnection(modbus)
-        self._enabled = control_enabled is True and default_mode_verified is True
+        if command_transport not in ('modbus', 'mqtt'):
+            raise ValueError('Select modbus or mqtt explicitly; no automatic command fallback')
+        self.command_transport = command_transport
+        self._mqtt = None
+        if command_transport == 'mqtt':
+            from drivers.ferroamp_mqtt import CommandClient
+            self._mqtt = CommandClient(mqtt, identity={'host': self._bus.host, 'port': self._bus.port,
+                                                      'unit_id': self._bus.unit_id})
+        verified = mqtt_control_verified if command_transport == 'mqtt' else default_mode_verified
+        self._enabled = control_enabled is True and verified is True
         self._live_in_shadow = (self._enabled and live_control_confirmed is True
                                 and exclusive_owner_confirmed is True)
         self._standby_w = None
@@ -88,11 +97,16 @@ class FerroampBatteryDriver(BatteryDriver):
         self._maintenance = active is True and self.supports_maintenance()
 
     def close(self):
-        if self._modules is not None:
-            self._modules.stop()
+        try:
+            if self._modules is not None:
+                self._modules.stop()
+        finally:
+            if self._mqtt is not None:
+                self._mqtt.close()
 
     def apply_intent(self, intent, power_w=None):
         self.command_reference_verified = False
+        self.command_protocol_acknowledged = False
         if intent not in self.supported_intents():
             return False
         power = 0.0
@@ -115,6 +129,10 @@ class FerroampBatteryDriver(BatteryDriver):
                 power = -power
         if not self._live_in_shadow and shadow_write(f"battery {intent}, reference={power:g} kW"):
             return True
+        if self._mqtt is not None and intent == 'auto':
+            result = self._mqtt.request('auto')  # Release does not require available SOC/Modbus.
+            self.command_protocol_acknowledged = self._mqtt.protocol_acknowledged
+            return result
         unit = self._bus.unit_id
         with self._bus.connect() as client:
             if client is None:
@@ -137,6 +155,10 @@ class FerroampBatteryDriver(BatteryDriver):
             ceiling = self._maintenance_soc if self._maintenance else self._max_soc
             if (intent in {"discharge", "standby"} and soc <= self._reserve) or (intent == "charge" and soc >= ceiling):
                 return False
+            if self._mqtt is not None:
+                result = self._mqtt.request('discharge' if intent == 'standby' else intent, abs(power)*1000)
+                self.command_protocol_acknowledged = self._mqtt.protocol_acknowledged
+                return result
             if self._pending_reference is not None:
                 if not self._matches(client, self._pending_reference):
                     return False
