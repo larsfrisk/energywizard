@@ -1,8 +1,9 @@
 # Bounded hot-water boost controller
 
 `hot_water_control.BoostController` connects the explicit boost/release driver
-operation to a bounded lifecycle. It has no engine hook, default configuration,
-background worker or cloud fallback. No installation is enabled by this change.
+operation to a bounded lifecycle. The explicit opt-in
+[runtime integration](hot-water-control-runtime.md) supplies its engine hook and
+private journal. There is no default enablement, background worker or cloud fallback.
 It is separate from `ShadowCycle`; simulation journals cannot authorize commands.
 
 The caller supplies a private atomic journal loader/saver, a stable SHA-256

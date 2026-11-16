@@ -35,7 +35,7 @@ def derive(saved, observation, *, now, policy, last_trigger_at=None):
     if (type(policy["allow_receipt"]) is not bool or type(policy["comfort_bypasses_interval"]) is not bool
             or not 0 < numeric["comfort_c"] < numeric["target_c"] <= 65
             or not 60 <= duration <= 21600 or numeric["electrical_power_kw"] <= 0
-            or not duration <= numeric["max_trigger_age_s"] <= 36 * 3600
+            or not duration <= numeric["max_trigger_age_s"]
             or not duration <= numeric["comfort_window_s"] <= 36 * 3600
             or numeric["min_trigger_interval_s"] > numeric["max_trigger_age_s"]
             or numeric["max_age_s"] <= 0):
@@ -91,7 +91,11 @@ def derive(saved, observation, *, now, policy, last_trigger_at=None):
         return state, {"state": "deadline_missed" if now + duration > deadline else "interval_conflict",
                        "deadline": deadline, "request": None}
     iso = lambda value: datetime.fromtimestamp(value, timezone.utc).isoformat()
+    # Trigger spacing/age can exceed the planner's bounded price horizon (the
+    # personal migration uses 42 hours). Preserve the fixed demand deadline;
+    # search only the next 36 hours, without inventing unavailable prices.
+    planning_deadline = min(deadline, now + 36 * 3600)
     return state, {"state": "comfort_due" if comfort else "age_window", "deadline": deadline,
                    "history_known": "last_trigger_at" in state,
-                   "request": {"now": iso(now), "earliest": iso(earliest), "deadline": iso(deadline),
+                   "request": {"now": iso(now), "earliest": iso(earliest), "deadline": iso(planning_deadline),
                                "duration_min": policy["duration_min"], "electrical_power_kw": policy["electrical_power_kw"]}}

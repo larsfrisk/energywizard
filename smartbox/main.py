@@ -59,6 +59,7 @@ import charge_now    # #394: "Ladda nu till X %" som avslutas av sig själv
 import ramp_budget     # #399: beviljade ökningar som ännu inte syns i mätningen
 import water_setpoints  # Varmvattnets start/stopp: stoppet aldrig under normal, kontroll efter skrivning
 import hot_water_monitor  # Default-off advisory shadow monitor; no device writes
+import hot_water_runtime  # Explicit opt-in bounded local boost owner
 import hot_water_power  # Optional dedicated electrical-load evidence, cache/read-only
 import energy_source_evidence  # Optional raw source snapshot, separate from corrected balance
 import ev_heating       # Temperaturberoende baslast för laddplanen (ev_planning.heating_adjustment), natanoj
@@ -335,6 +336,7 @@ last_sent_temp           = None
 last_sent_water          = None
 water_sp = water_setpoints.WaterSetpoints()
 _hot_water_monitor = hot_water_monitor.Monitor()
+_hot_water_runtime = hot_water_runtime.Runtime()
 _battery_shadow_monitor = battery_shadow.Monitor()
 last_sent_spa_target     = None
 last_sent_spa_eco        = None
@@ -2168,6 +2170,11 @@ while True:
                 })
             
             gpm_actions = gpm_engine.evaluate(gpm_state)
+            _hw_manual = (all_overrides.get("hotwater", "auto") != "auto"
+                          or all_overrides.get("pump_smart_mode", "auto") == "manual")
+            _hw_hygiene = bool(days_since_leg >= leg_max_days or (days_since_leg >= leg_max_days - 2
+                and ((current_price is not None and current_price < 0) or avg_net < -2000)))
+            _hw_selected = hot_water_runtime.selected(house_cfg)
             if gpm_actions.get("heat_ml_rate") is not None:          # ML-börvärdet: nivårättning mot verkligt utfall
                 _heat_bias.update(now, indoor_temp, gpm_actions["heat_ml_rate"])
             if ((house_cfg.get("heat_pump") or {}).get("hot_water_shadow") or {}).get("enabled") is True:
@@ -2716,6 +2723,31 @@ while True:
                 if pump_data: pump_data["compressor_power_kw"] = 0.0
 
             # ============================================================
+            # Bounded local hot-water owner: after EV/battery grants so the
+            # same measured headroom is not allocated twice in this loop.
+            if _hw_selected or _hot_water_runtime.controller is not None:
+                try:
+                    _hw_cfg = ((house_cfg.get("heat_pump") or {}).get("hot_water_control") or {})
+                    _hw_owned = (_hot_water_runtime.controller is not None and
+                        _hot_water_runtime.controller.state.get("phase") in {"active", "start_pending", "release_pending"})
+                    _hw_guard = hot_water_runtime.permitted(
+                        meter_fresh=_meter_ok_at["t"] is not None and 0 <= time.time() - _meter_ok_at["t"] < 120,
+                        fuse_fresh=fuse_model.is_fresh(), currents=fuse_model.last_a(), filtered=fuse_model.filtered_a(),
+                        fuse_a=_fuse_cfg["fuse_a"], margin_a=_fuse_cfg["margin_a"] + _ramp.pending_a("hot_water"),
+                        peak_ok=not bool(cfg.get("peak_shaving_enabled", True)) or
+                            float(consumed_kwh_this_hour) < float(allowed_kwh_now),
+                        additional_kw=0 if _hw_owned else (_hw_cfg.get("comfort_policy") or {}).get("electrical_power_kw", 0))
+                    _hot_water_runtime.tick(house_cfg, heat_pump_driver,
+                        (pump_data or {}).get("water_temp_observation") or {}, now=time.time(),
+                        shadow=shadow.active(), manual=_hw_manual, away=bool(away_mode_enabled),
+                        hygiene=_hw_hygiene, guard_ok=_hw_guard)
+                    if (not _hw_owned and _hot_water_runtime.controller is not None and
+                            _hot_water_runtime.controller.state.get("phase") in {"start_pending", "active"}):
+                        _ramp.grant("hot_water", _hw_cfg["comfort_policy"]["electrical_power_kw"] * 1000 / 230)
+                except Exception:
+                    _hot_water_runtime.failed = True
+                    _hot_water_runtime.report = {"state": "unavailable"}
+
             # 🔧 KVARTS-TASK – Exekvera modbus & tyngre uppgifter
             # ============================================================
             if current_quarter != last_quarter:
@@ -2734,7 +2766,7 @@ while True:
                 for log_msg in gpm_actions["log"]:
                     print(f"  {log_msg}")
 
-                if ov_smart_mode != "manual":
+                if ov_smart_mode != "manual" and (not _hw_selected or _hw_manual or _hw_hygiene):
                     water_sp.apply(heat_pump_driver, gpm_actions["water_target_temp"], sleep=time.sleep)
                         
                     ov_water = all_overrides.get("hotwater", "auto")
