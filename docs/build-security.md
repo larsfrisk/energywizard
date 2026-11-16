@@ -40,6 +40,19 @@ images rather than relying only on requirements files.
 
 ## Workflow dependencies
 
+Normal ARM64 image audits and all-in-one release builds use GitHub's native
+`ubuntu-24.04-arm` runner rather than QEMU on AMD64 (#479). AMD64 jobs retain
+their existing runners. Image platforms, source pins, fresh release builds,
+audit policy and promotion gates are unchanged. The pinned Grype image index
+contains both AMD64 and ARM64 scanner manifests.
+
+The baseline PR run [43933796500](https://github.com/murre87/energywizard/actions/runs/43933796500)
+spent 9.2 minutes building the emulated ARM64 image and 1.6 minutes auditing it;
+the AMD64 build and audit took 1.2 and 1.5 minutes. Native normal-image timings
+must be measured in CI; the separate DHI results are not a benchmark of this
+Dockerfile. Buildah versus BuildKit is tracked separately in #483, with no
+builder migration justified before an equivalent end-to-end comparison.
+
 Reviewed actions use full commit SHAs and current Node 24 releases. Dependabot
 checks actions, Python requirements and normal Docker bases weekly. Simulator
 builds use Go 1.27.4 instead of the unsupported Go 1.22 toolchain; the pinned
