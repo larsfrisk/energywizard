@@ -14,7 +14,7 @@ def recover_released(path, house, driver, *, now, exclusive_owner_confirmed,
     if type(now) not in (int, float) or not math.isfinite(now):
         raise ValueError('Finite recovery time required')
     hp = house['heat_pump']
-    if hp.get('driver') != 'nibe_local':
+    if (hp.get('hot_water_control') or {}).get('driver', hp.get('driver')) != 'nibe_local':
         raise ValueError('Recovery requires configured local REST')
     context = control_context(house, driver)
     journal = Journal(path)  # A running engine's lifetime lock prevents recovery.

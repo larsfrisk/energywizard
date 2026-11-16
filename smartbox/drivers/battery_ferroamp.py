@@ -1,6 +1,6 @@
 """Opt-in local EnergyHub battery control; unverified on hardware.
 
-Only auto/charge/discharge are advertised. RevD's default-mode description is
+Auto/charge/discharge and optional verified native standby are supported. RevD's default-mode description is
 ambiguous; writes require explicit confirmation that mode 0 releases control on
 the installation's firmware. Neither solar-only hold nor exact idle is assumed.
 """
@@ -15,21 +15,35 @@ from drivers.ferroamp_modbus import (
 
 class FerroampBatteryDriver(BatteryDriver):
     def __init__(self, modbus=None, control_enabled=False, default_mode_verified=False,
-                 max_power_w=5000.0, reserve_soc=20.0, max_soc=100.0):
+                 max_power_w=5000.0, reserve_soc=20.0, max_soc=100.0,
+                 live_control_confirmed=False, exclusive_owner_confirmed=False,
+                 standby_reference_w=None, standby_verified=False):
         self._bus = EnergyHubConnection(modbus)
         self._enabled = control_enabled is True and default_mode_verified is True
+        self._live_in_shadow = (self._enabled and live_control_confirmed is True
+                                and exclusive_owner_confirmed is True)
+        self._standby_w = None
+        self._pending_reference = None
+        self._pending_release = False
+        if standby_verified is True:
+            if (type(standby_reference_w) not in (int,float) or not math.isfinite(standby_reference_w)
+                    or not 0 < standby_reference_w <= 50):
+                raise ValueError('Verified standby requires an explicit small positive reference')
+            self._standby_w = float(standby_reference_w)
         self._max_power = float(max_power_w)
         self._reserve, self._max_soc = float(reserve_soc), float(max_soc)
         if not math.isfinite(self._max_power) or not 0 < self._max_power <= 1e9:
             raise ValueError("EnergyHub max_power_w must be finite and positive")
         if not 0 <= self._reserve < self._max_soc <= 100:
             raise ValueError("EnergyHub SOC limits must satisfy 0 <= reserve < max <= 100")
+        if self._standby_w is not None and self._standby_w > self._max_power:
+            raise ValueError('Standby reference exceeds configured maximum power')
 
     def supports_control(self):
         return bool(self._bus.host) and self._enabled
 
     def supported_intents(self):
-        return {"auto", "charge", "discharge"} if self.supports_control() else set()
+        return ({"auto", "charge", "discharge"} | ({"standby"} if self._standby_w is not None else set())) if self.supports_control() else set()
 
     def read_state(self):
         state = {"soc_pct": None, "power_w": None, "capacity_kwh": None, "mode": None}
@@ -58,7 +72,12 @@ class FerroampBatteryDriver(BatteryDriver):
         if intent not in self.supported_intents():
             return False
         power = 0.0
-        if intent != "auto":
+        if intent == 'standby':
+            if power_w is not None and (type(power_w) not in (int,float) or not math.isfinite(power_w)
+                                        or abs(power_w-self._standby_w) > .001):
+                return False
+            power = min(self._standby_w, self._max_power) / 1000
+        elif intent != "auto":
             if isinstance(power_w, bool):
                 return False
             try:
@@ -70,12 +89,20 @@ class FerroampBatteryDriver(BatteryDriver):
             power = min(watts, self._max_power) / 1000
             if intent == "charge":
                 power = -power
-        if shadow_write(f"battery {intent}, reference={power:g} kW"):
+        if not self._live_in_shadow and shadow_write(f"battery {intent}, reference={power:g} kW"):
             return True
         unit = self._bus.unit_id
         with self._bus.connect() as client:
             if client is None:
                 return False
+            if self._pending_release:
+                if read_words(client, 6104, 1, unit) != [0]:
+                    return False
+                self._pending_release = False
+                self._pending_reference = None
+                if intent == 'auto':
+                    self.command_reference_verified = True
+                    return True
             if intent == "auto":
                 self.command_reference_verified = self._release(client)
                 return self.command_reference_verified
@@ -83,12 +110,22 @@ class FerroampBatteryDriver(BatteryDriver):
             soc = read_float(client, 6016, unit)
             if soc is None or not 0 <= soc <= 100:
                 return False
-            if (intent == "discharge" and soc <= self._reserve) or (intent == "charge" and soc >= self._max_soc):
+            if (intent in {"discharge", "standby"} and soc <= self._reserve) or (intent == "charge" and soc >= self._max_soc):
                 return False
+            if self._pending_reference is not None:
+                if not self._matches(client, self._pending_reference):
+                    return False
+                confirmed = self._pending_reference
+                self._pending_reference = None
+                if abs(confirmed-power) <= .000001:
+                    self.command_reference_verified = True
+                    return True
+            self._pending_reference = power
             if not write_float(client, 6064, power, unit):
                 return False
             if write_word(client, 6000, 1, unit) and self._bus.verify(lambda: self._matches(client, power)):
                 self.command_reference_verified = True
+                self._pending_reference = None
                 return True
             # If activation/verification failed, try to release, never report success.
             self._release(client)
@@ -100,5 +137,10 @@ class FerroampBatteryDriver(BatteryDriver):
         return mode == [1] and reference is not None and abs(reference - power) <= 0.001
 
     def _release(self, client):
-        return write_word(client, 6000, 0, self._bus.unit_id) and self._bus.verify(
+        self._pending_release = True
+        confirmed = write_word(client, 6000, 0, self._bus.unit_id) and self._bus.verify(
             lambda: read_words(client, 6104, 1, self._bus.unit_id) == [0])
+        if confirmed:
+            self._pending_release = False
+            self._pending_reference = None
+        return confirmed

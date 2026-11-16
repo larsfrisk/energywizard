@@ -47,6 +47,11 @@ evidence of actual power behavior, not just successful register readback.
 
 ## Wire mapping and limitations
 
+An explicitly verified near-zero `standby` is available as a separate intent,
+not hold/idle support. Its nonzero discharge, opt-in policy and scoped ownership
+requirements are covered in the [combined cutover](personal-migration-cutover.md).
+No installation enables it by default and no physical verification was performed.
+
 Addresses below are zero-based. Floats occupy two registers, low word first.
 
 | Purpose | Holding register writes | Input register readback |

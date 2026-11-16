@@ -31,6 +31,7 @@ Ren funktion; testas i tests/test_battery_control.py.
 """
 
 from datetime import timedelta
+import math
 
 FUSE_CAP_STEP_W = 100         # #399: minsta minskning som skrivs när säkringstaket sänker laddningen
 POWER_DEADBAND_W = 200        # #194: mindre effektändringar inom samma läge skrivs inte
@@ -113,6 +114,19 @@ def decide(s, cfg, supported=frozenset({"auto"})):
             elif power is None or power > cap:
                 power, rule = cap, "fuse_cap"
                 reason += f" Laddningen begränsas till {cap:.0f} W så att säkringen räcker."
+        standby = (intent == 'standby' or intent in {'idle', 'hold'} and intent not in supported
+                   and cfg.get('standby_for_hold') is True)
+        reference = cfg.get('standby_reference_w', 10.0)
+        if standby and (type(reference) not in (int,float) or not math.isfinite(reference) or not 0 < reference <= 50):
+            raise ValueError('Explicit bounded standby reference required')
+        export_ok = (cfg.get('allow_export', True) or
+                     (s.get('avg_net_w') or 0) + max(0.0, -(s.get('battery_w') or 0)) >= reference + EXPORT_MARGIN_W)
+        if standby and 'standby' in supported and above_reserve and export_ok:
+            return {'intent':'standby', 'power_w':reference, 'rule':rule,
+                    'reason':reason + " Konfigurerad standby använder en liten urladdning och stoppar även solladdning."}
+        if intent == 'standby':
+            intent = 'auto'
+            reason += " Standby blockeras av reservnivå, exportskydd eller drivrutinsstöd."
         for cand in _FALLBACK[intent]:
             if cand == "auto" or cand in supported:
                 if cand != intent:

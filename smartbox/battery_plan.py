@@ -108,7 +108,7 @@ def command_power_w(action, simulated_kw, command_kw, schedule_kw):
         return None
 
 
-def _battery_power(action, net_kw, pc, pd):
+def _battery_power(action, net_kw, pc, pd, standby_kw=0.01):
     """Batteriets AC-effekt (kW, + laddar) för en avsikt, före laddnivågränser."""
     if action == "auto":
         return max(-pd, min(pc, -net_kw))
@@ -116,6 +116,8 @@ def _battery_power(action, net_kw, pc, pd):
         return max(0.0, min(pc, -net_kw))
     if action == "idle":
         return 0.0
+    if action == 'standby':
+        return -standby_kw
     if action == "charge":
         return pc
     return -pd
@@ -170,7 +172,7 @@ def optimize(slots, soc0_kwh, capacity_kwh, reserve_kwh, max_kwh, charge_kw, dis
              terminal_pct=25, allow_export=True, charge_wear_cost_sek_per_kwh=0.0,
              discharge_wear_cost_sek_per_kwh=0.0, reversal_cost_sek=0.0, ev_mode="block",
              balance_target_kwh=0.0, balance_hold_slots=0, balance_deadline_slots=0,
-             charge_efficiency=None, discharge_efficiency=None):
+             charge_efficiency=None, discharge_efficiency=None, standby_kw=0.01):
     """ev_mode: vad batteriet får göra medan elbilen laddar - "block" (ladda inte ur alls, som förut),
     "offload" (Martins förslag 2026-11-07: täck bara husets egen förbrukning, aldrig bilen) eller "free" (även bilen).
     slots: [{'t', 'buy', 'sell', 'load_kw', 'solar_kw', 'ev_kw'}] (kvartar, i tidsordning).
@@ -187,7 +189,10 @@ def optimize(slots, soc0_kwh, capacity_kwh, reserve_kwh, max_kwh, charge_kw, dis
     for value in (cycle_cost, charge_wear_cost_sek_per_kwh, discharge_wear_cost_sek_per_kwh, reversal_cost_sek):
         if not math.isfinite(value) or value < 0:
             raise ValueError("Battery wear and reversal costs must be finite and nonnegative")
-    acts = [a for a in ACTIONS if a in set(allowed) | {"auto"}]
+    allowed = set(allowed)
+    if 'standby' in allowed and (type(standby_kw) not in (int,float) or not math.isfinite(standby_kw) or not 0 < standby_kw <= .05):
+        raise ValueError('Explicit standby power must be within (0, 0.05] kW')
+    acts = [a for a in (*ACTIONS, 'standby') if a in allowed | {"auto"}]
     A = len(acts)
     # Previous mode and last physical direction (0=none, 1=charge, 2=discharge).
     # Idle/hold must not erase a reversal; auto can reverse without a mode change.
@@ -235,10 +240,10 @@ def optimize(slots, soc0_kwh, capacity_kwh, reserve_kwh, max_kwh, charge_kw, dis
             soc = i * step
             row = []
             for a in acts:
-                b = _battery_power(a, net, charge_kw, discharge_kw)
+                b = _battery_power(a, net, charge_kw, discharge_kw, standby_kw)
                 if not allow_export and b < 0:
                     b = max(b, -max(0.0, net))        # bara husets egen förbrukning, ingen försäljning
-                if ev_on and b < 0:
+                if ev_on and b < 0 and a != 'standby':
                     if ev_mode == "offload":
                         b = max(b, -max(0.0, s["load_kw"] - s.get("solar_kw", 0.0)))   # huset, inte bilen
                     elif ev_mode != "free":
@@ -248,6 +253,9 @@ def optimize(slots, soc0_kwh, capacity_kwh, reserve_kwh, max_kwh, charge_kw, dis
                         b = 0.0
                 upper = max(hi, balance_target_kwh) if balancing else hi
                 new, b = _step(soc, b, min(lo, soc), upper if soc <= upper else soc, eff_c, eff_d)
+                if a == 'standby' and abs(b + standby_kw) > 1e-9:
+                    row.append(None)  # A fixed native reference cannot be clipped into imaginary zero power.
+                    continue
                 wear = cycle_cost * max(0.0, -b) * DT_H
                 if charge_wear_cost_sek_per_kwh:
                     wear += max(0.0, new - soc) * charge_wear_cost_sek_per_kwh
@@ -359,6 +367,7 @@ REASON = {
     "hold": "Planen: sparar batteriet till dyrare timmar",
     "idle": "Planen: batteriet vilar",
     "auto": "Planen: självförbrukning",
+    "standby": "Planen: standby med liten urladdning",
 }
 
 
@@ -528,6 +537,8 @@ def plan_from_db(engine, now, soc_pct, settings, base_profile, supported, *, soc
                   discharge_wear_cost_sek_per_kwh=settings.get("discharge_wear_cost_sek_per_kwh", 0.0),
                   reversal_cost_sek=settings.get("reversal_cost_sek", 0.0))
     balance = settings.get("balance_request") or {}
+    if 'standby' in supported:
+        params['standby_kw'] = settings.get('standby_reference_w', 10.0) / 1000
     if balance.get("request"):
         params.update(balance_target_kwh=balance["target_soc"] / 100.0 * cap,
                       balance_hold_slots=balance["hold_slots"],

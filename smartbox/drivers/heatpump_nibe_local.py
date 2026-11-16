@@ -193,6 +193,19 @@ class NibeLocalHeatPumpDriver(HeatPumpDriver):
         self._product = None
         self._pending = None
 
+    def hot_water_ready(self):
+        """An optional installation mode guard is read, never forced."""
+        binding = self._bindings.get('hot_water_mode')
+        if binding is None:
+            return True
+        if not isinstance(binding, dict) or type(binding.get('required_value')) is not int:
+            return False
+        try:
+            _, point = self._resolve(self._read_points(), binding)
+            return point['metadata']['divisor'] == 1 and _number(point) == binding['required_value']
+        except (LocalRestError, KeyError, TypeError, ValueError, OverflowError):
+            return False
+
     def _call(self, method, path, payload=None):
         pin = _TLS_PIN_SHA256.replace(":", "").replace(" ", "").strip().lower()
         if not (self._host and _USERNAME and _PASSWORD and re.fullmatch(r"[0-9a-f]{64}", pin)):
@@ -318,7 +331,7 @@ class NibeLocalHeatPumpDriver(HeatPumpDriver):
         if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
             return False
         import shadow
-        if shadow.active():
+        if shadow.active() and not (field == 'hot_water_boost' and getattr(self, '_boost_live_in_shadow', False)):
             shadow.record("NIBE local REST", f"{field}={value}")
             return True
         try:
@@ -330,6 +343,13 @@ class NibeLocalHeatPumpDriver(HeatPumpDriver):
                     return False
                 self._pending = None
             key, point = self._resolve(points, binding, writable=True)
+            if field == 'hot_water_boost' and value == binding.get('start_value') and 'hot_water_mode' in self._bindings:
+                mode_binding = self._bindings['hot_water_mode']
+                if not isinstance(mode_binding, dict) or type(mode_binding.get('required_value')) is not int:
+                    return False
+                _, mode = self._resolve(points, mode_binding)
+                if mode['metadata']['divisor'] != 1 or _number(mode) != mode_binding['required_value']:
+                    return False
             meta = point["metadata"]
             if meta.get("modbusRegisterType") != "MODBUS_HOLDING_REGISTER":
                 return False
@@ -404,3 +424,18 @@ class NibeLocalHeatPumpDriver(HeatPumpDriver):
     def set_operating_mode(self, mode):
         value = self._modes.get(str(mode))
         return False if value is None else self._write("operating_mode", value)
+
+
+class NibeHotWaterOnlyDriver(NibeLocalHeatPumpDriver):
+    """Separate boost owner. Cannot write room, curve, mode or temperature settings."""
+    def __init__(self, connection=None, points=None, *, control_enabled=False, live_in_shadow=False):
+        permitted = {'water_temp', 'hot_water_boost', 'hot_water_mode'}
+        if set(points or {}) - permitted:
+            raise ValueError('Hot-water-only driver accepts only explicit hot-water points')
+        super().__init__(connection=connection, points=points, control_enabled=control_enabled)
+        self._boost_live_in_shadow = control_enabled is True and live_in_shadow is True
+
+    def _write(self, field, value):
+        if field != 'hot_water_boost':
+            return False
+        return super()._write(field, value)

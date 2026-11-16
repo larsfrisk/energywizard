@@ -146,7 +146,7 @@ function sunDaysHtml(sd) {
 // moms, nätavgift och skatt, samma som motorn räknar med). Bara visning - inga nya beslut fattas här.
 let clockPriceMode = localStorage.getItem("ew_clock_price") || "total";
 const CLOCK_COL = { cheap: "#22d3a0", mid: "#38bdf8", dear: "#f87171", heat: "#fb923c", charge: "#22d3a0", discharge: "#fbbf24",
-  hold: "#38bdf8", idle: "#94a3b8", export: "#d946ef" };   // export = laddar ur och säljer överskottet (egen färg, Anders på Discord)
+  hold: "#38bdf8", idle: "#94a3b8", standby: "#94a3b8", export: "#d946ef" };   // export = laddar ur och säljer överskottet (egen färg, Anders på Discord)
 const CAR_COL = ["#38bdf8", "#a78bfa", "#f472b6", "#22d3a0"];
 const kr = (v) => v == null ? "–" : v.toFixed(2).replace(".", ",");
 // Legionella: när varmvattnet senast nådde temperaturen (värmepumpssidan)
@@ -216,10 +216,10 @@ function planClockHtml(d) {
     `<span style="display:inline-flex;align-items:center;gap:5px;margin-right:12px"><span style="width:10px;height:10px;border-radius:3px;background:${c}"></span>${t}</span>`).join("")
     + rings.slice(0, 4).map((rg) => {
       const [t, c] = rg.kind === "heat" ? ["Värmepumpen laddar huset", CLOCK_COL.heat] : rg.kind === "ev" ? [`${rg.car.charAt(0).toUpperCase() + rg.car.slice(1)} laddar`, rg.col]
-        : ["Batteriet laddar", CLOCK_COL.charge];
+        : ["Batteriet", CLOCK_COL.charge];
       return `<span style="display:inline-flex;align-items:center;gap:5px;margin-right:12px"><span style="width:14px;height:4px;border-radius:2px;background:${c}"></span>${t}</span>`;
     }).join("")
-    + [["discharge", "Laddar ur (eget bruk)"], ["export", "Laddar ur och säljer"]].filter(([a]) => d.items.some((i) => i.kind === "battery" && i.action === a))
+    + [["discharge", "Laddar ur (eget bruk)"], ["export", "Laddar ur och säljer"], ["standby", "Standby"]].filter(([a]) => d.items.some((i) => i.kind === "battery" && i.action === a))
       .map(([a, t]) => `<span style="display:inline-flex;align-items:center;gap:5px;margin-right:12px"><span style="width:14px;height:4px;border-radius:2px;background:${CLOCK_COL[a]}"></span>${t}</span>`).join("");
   const svg = `<svg viewBox="0 0 340 340" style="width:100%;max-width:340px;height:auto;display:block;margin:0 auto" role="img" aria-label="Planklocka: de kommande 24 timmarna">${labels}${ticks}${ringSvg}${hand}${center}</svg>`;
   return `<div class="planclock" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:16px;align-items:center;margin:4px 0 14px">
@@ -233,7 +233,7 @@ function planClockHtml(d) {
 
 // Remsan: de närmaste 12 timmarna, en rad per sak som planeras, med rutor "Ladda 01:00–03:45".
 // Batteriraden i planklockan: "Laddar ur till 09:45 · 80→35 % · 8,6 kWh · toppris 4,31 kr" (önskemål från HannesB).
-const BAT_VERB = { charge: "Laddar", discharge: "Laddar ur", export: "Laddar ur och säljer", hold: "Sparas", idle: "Vilar" };
+const BAT_VERB = { charge: "Laddar", discharge: "Laddar ur", export: "Laddar ur och säljer", hold: "Sparas", idle: "Vilar", standby: "Standby" };
 function batteryLaneText(i, now) {
   const on = new Date(i.start) <= now;
   const verb = BAT_VERB[i.action] || "Batteri";
@@ -493,7 +493,7 @@ async function renderOversikt() {
   api("api/shadow").then((sh) => {                       // skuggläget syns alltid överst, så ingen tror att huset styrs
     if (!sh || !sh.active || document.getElementById("shadowbanner")) return;
     main.insertAdjacentHTML("afterbegin", `<div class="card" id="shadowbanner" style="margin-bottom:16px;border-color:var(--warn)">
-      🕶️ <b>Skuggläge:</b> <span>EnergyWizard visar vad den hade gjort men styr ingenting.</span> <a href="#" id="shadowgo">Se vad den hade gjort</a></div>`);
+      🕶️ <b>Skuggläge:</b> <span>${esc(I18N.tr(shadowScopeText(sh)))}</span> <a href="#" id="shadowgo">Se vad den hade gjort</a></div>`);
     document.getElementById("shadowgo").onclick = (e) => { e.preventDefault(); openPage("installningar"); };
   }).catch(() => {});
   mountTimeline("timelineslot");
@@ -1478,6 +1478,12 @@ async function mountMqtt() {
 }
 
 // Skuggläge (smartbox/shadow.py): brytare + vad EnergyWizard hade gjort.
+function shadowScopeText(data) {
+  return data.scoped_controls === undefined || Array.isArray(data.scoped_controls) && !data.scoped_controls.length ?
+    "EnergyWizard visar vad den hade gjort men styr ingenting." :
+    "Skuggläge gäller övriga enheter. Separat godkända lokala styrenheter kan skriva.";
+}
+
 async function mountShadow() {
   let d;
   try { d = await api("api/shadow"); } catch (e) { return; }
@@ -1486,10 +1492,11 @@ async function mountShadow() {
   t.checked = d.active;
   t.disabled = d.forced_by_env;
   t.onchange = async () => {
-    try { await postJSON("api/shadow", { active: t.checked }); toast(t.checked ? "Skuggläge på - EnergyWizard styr ingenting" : "Skuggläge av - EnergyWizard styr igen"); mountShadow(); }
+    try { await postJSON("api/shadow", { active: t.checked }); toast("Skuggläget har uppdaterats"); mountShadow(); }
     catch (e) { t.checked = !t.checked; toast(e.message); }
   };
   list.innerHTML = (d.forced_by_env ? `<div class="note">Påslaget med SHADOW_MODE i miljön.</div>` : "")
+    + (d.active ? `<div class="note">${esc(I18N.tr(shadowScopeText(d)))}</div>` : "")
     + (d.actions.length ? `<div class="note" style="margin-bottom:6px">Hade gjort (senaste först):</div>` + d.actions.slice(0, 30).map((a) =>
       `<div style="display:flex;flex-wrap:wrap;column-gap:12px;padding:6px 0;border-top:1px solid var(--line)"><span class="note" style="min-width:120px">${esc(a.ts)}</span>
         <span style="flex:1 1 220px;min-width:0;overflow-wrap:anywhere"><b>${esc(a.what)}</b> <span class="note">${esc(a.detail || "")}</span></span></div>`).join("")
@@ -2197,9 +2204,7 @@ async function renderInstallningar() {
     <div class="card" style="margin-bottom:16px" id="shadowcard">
       <div class="togglerow" style="align-items:flex-start;gap:14px"><div>
         <div style="font-size:1.1rem;font-weight:700">🕶️ Skuggläge</div>
-        <div class="note" style="margin-top:4px;line-height:1.5">Kör EnergyWizard bredvid ditt nuvarande system: allt räknas, planeras och visas som vanligt,
-          men <b>ingenting skickas</b> till värmepump, laddbox, batteri, växelriktare eller spabad. Här nedan ser du vad den hade gjort.
-          Bra för att prova säkert innan du låter EnergyWizard ta över.</div></div>
+        <div class="note" style="margin-top:4px;line-height:1.5">${esc(I18N.tr("Skuggläge låter dig prova planeringen utan enhetskommandon. Separat godkända lokala styrundantag visas nedan."))}</div></div>
         <label class="switch" style="flex:0 0 auto"><input type="checkbox" id="shadowtoggle"><span class="slider"></span></label></div>
       <div id="shadowlist" style="margin-top:10px"></div>
     </div>

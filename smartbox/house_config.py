@@ -30,7 +30,7 @@ from drivers.heatpump_heishamon import HeishaMonHeatPumpDriver
 from drivers.heatpump_thermiq import ThermIQHeatPumpDriver
 from drivers.heatpump_ha_entities import HaEntitiesHeatPumpDriver
 from drivers.heatpump_myuplink import MyUplinkHeatPumpDriver
-from drivers.heatpump_nibe_local import NibeLocalHeatPumpDriver
+from drivers.heatpump_nibe_local import NibeLocalHeatPumpDriver, NibeHotWaterOnlyDriver
 from drivers.heatpump_thermia import ThermiaHusdataHeatPumpDriver
 from drivers.solar import NullSolarDriver, SolarDriver
 from drivers.solar_generic import GenericNumberSolarDriver
@@ -222,6 +222,20 @@ def build_heat_pump_driver(cfg: dict) -> HeatPumpDriver:
     return driver_cls()
 
 
+def build_hot_water_driver(cfg: dict, primary=None) -> HeatPumpDriver:
+    """An optional isolated local boost driver leaves the room driver unchanged."""
+    hp = cfg.get('heat_pump') or {}
+    hw = hp.get('hot_water_control') or {}
+    if 'driver' not in hw:
+        return primary if primary is not None else build_heat_pump_driver(cfg)
+    if not (hp.get('enabled') is True and hw.get('enabled') is True and hw.get('driver') == 'nibe_local'):
+        return NullHeatPumpDriver()
+    live = (hw.get('live_control_confirmed') is True and hw.get('exclusive_owner_confirmed') is True
+            and hw.get('temperature_role_verified') is True)
+    return NibeHotWaterOnlyDriver(connection=hw.get('connection'), points=hw.get('points'),
+                                 control_enabled=live, live_in_shadow=live)
+
+
 def power_meter_entities(cfg: dict) -> dict:
     """Elmätarens entiteter ur power_meter: (se homeassistant.configure_power_meter för formerna).
     Tom dict = ingen elmätare konfigurerad."""
@@ -279,6 +293,8 @@ def battery_settings(cfg: dict) -> dict:
             "discharge_wear_cost_sek_per_kwh": f("discharge_wear_cost_sek_per_kwh", 0.0),
             "reversal_cost_sek": f("reversal_cost_sek", 0.0),
             "min_change_minutes": f("min_change_minutes", 5.0),
+            "standby_for_hold": bat.get("standby_for_hold") is True,
+            "standby_reference_w": f("standby_reference_w", 10.0, True),
             # Dygnsplan (battery_plan.py) - bara i läget styr; plan: false = bara reglerna
             "plan": str(bat.get("plan", True)).lower() not in ("false", "0", "nej", "no"),
             # planeringsstil (very_careful/careful/balanced/bold/very_bold) och om batteriet får
@@ -340,6 +356,10 @@ def build_battery_driver(cfg: dict) -> BatteryDriver:
         return FerroampBatteryDriver(modbus=bat.get("modbus"),
                                      control_enabled=str(bat.get("control", "samarbete")).strip().lower() == "styr",
                                      default_mode_verified=bat.get("default_mode_verified", False),
+                                     live_control_confirmed=bat.get("live_control_confirmed", False),
+                                     exclusive_owner_confirmed=bat.get("exclusive_owner_confirmed", False),
+                                     standby_reference_w=bat.get("standby_reference_w"),
+                                     standby_verified=bat.get("standby_verified", False),
                                      max_power_w=bat.get("max_power_w", 5000),
                                      reserve_soc=bat.get("reserve_soc", 20), max_soc=bat.get("max_soc", 100))
     return driver_cls()

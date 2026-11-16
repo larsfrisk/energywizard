@@ -113,6 +113,10 @@ class Tracker:
                 self._emit('unconfirmed','target_power_unavailable',now);return
             target=wanted if intent=='charge' else -wanted
             follows=abs(float(actual)-target)<=tolerance
+        elif intent=='standby':
+            if wanted is None or wanted<=0:
+                self._emit('unconfirmed','target_power_unavailable',now);return
+            follows=abs(float(actual)+wanted)<=self.tolerance_w
         elif intent=='idle':follows=abs(float(actual))<=self.tolerance_w
         elif intent=='hold':follows=float(actual)>=-self.tolerance_w
         else:
@@ -138,7 +142,7 @@ def apply(tracker,driver,intent,power_w,now=None):
         raise
     try:
         import shadow
-        if shadow.active():
+        if shadow.active() and getattr(driver, '_live_in_shadow', False) is not True:
             tracker.current['accepted']=False
             tracker._emit('unconfirmed','shadow_mode_no_physical_command',time.time())
         else:
