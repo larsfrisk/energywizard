@@ -36,7 +36,7 @@ import math
 FUSE_CAP_STEP_W = 100         # #399: minsta minskning som skrivs när säkringstaket sänker laddningen
 POWER_DEADBAND_W = 200        # #194: mindre effektändringar inom samma läge skrivs inte
 MIN_CHANGE_INTERVAL = timedelta(minutes=5)     # lägesbyten sparsamt (flashminne), säkerhetsregler undantagna
-SAFETY_RULES = {"stale", "fuse", "fuse_cap", "peak", "soc_limit"}
+SAFETY_RULES = {"stale", "fuse", "fuse_cap", "peak", "soc_limit", "reserve"}
 FUSE_MIN_W = 500
 FROZEN_AFTER_S = 600          # elmätaren visar exakt samma värde så här länge -> räknas som död
 
@@ -87,7 +87,9 @@ def decide(s, cfg, supported=frozenset({"auto"})):
         return {"intent": None, "power_w": None, "rule": "samarbete", "reason": txt}
 
     symbol = s.get("currency_symbol", "kr")
-    reserve, prio, max_soc = cfg.get("reserve_soc", 20.0), cfg.get("priority_soc", 50.0), cfg.get("max_soc", 100.0)
+    import battery_limits
+    cfg = battery_limits.resolve(cfg)
+    reserve, prio, max_soc = cfg['discharge_floor_soc'], cfg.get("priority_soc", 50.0), cfg['normal_max_soc']
     pmax = cfg.get("max_power_w", 5000.0)
     above_reserve = soc is not None and soc > reserve
 
@@ -104,6 +106,12 @@ def decide(s, cfg, supported=frozenset({"auto"})):
         return power, reason
 
     def out(intent, rule, reason, power=None):
+        # A maintenance window is the only automatic exception to the daily ceiling.
+        surplus = (s.get('avg_net_w') or 0) - (s.get('battery_w') or 0) < 0
+        if (cfg['normal_ceiling_explicit'] and soc is not None and soc >= max_soc and rule != 'balance'
+                and (intent in {'charge', 'hold'} or intent == 'auto' and surplus)):
+            intent, power, rule = 'idle', None, 'soc_limit'
+            reason = "Batteriet har nått laddtaket - laddningen pausas."
         power, reason = no_export(intent, power, reason)
         cap = s.get("fuse_charge_cap_w")
         if intent == "charge" and cap is not None:
@@ -121,7 +129,7 @@ def decide(s, cfg, supported=frozenset({"auto"})):
             raise ValueError('Explicit bounded standby reference required')
         export_ok = (cfg.get('allow_export', True) or
                      (s.get('avg_net_w') or 0) + max(0.0, -(s.get('battery_w') or 0)) >= reference + EXPORT_MARGIN_W)
-        if standby and 'standby' in supported and above_reserve and export_ok:
+        if standby and 'standby' in supported and soc is not None and soc > cfg['reserve_soc'] and export_ok:
             return {'intent':'standby', 'power_w':reference, 'rule':rule,
                     'reason':reason + " Konfigurerad standby använder en liten urladdning och stoppar även solladdning."}
         if intent == 'standby':

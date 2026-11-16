@@ -18,7 +18,8 @@ class FerroampBatteryDriver(BatteryDriver):
                  max_power_w=5000.0, reserve_soc=20.0, max_soc=100.0,
                  live_control_confirmed=False, exclusive_owner_confirmed=False,
                  standby_reference_w=None, standby_verified=False, module_telemetry=None,
-                 maintenance_soc=None, command_transport='modbus', mqtt=None, mqtt_control_verified=False):
+                 maintenance_soc=None, command_transport='modbus', mqtt=None, mqtt_control_verified=False,
+                 normal_max_soc=None, discharge_buffer_soc=0):
         self._bus = EnergyHubConnection(modbus)
         if command_transport not in ('modbus', 'mqtt'):
             raise ValueError('Select modbus or mqtt explicitly; no automatic command fallback')
@@ -56,11 +57,24 @@ class FerroampBatteryDriver(BatteryDriver):
             raise ValueError("EnergyHub max_power_w must be finite and positive")
         if not 0 <= self._reserve < self._max_soc <= 100:
             raise ValueError("EnergyHub SOC limits must satisfy 0 <= reserve < max <= 100")
+        self._base_reserve = self._reserve
+        if type(discharge_buffer_soc) not in (int, float) or not math.isfinite(discharge_buffer_soc) or not 0 <= discharge_buffer_soc <= 20:
+            raise ValueError('Invalid discharge reserve margin')
+        self.configure_limits(self._max_soc if normal_max_soc is None else normal_max_soc,
+                              self._base_reserve + discharge_buffer_soc)
         if self._standby_w is not None and self._standby_w > self._max_power:
             raise ValueError('Standby reference exceeds configured maximum power')
 
     def supports_control(self):
         return bool(self._bus.host) and self._enabled
+
+    def configure_limits(self, normal_max_soc, discharge_floor_soc):
+        if (any(type(v) not in (int, float) or not math.isfinite(v)
+                for v in (normal_max_soc, discharge_floor_soc))
+                or not self._base_reserve <= discharge_floor_soc < normal_max_soc <= self._max_soc):
+            raise ValueError('Invalid normal battery operating limits')
+        self._normal_soc = float(normal_max_soc)
+        self._reserve = float(discharge_floor_soc)
 
     def supported_intents(self):
         return ({"auto", "charge", "discharge"} | ({"standby"} if self._standby_w is not None else set())) if self.supports_control() else set()
@@ -152,8 +166,9 @@ class FerroampBatteryDriver(BatteryDriver):
             soc = read_float(client, 6016, unit)
             if soc is None or not 0 <= soc <= 100:
                 return False
-            ceiling = self._maintenance_soc if self._maintenance else self._max_soc
-            if (intent in {"discharge", "standby"} and soc <= self._reserve) or (intent == "charge" and soc >= ceiling):
+            ceiling = self._maintenance_soc if self._maintenance else self._normal_soc
+            floor = self._base_reserve if intent == 'standby' else self._reserve
+            if (intent in {"discharge", "standby"} and soc <= floor) or (intent == "charge" and soc >= ceiling):
                 return False
             if self._mqtt is not None:
                 result = self._mqtt.request('discharge' if intent == 'standby' else intent, abs(power)*1000)

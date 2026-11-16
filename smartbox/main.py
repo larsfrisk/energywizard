@@ -46,6 +46,7 @@ import decision_summary  # Vad görs nu och varför, per enhet (ur gpm.py:s logg
 import solar_write_guard # Hur ofta exportgränsen får skrivas (flashminnet i växelriktaren)
 import config_watch      # Startar om motorn när house_config.yaml ändras
 import battery_control   # Husbatteriet som del av hela systemet (styr / samarbete / av)
+import battery_limits
 import ew_journal
 import battery_commands
 import battery_follow
@@ -60,6 +61,7 @@ import ramp_budget     # #399: beviljade ökningar som ännu inte syns i mätnin
 import water_setpoints  # Varmvattnets start/stopp: stoppet aldrig under normal, kontroll efter skrivning
 import hot_water_monitor  # Default-off advisory shadow monitor; no device writes
 import hot_water_runtime  # Explicit opt-in bounded local boost owner
+import hot_water_reservations
 import hot_water_status
 import hot_water_hygiene
 import hot_water_power  # Optional dedicated electrical-load evidence, cache/read-only
@@ -1256,6 +1258,8 @@ while True:
                     _hw_data = hot_water_driver.read_sensors() or {}
                 except Exception:
                     _hw_data = {}
+                pump_data = dict(pump_data or {}, **{k: _hw_data.get(k) for k in
+                    ('hot_water_boost_active', 'hot_water_boost_sample_at')})
             if pump_data:
                 pump_data = dict(pump_data, **hot_water_power.read(house_cfg.get("heat_pump") or {},
                                                                 pump_data, homeassistant._states_cache))
@@ -2212,6 +2216,16 @@ while True:
             _battery["decision_rule"] = None
             try:
                 battery_state = _battery_early or battery_driver.read_state() or {}   # redan läst ovan (husets förbrukning)
+                battery_cfg = battery_limits.resolve(house_config.battery_settings(house_cfg), _ew_settings.load())
+                _limits_key = (battery_cfg['normal_max_soc'], battery_cfg['discharge_floor_soc'])
+                if _battery.get('limits_key') != _limits_key:
+                    _battery.update(plan=None, plan_at=None, limits_key=_limits_key)
+                if hasattr(battery_driver, 'configure_limits'):
+                    battery_driver.configure_limits(*_limits_key)
+                _water_reservation = hot_water_reservations.window(_hot_water_runtime, house_cfg, time.time())
+                _water_key = hot_water_reservations.identity(_water_reservation)
+                if _battery.get('water_key') != _water_key:
+                    _battery.update(plan=None, plan_at=None, water_key=_water_key)
                 if ((house_cfg.get("battery") or {}).get("shadow_plan") or {}).get("enabled") is True:
                     _battery_shadow_monitor.submit(house_cfg["battery"]["shadow_plan"],
                         battery_learning.apply(battery_cfg, _battery["model"]), battery_state, dynamic_base_load_profile,
@@ -2255,7 +2269,8 @@ while True:
                                 _battery["plan"] = battery_plan.plan_from_db(_peng, now, battery_state.get("soc_pct"),
                                                                              dict(battery_learning.apply(battery_cfg, _battery["model"]), balance_request=_balance),
                                                                              dynamic_base_load_profile, battery_driver.supported_intents(),
-                                                                             soc_evidence=battery_state)
+                                                                             soc_evidence=battery_state,
+                                                                             hot_water=_water_reservation)
                                 _battery["plan_at"] = now
                             except Exception as _pe:
                                 print(f"⚠️ Batteriplanen hoppade över: {_pe}")
@@ -2266,6 +2281,7 @@ while True:
                         _tu_t = int(str(all_overrides.get("battery_topup_target") or "0") or 0)
                     except ValueError:
                         _tu_t = 0
+                    _tu_t = min(_tu_t, battery_cfg['normal_max_soc'])
                     _tu_soc = battery_state.get("soc_pct")
                     if _tu_t and (battery_cfg["control"] != "styr" or (_tu_soc is not None and _tu_soc >= min(_tu_t, battery_cfg.get("max_soc", 100)))
                                   or (timed_override.until(all_overrides, "battery_topup") or 0) <= time.time()):

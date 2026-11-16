@@ -278,6 +278,8 @@ def battery_settings(cfg: dict) -> dict:
             raise ValueError("Configure both battery directional efficiencies in (0, 1]") from None
     return {**directional, "control": control if bat.get("enabled") else "av", "reserve_soc": f("reserve_soc", 20.0),
             "priority_soc": f("priority_soc", 50.0), "max_soc": f("max_soc", 100.0, True),
+            "normal_max_soc": bat.get("normal_max_soc"),
+            "discharge_buffer_soc": bat.get("discharge_buffer_soc", 0.0),
             "max_power_w": f("max_power_w", 5000.0, True),
             # Växelriktarens faser (1 eller 3): hur nätladdningen fördelas mot säkringen (#399)
             "phases": 1 if str(bat.get("phases", 3)).strip() == "1" else 3,
@@ -353,6 +355,8 @@ def build_battery_driver(cfg: dict) -> BatteryDriver:
                                     modes=(bat.get("modes") or {}), power_invert=bat.get("power_invert"),
                                     keepalive_s=bat.get("keepalive_s"), max_power_w=bat.get("max_power_w"))
     if driver_cls is FerroampBatteryDriver:
+        import battery_limits, ew_settings
+        limits = battery_limits.resolve(battery_settings(cfg), ew_settings.load())
         balance = battery_settings(cfg)['balance']
         return FerroampBatteryDriver(modbus=bat.get("modbus"),
                                      control_enabled=str(bat.get("control", "samarbete")).strip().lower() == "styr",
@@ -366,7 +370,9 @@ def build_battery_driver(cfg: dict) -> BatteryDriver:
                                      module_telemetry=bat.get('module_telemetry'),
                                      maintenance_soc=balance['target_soc'] if balance['enabled'] and balance['full_charge_verified'] and balance['standby_dwell_verified'] else None,
                                      max_power_w=bat.get("max_power_w", 5000),
-                                     reserve_soc=bat.get("reserve_soc", 20), max_soc=bat.get("max_soc", 100))
+                                     reserve_soc=bat.get("reserve_soc", 20), max_soc=bat.get("max_soc", 100),
+                                     normal_max_soc=limits['normal_max_soc'],
+                                     discharge_buffer_soc=limits['discharge_buffer_soc'])
     return driver_cls()
 
 

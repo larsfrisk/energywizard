@@ -2784,5 +2784,10 @@
  "Varmvattenstart väntar på elutrymme och färska mätvärden": "Hot-water start is waiting for electrical headroom and fresh readings",
  "Väntar på ett varmvattenfönster": "Waiting for a hot-water window",
  "Planerad start": "Scheduled start",
- "Booststyrningen ersätter ordinarie varmvattenplanering. Manuell styrning och hygienkörning har företräde.": "Boost control replaces ordinary hot-water scheduling. Manual control and hygiene cycles take precedence."
+ "Booststyrningen ersätter ordinarie varmvattenplanering. Manuell styrning och hygienkörning har företräde.": "Boost control replaces ordinary hot-water scheduling. Manual control and hygiene cycles take precedence.",
+ "Normal laddgräns (%)": "Normal charge ceiling (%)",
+ "Gäller vanlig laddning. Balansering kan använda batteriets separata underhållsgräns.": "Applies to normal charging. Balancing can use the battery’s separate maintenance ceiling.",
+ "Marginal över reservnivån (%)": "Margin above reserve (%)",
+ "Styrd urladdning stoppas vid reservnivån plus denna marginal.": "Forced discharging stops at the reserve level plus this margin.",
+ "Ogiltiga batterigränser": "Invalid battery limits"
 }
