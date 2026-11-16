@@ -42,7 +42,7 @@ battery:
   command_transport: mqtt
   mqtt_control_verified: false
   mqtt:
-    host: 192.0.2.10
+    host: 192.0.2.10             # Example only: replace with your MQTT broker address
     port: 1883
     timeout_s: 5                 # Protocol wait, 0.1–10s; not BMS activation timeout
     username_env: FERROAMP_MQTT_USERNAME
@@ -50,7 +50,7 @@ battery:
     # tls: true
     # tls_ca: /path/to/ca.pem
   modbus:
-    host: 192.0.2.10
+    host: 192.0.2.10             # Example only: replace with your EnergyHub address
     port: 502
     unit_id: 1
 ```
