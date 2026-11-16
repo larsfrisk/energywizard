@@ -514,6 +514,9 @@ def read_power_meter():
     upp automatiskt (en gång), så befintliga installationer fortsätter fungera.
     Configured active phase pairs also return signed l1_w/l2_w/l3_w (None if unavailable)."""
     e = POWER_METER
+    if e.get('frame_timestamp'):
+        import meter_frame
+        return meter_frame.read(e, _states_cache, time.time())
     if not e:
         if not _states_cache:
             update_states()

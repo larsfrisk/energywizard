@@ -39,6 +39,8 @@ def settings(battery):
             "hold_minutes": number("hold_minutes", 120, 15, 240),
             "confirm_minutes": number("confirm_minutes", 5, 1, 60),
             "min_interval_days": number("min_interval_days", 7, 1, 365),
+            "standby_dwell_verified": raw.get('standby_dwell_verified') is True,
+            "full_charge_verified": raw.get('full_charge_verified') is True,
             "module_entities": entities}
 
 

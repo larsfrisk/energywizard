@@ -17,7 +17,8 @@ class FerroampBatteryDriver(BatteryDriver):
     def __init__(self, modbus=None, control_enabled=False, default_mode_verified=False,
                  max_power_w=5000.0, reserve_soc=20.0, max_soc=100.0,
                  live_control_confirmed=False, exclusive_owner_confirmed=False,
-                 standby_reference_w=None, standby_verified=False):
+                 standby_reference_w=None, standby_verified=False, module_telemetry=None,
+                 maintenance_soc=None):
         self._bus = EnergyHubConnection(modbus)
         self._enabled = control_enabled is True and default_mode_verified is True
         self._live_in_shadow = (self._enabled and live_control_confirmed is True
@@ -25,6 +26,16 @@ class FerroampBatteryDriver(BatteryDriver):
         self._standby_w = None
         self._pending_reference = None
         self._pending_release = False
+        self._maintenance = False
+        self._maintenance_soc = None
+        if maintenance_soc is not None:
+            if type(maintenance_soc) not in (int,float) or not math.isfinite(maintenance_soc) or not 50 <= maintenance_soc <= 100:
+                raise ValueError('Explicit verified maintenance SOC required')
+            self._maintenance_soc = float(maintenance_soc)
+        self._modules = None
+        if (module_telemetry or {}).get('enabled') is True:
+            from drivers.ferroamp_modules import ModuleTelemetry
+            self._modules = ModuleTelemetry(module_telemetry)
         if standby_verified is True:
             if (type(standby_reference_w) not in (int,float) or not math.isfinite(standby_reference_w)
                     or not 0 < standby_reference_w <= 50):
@@ -47,6 +58,9 @@ class FerroampBatteryDriver(BatteryDriver):
 
     def read_state(self):
         state = {"soc_pct": None, "power_w": None, "capacity_kwh": None, "mode": None}
+        if self._modules is not None:
+            self._modules.start()
+            state['modules'] = self._modules.snapshot()
         unit = self._bus.unit_id
         with self._bus.connect() as client:
             if client is None:
@@ -66,6 +80,16 @@ class FerroampBatteryDriver(BatteryDriver):
 
     def set_mode(self, mode):
         return self.apply_intent(mode)
+
+    def supports_maintenance(self):
+        return self.supports_control() and self._maintenance_soc is not None and self._standby_w is not None
+
+    def set_balancing(self, active):
+        self._maintenance = active is True and self.supports_maintenance()
+
+    def close(self):
+        if self._modules is not None:
+            self._modules.stop()
 
     def apply_intent(self, intent, power_w=None):
         self.command_reference_verified = False
@@ -110,7 +134,8 @@ class FerroampBatteryDriver(BatteryDriver):
             soc = read_float(client, 6016, unit)
             if soc is None or not 0 <= soc <= 100:
                 return False
-            if (intent in {"discharge", "standby"} and soc <= self._reserve) or (intent == "charge" and soc >= self._max_soc):
+            ceiling = self._maintenance_soc if self._maintenance else self._max_soc
+            if (intent in {"discharge", "standby"} and soc <= self._reserve) or (intent == "charge" and soc >= ceiling):
                 return False
             if self._pending_reference is not None:
                 if not self._matches(client, self._pending_reference):

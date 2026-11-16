@@ -34,6 +34,10 @@ def soc_input_quality(soc_pct, evidence, now):
 
 
 class BatteryDriver(ABC):
+    def supports_maintenance(self):
+        """Ordinary full-charge maintenance requires an actual hold capability."""
+        return {'charge', 'hold'} <= self.supported_intents()
+
     def set_balancing(self, active):
         """Optional transient maintenance context; never changes vendor SOC settings."""
         return None

@@ -30,7 +30,7 @@ PARAMS = {
     'eff', 'step_kwh', 'switch_cost', 'cycle_cost', 'terminal_pct', 'allow_export',
     'charge_wear_cost_sek_per_kwh', 'discharge_wear_cost_sek_per_kwh',
     'reversal_cost_sek', 'ev_mode', 'allowed',
-    'balance_target_kwh', 'balance_hold_slots', 'balance_deadline_slots',
+    'balance_target_kwh', 'balance_hold_slots', 'balance_deadline_slots', 'balance_standby',
     'charge_efficiency', 'discharge_efficiency', 'standby_kw',
 }
 SLOT_NUMBERS = ('buy', 'sell', 'load_kw', 'solar_kw', 'ev_kw')
@@ -113,9 +113,9 @@ def normalize_inputs(slots, params):
             if v not in ('block', 'offload', 'free'):
                 raise ValueError('Unsupported EV policy')
             clean[k] = v
-        elif k == 'allow_export':
+        elif k in ('allow_export','balance_standby'):
             if not isinstance(v, bool):
-                raise ValueError('Export policy must be boolean')
+                raise ValueError(f'{k} must be boolean')
             clean[k] = v
         else:
             clean[k] = None if k in ('step_kwh', 'charge_efficiency', 'discharge_efficiency') and v is None else number(v)
@@ -126,6 +126,8 @@ def normalize_inputs(slots, params):
     bound.apply_defaults()
     if 'standby' not in bound.arguments['allowed']:
         bound.arguments.pop('standby_kw', None)  # Irrelevant new option must not rewrite old capture identities.
+    if bound.arguments.get('balance_standby') is False:
+        bound.arguments.pop('balance_standby', None)
     from battery_efficiency import resolve
     resolve(bound.arguments['eff'], bound.arguments['charge_efficiency'], bound.arguments['discharge_efficiency'])
     clean = {k: (sorted(v) if k == 'allowed' else v) for k, v in bound.arguments.items() if k != 'slots'}
