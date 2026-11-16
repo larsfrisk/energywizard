@@ -1,5 +1,11 @@
 # Ändringar
 
+## 1.2.116 (2026-11-16)
+- **Startfel vid saknat värmestopp (#449, #464, #470).** Saknade värden för pumpens värmestopp eller
+  utetemperaturens femdygnsmedel får inte längre huvudloopen att krascha med ett `NoneType`-fel.
+  Databastabellerna för elpriser och lastfördelning skapas också före första styrvarvet, så att
+  Home Assistant-publiceringen fungerar även på en ny installation. Befintliga inställningar och historik bevaras.
+
 ## 1.2.115 (2026-11-15)
 - **ML-styrt varmvatten** (Av / Skugga / På under Varmvatten på webbens värmepumpssida). Startvärdet väljs efter de
   inlärda varmvattenvanorna och elpriset. Pumpen väntar på dyra timmar när ingen tappning väntas (start 30 °C) och
