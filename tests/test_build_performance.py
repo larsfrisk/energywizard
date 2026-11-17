@@ -26,8 +26,13 @@ def test_audit_tooling_uses_one_pinned_install_without_remote_cache_overhead():
     assert '-r "$EW_AUDIT_REQUIREMENTS"' in install['run']
     assert install['run'].count('pip ')==1
     assert any('audit_image.py' in str(step) for step in action['runs']['steps'])
-    # No cache action restores scans, feeds, inventories or built image layers.
-    assert not any('actions/cache@' in step.get('uses', '') for step in action['runs']['steps'])
+    restore = next(s for s in steps if 'actions/cache/restore@' in s.get('uses',''))
+    assert restore['with']['path'] == '${{ runner.temp }}/grype-downloads'
+    refresh = next(i for i,s in enumerate(steps) if s.get('name') == 'Require a fresh online scanner database check')
+    audit = next(i for i,s in enumerate(steps) if s.get('name') == 'Audit installed packages and CISA KEVs')
+    assert refresh < audit and '--refresh-cache-only' in steps[refresh]['run']
+    assert '--refresh-cache-only' not in steps[audit]['run']
+    assert '--grype-cache-dir' in steps[audit]['run']
     assert 'pip-audit==2.10.1' in (ROOT / '.github/actions/audit-image/requirements.txt').read_text()
 
 

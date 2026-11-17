@@ -92,13 +92,29 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('image', help='Locally built Docker image')
     parser.add_argument('--output', type=Path, required=True)
-    parser.add_argument('--grype-cache-volume', type=cache_volume, default='ew-security-grype-cache',
+    cache = parser.add_mutually_exclusive_group()
+    cache.add_argument('--grype-cache-volume', type=cache_volume, default='ew-security-grype-cache',
                         help='Dedicated scanner download cache (reports are never cached)')
+    cache.add_argument('--grype-cache-dir', type=Path, help='Isolated host directory for scanner downloads')
+    parser.add_argument('--refresh-cache-only', action='store_true',
+                        help='Require a successful online database update; does not audit an image')
     args = parser.parse_args()
     if not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9._/:@-]*', args.image):
         parser.error('Invalid local image reference')
     folder = args.output.resolve()
     folder.mkdir(parents=True, exist_ok=True)
+    if args.grype_cache_dir:
+        args.grype_cache_dir = args.grype_cache_dir.resolve()
+        args.grype_cache_dir.mkdir(parents=True, exist_ok=True)
+        scanner_cache = str(args.grype_cache_dir)
+    else:
+        scanner_cache = args.grype_cache_volume
+    cache_mount = f'{scanner_cache}:/.cache/grype'
+    if args.refresh_cache_only:
+        # Explicit command failures are fatal: a restored old DB must never be
+        # accepted merely because a network refresh could not be performed.
+        subprocess.run(['docker', 'run', '--rm', '--volume', cache_mount, GRYPE, 'db', 'update'], check=True)
+        return 0
     inventory_code = ('import importlib.metadata as m,json; '
                       'print(json.dumps([{"name":d.metadata["Name"],"version":d.version} for d in m.distributions()]))')
     installed = subprocess.run(['docker', 'run', '--rm', '--network', 'none', '--entrypoint', 'python3',
@@ -122,7 +138,7 @@ def main():
         subprocess.run(['docker', 'image', 'save', '--output', str(archive), args.image], check=True)
         # Scan a local archive: no Docker socket, auth file or user home is mounted.
         subprocess.run(['docker', 'run', '--rm', '--volume', f'{folder}:/scan',
-                        '--volume', f'{args.grype_cache_volume}:/.cache/grype', GRYPE,
+                        '--volume', cache_mount, GRYPE,
                         'docker-archive:/scan/image.tar', '--output', 'json',
                         '--file', '/scan/grype.json'], check=True)
     finally:
@@ -132,7 +148,7 @@ def main():
     (folder / 'kev.json').write_text(json.dumps(kev, indent=2), encoding='utf-8')
     blocked = policy_findings(report, validate_kev(kev))
     summary = {'image': args.image, 'scanned_at': datetime.now(timezone.utc).isoformat(),
-               'grype_cache_volume': args.grype_cache_volume,
+               'grype_cache': {'kind': 'directory' if args.grype_cache_dir else 'volume', 'location': scanner_cache},
                'python_findings': python_findings, 'blocked_image_findings': blocked,
                'total_scanner_matches': len(report['matches']),
                'kev_source': source, 'kev_released': kev['dateReleased'],

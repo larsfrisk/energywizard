@@ -19,12 +19,33 @@ runs:
         EW_AUDIT_REQUIREMENTS: ${{ github.action_path }}/requirements.txt
       run: |
         python -m pip --disable-pip-version-check install -r "$EW_AUDIT_REQUIREMENTS"
+    - id: feed-day
+      shell: bash
+      run: printf 'day=%s\n' "$(date -u +%F)" >> "$GITHUB_OUTPUT"
+    - id: grype-downloads
+      uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ${{ runner.temp }}/grype-downloads
+        key: grype-downloads-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('scripts/audit_image.py') }}-${{ steps.feed-day.outputs.day }}
+        restore-keys: |
+          grype-downloads-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('scripts/audit_image.py') }}-
+    - name: Require a fresh online scanner database check
+      shell: bash
+      env:
+        EW_AUDIT_IMAGE: ${{ inputs.image }}
+        EW_AUDIT_SCRIPT: ${{ github.action_path }}/../../../scripts/audit_image.py
+      run: python "$EW_AUDIT_SCRIPT" "$EW_AUDIT_IMAGE" --output "$RUNNER_TEMP/image-audit" --grype-cache-dir "$RUNNER_TEMP/grype-downloads" --refresh-cache-only
     - name: Audit installed packages and CISA KEVs
       shell: bash
       env:
         EW_AUDIT_IMAGE: ${{ inputs.image }}
         EW_AUDIT_SCRIPT: ${{ github.action_path }}/../../../scripts/audit_image.py
-      run: python "$EW_AUDIT_SCRIPT" "$EW_AUDIT_IMAGE" --output "$RUNNER_TEMP/image-audit"
+      run: python "$EW_AUDIT_SCRIPT" "$EW_AUDIT_IMAGE" --output "$RUNNER_TEMP/image-audit" --grype-cache-dir "$RUNNER_TEMP/grype-downloads"
+    - uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      if: success() && steps.grype-downloads.outputs.cache-hit != 'true'
+      with:
+        path: ${{ runner.temp }}/grype-downloads
+        key: ${{ steps.grype-downloads.outputs.cache-primary-key }}
     - name: Retain complete findings and feed evidence
       if: always()
       uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

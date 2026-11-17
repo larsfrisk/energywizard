@@ -5,7 +5,11 @@ then runs the complete installed-package, Grype and CISA policy for every exact
 image. A persistent pip download cache was tested but not retained: paired native
 installs saved about 1–2 seconds, while observed Actions restore/setup overhead
 was 2.9–5.2 seconds. Pip-only savings are not a demonstrated whole-job improvement.
-No scan results or vulnerability feeds are restored from Actions caches. Release
+Only Grype's downloaded database is restored, keyed by pinned audit implementation,
+runner architecture and day. Before every image, an explicit online `grype db update`
+must succeed; a network failure blocks the job. The complete image scan then still
+validates database status and obtains current CISA evidence. Reports/inventories
+are never cached. Release
 `pull`/`no-cache`, daily security builds and publication gates remain unchanged.
 
 `build-benchmarks.yml` measures two fresh virtual environments per cold/warm pip
