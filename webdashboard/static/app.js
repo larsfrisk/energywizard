@@ -329,15 +329,15 @@ const FLOW_COL = { sol: "#fbbf24", nat: "#38bdf8", natut: "#22d3a0", batteri: "#
 const reduceMotion = () => { try { return matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) { return false; } };
 let flowTimer = null;
 
-function flowSvg(d) {                    // delad med mobilappen (smartbox/static/liveflow.js) - samma bild och regler
-  return window.EWLiveFlow ? EWLiveFlow.svg(d, { attrs: (n) => `class="fnode${n.active ? " on" : ""}" data-page="${n.page}"`, hubAttrs: 'class="fnode on" data-page="oversikt"' }) : "";
-}
-
 async function mountFlow(slotId) {
+  let drawing = false;
   const draw = async () => {
+    if (drawing) return;
     const slot = document.getElementById(slotId);
     if (!slot) { clearInterval(flowTimer); return; }
-    let d; try { d = await api("api/flow"); } catch (e) { return; }
+    drawing = true;
+    let d; try { d = await api("api/flow"); } catch (e) { return; } finally { drawing = false; }
+    if (document.getElementById(slotId) !== slot) return;
     if (!d.ok) { slot.innerHTML = ""; return; }
     const whyRows = d.nodes.filter((n) => d.why[n.key]).map((n) => `<div style="display:flex;gap:10px;align-items:baseline;padding-top:8px;border-top:1px solid var(--line)"><span>${esc(n.icon)}</span><div><b>${esc(n.label)}</b> <span class="note" style="font-size:.9rem">${esc(d.why[n.key])}</span></div></div>`).join("");
     // #166: batterisensorn verkar ha omvänt tecken (huset räknas negativt) - föreslå att vända det
@@ -349,10 +349,21 @@ async function mountFlow(slotId) {
         ${bs.battery_implausible ? "" : bs.flip_ok ? ` Batteriets effekt verkar ha omvänt tecken: vänt blir huset ${kw(bs.house_w_flipped)} kW.
           ${bs.locked ? "Tecknet är låst i house_config.yaml (battery.power_invert) - ändra det där." : `<br><button class="icobtn" id="batinv" style="margin-top:8px">Vänd tecknet på batteriets effekt</button>`}`
         : ` Någon av givarna visar fel: kontrollera att nätets effekt är + när du köper och − när du säljer, att solcellerna visar produktionen${bs.battery_w != null ? " och att batteriet är + när det laddar" : ""}, och att enheten (W eller kW) stämmer.`}</div>`;
-    slot.innerHTML = `<div class="card"><div style="display:flex;justify-content:space-between;align-items:baseline"><h2 style="margin:0">⚡ Just nu</h2><span class="note">${esc(d.ts || "")}</span></div>${flowSvg(d)}${signBox}${whyRows ? `<div style="display:grid;gap:8px;margin-top:6px">${whyRows}</div>` : ""}</div>`;
+    if (!slot.querySelector(".flow-graphic")) {
+      slot.innerHTML = `<div class="card"><div style="display:flex;justify-content:space-between;align-items:baseline"><h2 style="margin:0">⚡ Just nu</h2><span class="note flow-time"></span></div><div class="flow-graphic"></div><div class="flow-notes"></div></div>`;
+    }
+    const stamp = slot.querySelector(".flow-time");
+    if (stamp.textContent !== (d.ts || "")) stamp.textContent = d.ts || "";
+    if (window.EWLiveFlow) EWLiveFlow.update(slot.querySelector(".flow-graphic"), d, {
+      attrs: (n) => `class="fnode${n.active ? " on" : ""}" data-page="${n.page}"`,
+      hubAttrs: 'class="fnode on" data-page="oversikt"',
+    });
+    const notes = slot.querySelector(".flow-notes");
+    const notesHtml = `${signBox}${whyRows ? `<div style="display:grid;gap:8px;margin-top:6px">${whyRows}</div>` : ""}`;
+    if (notes._flowHtml !== notesHtml) { notes.innerHTML = notesHtml; notes._flowHtml = notesHtml; }
     const bi = slot.querySelector("#batinv");
     if (bi) bi.onclick = async () => { try { await postJSON("api/battery-invert", {}); toast("Tecknet är vänt - syns i bilden inom en minut"); } catch (e) { toast(e.message); } };
-    slot.querySelectorAll(".fnode[data-page]").forEach((g) => g.addEventListener("click", () => { const pg = g.dataset.page; if (pg && pg !== "oversikt" && PAGES.some((p) => p.id === pg)) openPage(pg); }));
+    slot.querySelectorAll(".fnode[data-page]").forEach((g) => { g.onclick = () => { const pg = g.dataset.page; if (pg && pg !== "oversikt" && PAGES.some((p) => p.id === pg)) openPage(pg); }; });
   };
   clearInterval(flowTimer);
   await draw();
