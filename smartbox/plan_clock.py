@@ -5,7 +5,9 @@ sparas/vilar, kW och nivån efter kvarten), hur mycket varje bil planeras ladda,
 solprognosen. Bygger ingen egen plan - läser motorns sparade planer (battery_plan_slots, ev_plan_slots) och samma
 värmelägen och solprognos som tidslinjen (timeline.py).
 """
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
+import calendar
+import math
 import zoneinfo
 
 import plan_brief
@@ -20,10 +22,32 @@ def _q(ts):
     return ts.replace(minute=ts.minute - ts.minute % 15, second=0, microsecond=0)
 
 
-def build(now, prices, ev_rows=(), bat_rows=(), heat_modes=None, solar_w=None, full_cost=None):
+def _daylight(ts, latitude, longitude):
+    """Approximate visible sun using NOAA's solar-position equations (UTC).
+
+    https://gml.noaa.gov/grad/solcalc/solareqns.PDF
+    Includes the standard 0.833 degree sunrise/refraction allowance.
+    """
+    ts = ts.astimezone(timezone.utc)
+    hour = ts.hour + ts.minute / 60 + ts.second / 3600
+    year_days = 366 if calendar.isleap(ts.year) else 365
+    g = 2 * math.pi / year_days * (ts.timetuple().tm_yday - 1 + (hour - 12) / 24)
+    eq = 229.18 * (0.000075 + 0.001868 * math.cos(g) - 0.032077 * math.sin(g)
+                   - 0.014615 * math.cos(2 * g) - 0.040849 * math.sin(2 * g))
+    decl = (0.006918 - 0.399912 * math.cos(g) + 0.070257 * math.sin(g)
+            - 0.006758 * math.cos(2 * g) + 0.000907 * math.sin(2 * g)
+            - 0.002697 * math.cos(3 * g) + 0.00148 * math.sin(3 * g))
+    angle = math.radians((hour * 60 + eq + 4 * longitude) / 4 - 180)
+    lat = math.radians(latitude)
+    elevation_sine = math.sin(lat) * math.sin(decl) + math.cos(lat) * math.cos(decl) * math.cos(angle)
+    return elevation_sine > math.sin(math.radians(-0.833))
+
+
+def build(now, prices, ev_rows=(), bat_rows=(), heat_modes=None, solar_w=None, full_cost=None, location=None):
     """Ren funktion (testas utan databas).
     prices: [(t, spot)] per kvart eller timme. ev_rows: [(bil, t_slot, kw)]. bat_rows: [(t_slot, action, soc, spot, kw)].
-    heat_modes: {timme: 'CHEAP'|'COMFORT'|'EXPENSIVE'}. solar_w: {timme: W}. full_cost(spot, t) -> totalpris."""
+    heat_modes: {timme: 'CHEAP'|'COMFORT'|'EXPENSIVE'}. solar_w: {timme: W}. full_cost(spot, t) -> totalpris.
+    location: (latitude, longitude), masks solar display in fully dark quarters only."""
     q0 = _q(now)
     end = q0 + timedelta(hours=24)
     spot = {}
@@ -58,6 +82,12 @@ def build(now, prices, ev_rows=(), bat_rows=(), heat_modes=None, solar_w=None, f
             break                                            # inga priser längre fram - klockan slutar där planen slutar
         hour = t.replace(minute=0)
         b = bat.get(t) or {}
+        sun = solar_w.get(hour)
+        if sun is not None and location is not None:
+            # Hourly/learned forecasts can contain stale positive readings at night.
+            # Retain quarters touching sunrise/sunset; never alter the stored forecast or plans.
+            if not any(_daylight(t + offset, *location) for offset in (timedelta(), SLOT / 2, SLOT)):
+                sun = 0
         slots.append({
             "t": t.isoformat(),
             "spot": None if s is None else round(s, 4),
@@ -66,7 +96,7 @@ def build(now, prices, ev_rows=(), bat_rows=(), heat_modes=None, solar_w=None, f
             "bat_balance": b.get("balance", False),
             "ev": ev.get(t) or {},
             "heat": heat_modes.get(hour),
-            "sun_w": solar_w.get(hour),
+            "sun_w": sun,
         })
         t += SLOT
     return {"ok": True, "now": now.astimezone(SWE).isoformat(), "slots": slots}
@@ -103,9 +133,10 @@ def load(conn, now=None, cars=None):
                 s += timedelta(hours=1)
     except Exception:
         conn.rollback()
-    solar = {}
+    solar, location = {}, None
     try:
         import weather
+        location = weather.refresh_location()
         for k in range(0, 25):
             hh = q0.replace(minute=0) + timedelta(hours=k)
             cloud, _, _, _ = weather.get_weather_at(hh)
@@ -115,7 +146,7 @@ def load(conn, now=None, cars=None):
     except Exception:
         pass
     out = build(now, [(r[0], r[1]) for r in prices], [tuple(r) for r in ev_rows], [tuple(r) for r in bat_rows],
-                heat_modes, solar, nordpool.full_buy_cost)
+                heat_modes, solar, nordpool.full_buy_cost, location=location)
     out["cars"] = cars or []
     try:
         out["has_battery"] = bool(bat_rows)

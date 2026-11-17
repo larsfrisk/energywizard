@@ -7,6 +7,39 @@ import plan_clock
 SWE = zoneinfo.ZoneInfo("Europe/Stockholm")
 
 
+def test_november_night_solar_is_hidden_without_changing_plans():
+    now = datetime(2026, 11, 17, 8, tzinfo=SWE)
+    prices = [(now + timedelta(minutes=15 * k), 1.0) for k in range(96)]
+    solar = {now.replace(hour=h): 500 for h in range(8, 24)}
+    bat = [(now.replace(hour=21), "discharge", 45, 1.0, -2.0)]
+    d = plan_clock.build(now, prices, bat_rows=bat, solar_w=solar, location=(57.6797, 14.1293))
+    night = [s for s in d["slots"] if s["t"].startswith("2026-11-17T21:")]
+    assert len(night) == 4 and all(s["sun_w"] == 0 for s in night)
+    assert night[0]["bat"] == "discharge" and night[0]["bat_kw"] == -2.0
+    noon = next(s for s in d["slots"] if s["t"].startswith("2026-11-17T12:00"))
+    assert noon["sun_w"] == 500 and noon["price"] == 1.0
+    assert solar[now.replace(hour=21)] == 500  # original forecast untouched
+    assert d["slots"][-1]["sun_w"] is None  # missing data stays unknown
+
+
+def test_daylight_uses_date_location_and_absolute_time():
+    summer = datetime(2026, 6, 21, 21, tzinfo=SWE)
+    assert plan_clock._daylight(summer, 57.6797, 14.1293)
+    winter = datetime(2026, 11, 17, 21, tzinfo=SWE)
+    assert not plan_clock._daylight(winter, 57.6797, 14.1293)
+    assert plan_clock._daylight(winter, 40.7, -74.0)  # afternoon in New York
+    assert plan_clock._daylight(summer, 69.65, 18.96)  # midnight sun season
+    assert not plan_clock._daylight(datetime(2026, 12, 21, 12, tzinfo=SWE), 69.65, 18.96)
+    assert plan_clock._daylight(winter, 40.7, -74.0) == plan_clock._daylight(
+        winter.astimezone(zoneinfo.ZoneInfo("UTC")), 40.7, -74.0)
+
+
+def test_summer_evening_solar_is_preserved():
+    now = datetime(2026, 6, 21, 21, tzinfo=SWE)
+    d = plan_clock.build(now, [(now, 1.0)], solar_w={now: 500}, location=(57.6797, 14.1293))
+    assert all(s["sun_w"] == 500 for s in d["slots"][:4])
+
+
 def test_kvartar_med_plan():
     now = datetime(2026, 11, 5, 17, 37, tzinfo=SWE)
     q0 = datetime(2026, 11, 5, 17, 30, tzinfo=SWE)
