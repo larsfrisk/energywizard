@@ -13,11 +13,14 @@ att automatisera headless. Så här gör du:
 4. Webbläsaren hamnar på en sida som inte laddar (localhost/callback) - det är
    okej, kopiera bara "code"-parametern ur adressfältet och klistra in den när
    skriptet frågar.
-5. Skriptet skriver ut en refresh_token - klistra in den som MYUPLINK_REFRESH_TOKEN
-   i din .env.
+5. Skriptet sparar inloggningsuppgifterna i myuplink.env (eller --output FIL),
+   en ny lokal fil med rättighet 0600. Flytta dem till din lokala .env utan att
+   dela filen. Befintliga filer skrivs aldrig över och hemligheter skrivs inte ut.
 """
 import os
 import sys
+import argparse
+import json
 import urllib.parse
 
 import requests
@@ -28,7 +31,20 @@ REDIRECT_URI = os.environ.get("MYUPLINK_REDIRECT_URI", "https://localhost/callba
 SCOPE = "READSYSTEM WRITESYSTEM offline_access"
 
 
+def save_credentials(path, refresh_token):
+    """Create a private local env file without exposing tokens in terminal logs."""
+    values = {"MYUPLINK_CLIENT_ID": CLIENT_ID, "MYUPLINK_CLIENT_SECRET": CLIENT_SECRET,
+              "MYUPLINK_REFRESH_TOKEN": refresh_token}
+    fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    with os.fdopen(fd, "w", encoding="utf-8") as target:
+        for key, value in values.items():
+            target.write(key + "=" + json.dumps(value) + "\n")
+
+
 def main():
+    parser = argparse.ArgumentParser(description="Authorize myUplink and save credentials locally")
+    parser.add_argument("--output", default="myuplink.env", help="New private env file (must not already exist)")
+    args = parser.parse_args()
     if not (CLIENT_ID and CLIENT_SECRET):
         print("Sätt MYUPLINK_CLIENT_ID och MYUPLINK_CLIENT_SECRET (från dev.myuplink.com) först.")
         sys.exit(1)
@@ -47,10 +63,8 @@ def main():
     }, timeout=10)
     r.raise_for_status()
     d = r.json()
-    print("\nKlart. Lägg till i .env:\n")
-    print(f"MYUPLINK_CLIENT_ID={CLIENT_ID}")
-    print(f"MYUPLINK_CLIENT_SECRET={CLIENT_SECRET}")
-    print(f"MYUPLINK_REFRESH_TOKEN={d['refresh_token']}")
+    save_credentials(args.output, d["refresh_token"])
+    print("\nKlart. Inloggningsuppgifterna är sparade i den lokala env-filen. Dela eller checka inte in filen.")
 
 
 if __name__ == "__main__":

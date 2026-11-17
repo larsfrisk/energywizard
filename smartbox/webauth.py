@@ -6,9 +6,8 @@ ett nytt - signerad HMAC-cookie, tre roller (owner/family/guest), inget
 serversidigt sessionslager.
 
 Varje app skapar sin egen Auth-instans med ett eget `salt` (håller cookien
-skild mellan apparna, och - för ewapp specifikt - bevarar exakt samma SECRET
-som innan flytten, "ewapp|"+PASSWORD, så befintliga inloggningar inte blir
-ogiltiga). `family_write_prefixes` låter varje app bestämma vilka skriv-vägar
+skild mellan apparna). Sessionsnyckeln använder PBKDF2; byte från den äldre
+SHA256-härledningen kräver ny inloggning. `family_write_prefixes` låter varje app bestämma vilka skriv-vägar
 en "family"-användare (inte ägaren) får nå - det är appspecifikt routing, inte
 generisk autentisering, så det ligger kvar som en parameter, inte hårdkodat här.
 """
@@ -17,6 +16,7 @@ import hmac
 import ipaddress
 import os
 import time
+from functools import lru_cache
 
 from fastapi import HTTPException, Request
 from fastapi.responses import JSONResponse
@@ -43,6 +43,17 @@ def owner_password() -> str:
         return ""
 
 
+@lru_cache(maxsize=8)
+def session_key(password: str, purpose: str) -> bytes:
+    """Password stretching for shared, purpose-separated session signing keys.
+
+    v2 intentionally invalidates old SHA256-derived cookies. Cache only the
+    configured credentials, never failed login attempts or submitted passwords.
+    """
+    return hashlib.pbkdf2_hmac("sha256", password.encode(),
+                               ("EnergyWizard/session/v2/" + purpose).encode(), 600_000)
+
+
 class Auth:
     def __init__(self, salt: str, family_write_prefixes: tuple = (), cookie: str = "ew"):
         self._salt = salt
@@ -56,7 +67,7 @@ class Auth:
     def secret(self) -> bytes:
         # Räknas om varje gång: när startguiden satt lösenordet gäller det direkt, och ett nytt
         # lösenord loggar ut alla gamla kakor.
-        return hashlib.sha256((self._salt + "|" + owner_password()).encode()).digest()
+        return session_key(owner_password(), self._salt)
 
     def sign(self, exp: int, role: str = "owner", user: str = "") -> str:
         user = (user or role).replace(".", "_")
@@ -125,7 +136,8 @@ class Auth:
         if user.lower() in ("", "admin") and owner_pw and hmac.compare_digest(pw, owner_pw):
             role, who = "owner", "owner"
         elif user.lower() in EXTRA_USERS and hmac.compare_digest(pw, EXTRA_USERS[user.lower()]):
-            role, who = EXTRA_ROLES.get(user.lower(), "family"), user.lower()
+            canonical = next(name for name in EXTRA_USERS if name == user.lower())
+            role, who = EXTRA_ROLES.get(canonical, "family"), canonical
         elif GUEST_USER and GUEST_PASS and hmac.compare_digest(user.lower(), GUEST_USER.lower()) and hmac.compare_digest(pw, GUEST_PASS):
             role, who = "guest", GUEST_USER.lower()
         if not role:

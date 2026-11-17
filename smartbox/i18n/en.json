@@ -2803,5 +2803,15 @@
  "Nästa badtid lör #:#": "Next bathing time Sat #:#",
  "Nästa badtid sön #:#": "Next bathing time Sun #:#",
  "Bilen laddar": "Car charging",
- "Konfigurationen kunde inte uppdateras. Den befintliga filen har inte ändrats.": "The configuration could not be updated. The existing file has not been changed."
+ "Konfigurationen kunde inte uppdateras. Den befintliga filen har inte ändrats.": "The configuration could not be updated. The existing file has not been changed.",
+ "Nådde inte ewapp": "Could not reach the mobile app",
+ "Kunde inte läsa Home Assistant": "Could not read Home Assistant",
+ "Kunde inte nå Watchtower": "Could not reach Watchtower",
+ "Kunde inte nå telemetrisamlaren": "Could not reach the telemetry collector",
+ "Kunde inte skanna Home Assistant": "Could not scan Home Assistant",
+ "Kunde inte söka på nätverket": "Could not scan the network",
+ "Den genererade filen gick inte att läsa in": "Could not load the generated configuration",
+ "Kan inte nå Home Assistant": "Cannot reach Home Assistant",
+ "Home Assistant svarar inte": "Home Assistant is not responding",
+ "Home Assistant svarade inte": "Home Assistant did not respond"
 }

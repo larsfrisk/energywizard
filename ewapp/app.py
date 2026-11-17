@@ -11,6 +11,7 @@ from fastapi.staticfiles import StaticFiles
 from sqlalchemy import create_engine, text
 
 import homeassistant as H
+from webauth import session_key
 from local_sql import local_sql
 import timed_override   # #397: varmvatten "Till" med tid
 
@@ -21,7 +22,7 @@ except ImportError:                   # äldre smartbox/ på värden: bara DASHB
     ew_settings = None
 _ENV_PASSWORD = os.environ.get("DASHBOARD_PASSWORD", "")
 PASSWORD = _ENV_PASSWORD or (ew_settings.get("dashboard_password", "") if ew_settings else "") or ""
-SECRET = hashlib.sha256(("ewapp|" + PASSWORD).encode()).digest()
+SECRET = session_key(PASSWORD, "ewapp")
 
 
 def _sync_password():
@@ -32,7 +33,7 @@ def _sync_password():
         return
     pw = ew_settings.get("dashboard_password", "") or ""
     if pw != PASSWORD:
-        PASSWORD, SECRET = pw, hashlib.sha256(("ewapp|" + pw).encode()).digest()
+        PASSWORD, SECRET = pw, session_key(pw, "ewapp")
 ENGINE = create_engine(f"postgresql+psycopg://{os.environ['POSTGRES_USER']}:{os.environ['POSTGRES_PASSWORD']}@{os.environ.get('POSTGRES_HOST', 'postgres-smartbox')}/{os.environ['POSTGRES_DB']}", pool_pre_ping=True, pool_size=3)
 
 # Bilarna och deras laddboxar kommer från installationen (house_config.yaml, evs[]) - inga bilar eller entiteter är
@@ -235,7 +236,8 @@ async def login(request: Request):
     if user.lower() in ("", "admin") and PASSWORD and hmac.compare_digest(pw, PASSWORD):
         role, who = "owner", "owner"
     elif user.lower() in EXTRA_USERS and hmac.compare_digest(pw, EXTRA_USERS[user.lower()]):
-        role, who = EXTRA_ROLES.get(user.lower(), "family"), user.lower()
+        canonical = next(name for name in EXTRA_USERS if name == user.lower())
+        role, who = EXTRA_ROLES.get(canonical, "family"), canonical
     elif GUEST_USER and GUEST_PASS and hmac.compare_digest(user.lower(), GUEST_USER.lower()) and hmac.compare_digest(pw, GUEST_PASS):
         role, who = "guest", GUEST_USER.lower()
     if not role:
@@ -695,7 +697,7 @@ def state(request: Request):
     try:
         st = states()
     except Exception as e:
-        return {**currency, "ok": False, "role": _role(request), "error": f"Kan inte nå Home Assistant: {e}", "cars": [], "price": {}, "health": [f"Home Assistant svarar inte ({str(e)[:60]})"]}
+        return {**currency, "ok": False, "role": _role(request), "error": "Kan inte nå Home Assistant", "cars": [], "price": {}, "health": ["Home Assistant svarar inte"]}
     ov = overrides()
     health = []
     for e in WATCH:
@@ -917,6 +919,8 @@ SETTING_RULES = {  # kolumn: (typ, min, max, steg)
     "legionella_days": ("int", 3, 60, 1), "legionella_temp": ("float", 55.0, 65.0, 1.0),
     "notify_spa_ready": ("bool",), "notify_ev_start": ("bool",), "notify_washer_start": ("bool",), "notify_spa_open": ("bool",),
 }
+SETTING_UPDATES = {column: text(f"UPDATE system_settings SET {column} = :v WHERE id = 1")
+                   for column in SETTING_RULES}
 
 
 def get_settings_row() -> dict:
@@ -1051,7 +1055,7 @@ async def set_setting(request: Request):
     if key == "power_limit_kw" and not get_settings_row().get("peak_shaving_enabled"):
         raise HTTPException(409, "Effektgränsen gäller bara när effektvakten är på")
     with ENGINE.begin() as c:
-        c.execute(text(f"UPDATE system_settings SET {key} = :v WHERE id = 1"), {"v": v})
+        c.execute(SETTING_UPDATES[key], {"v": v})
     print(f"⚙️ ewapp: {key} = {v}", flush=True)
     logact(request, f"Inställning: {key} = {v}")
     return {"ok": True, "value": v}
@@ -1766,7 +1770,7 @@ def _lights_work(a, who_req_log):
                 # homeassistant.turn_on/off: fungerar för både lampor och reläer (switch.*, t.ex. Shelly) i samma anrop
                 requests.post(f"{H._BASE}/services/homeassistant/{svc}", headers=H._HEADERS, json={"entity_id": batch}, timeout=15, verify=False).raise_for_status()
         except Exception as e:
-            raise HTTPException(502, f"Home Assistant svarade inte: {str(e)[:60]}")
+            raise HTTPException(502, "Home Assistant svarade inte")
         for _ in range(8):
             time.sleep(0.8)
             _cache["t"] = 0.0

@@ -8,6 +8,7 @@
 import json
 import os
 import re
+from pathlib import Path
 
 from fastapi.responses import FileResponse, JSONResponse
 
@@ -54,7 +55,13 @@ def register(app):
 
     @app.get("/i18n/{name}")
     def i18n_file(name: str):
-        if not _NAME.match(name) or not os.path.isfile(os.path.join(DIR, name)):
+        root = Path(DIR).resolve()
+        # Request values select only existing trusted directory entries. They
+        # are never concatenated into filesystem paths (including error paths).
+        files = {p.name: p.resolve() for p in root.iterdir()
+                 if _NAME.fullmatch(p.name) and p.is_file() and p.resolve().is_relative_to(root)}
+        path = files.get(name)
+        if path is None:
             return JSONResponse({"detail": "Finns inte"}, status_code=404)
-        kind = "application/javascript" if name.endswith(".js") else "application/json"
-        return FileResponse(os.path.join(DIR, name), media_type=kind, headers={"Cache-Control": "no-cache"})
+        kind = "application/javascript" if path.suffix == ".js" else "application/json"
+        return FileResponse(path, media_type=kind, headers={"Cache-Control": "no-cache"})

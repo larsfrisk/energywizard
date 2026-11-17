@@ -9,6 +9,9 @@ on:
     paths: ["smartbox/lua_host.py", "smartbox/ftw_drivers/**", "smartbox/drivers/ftw_device.py", "tests/simulator/**", ".github/workflows/simulator.yml"]
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   ftw-mot-simulatorn:
     runs-on: ubuntu-latest

@@ -747,7 +747,7 @@ async function reportSheet() {
 }
 function spaReadySheet() {
   const sp = H && H.spa || {}; let temp = sp.ready_temp || 38; const dflt = new Date(Date.now() + 86400000); dflt.setHours(18, 0, 0, 0); let when = new Date(dflt.getTime() - dflt.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
-  const draw = () => sheet(`<h3>Spabadet klart till…</h3><div class="note">${sp.ready_at ? `Nu satt: ${esc(sp.ready_at)} – ${f1(sp.ready_temp)}°` : "Ingen tid satt just nu."}</div><div class="setrow"><span>Klart</span><input id="sw" type="datetime-local" value="${when}" style="font-size:16px;padding:6px 8px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--txt)"></div>
+  const draw = () => sheet(`<h3>Spabadet klart till…</h3><div class="note">${sp.ready_at ? `Nu satt: ${esc(sp.ready_at)} – ${f1(sp.ready_temp)}°` : "Ingen tid satt just nu."}</div><div class="setrow"><span>Klart</span><input id="sw" type="datetime-local" value="${esc(when)}" style="font-size:16px;padding:6px 8px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--txt)"></div>
   <div class="setrow"><span>Temperatur</span><div class="step"><button data-v="t-">−</button><span>${f1(temp)}°</span><button data-v="t+">+</button></div></div><div class="seg"><button data-v="go">Spara</button><button data-v="off">Stäng av tidsstyrning</button></div>`);
   draw();
   $("#sheet").onclick = async (e) => { const b = e.target.closest("[data-v]"); if (!b) { if (e.target.id === "sheet") closeSheet(); return; } const v = b.dataset.v; const w = $("#sw"); if (w) when = w.value || when;
