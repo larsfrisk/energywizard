@@ -14,6 +14,7 @@ modellen. Jämför skillnaden mellan strategierna, inte de absoluta kronorna.
 
     docker exec smartbox python spa_bath_backtest.py --days 60
 """
+from local_sql import local_sql
 import argparse
 import math
 from datetime import datetime, timedelta
@@ -139,13 +140,13 @@ def main():
     t_hold = float(cfg.get("spa_normal_temp") or 38.0)
     t_low = float(cfg.get("spa_low_temp") or 30.0)
     with logger.get_db() as conn, conn.cursor() as cur:
-        cur.execute("""SELECT timestamp AT TIME ZONE 'Europe/Stockholm', spa_temp, COALESCE(spa_heater_running::int, 0), spa_power_w, outdoor_temp
-                       FROM sensor_log WHERE timestamp > now() - make_interval(days => %s) AND spa_temp IS NOT NULL ORDER BY timestamp""", (args.days,))
+        cur.execute(local_sql("""SELECT timestamp AT TIME ZONE __EW_TIMEZONE__, spa_temp, COALESCE(spa_heater_running::int, 0), spa_power_w, outdoor_temp
+                       FROM sensor_log WHERE timestamp > now() - make_interval(days => %s) AND spa_temp IS NOT NULL ORDER BY timestamp"""), (args.days,))
         rows = [(r[0], float(r[1]), int(r[2] or 0), float(r[3]) if r[3] is not None else None,
                  float(r[4]) if r[4] is not None else None) for r in cur.fetchall()]
-        cur.execute("""SELECT date_trunc('hour', timestamp AT TIME ZONE 'Europe/Stockholm') + floor(extract(minute from timestamp)/15) * interval '15 min',
+        cur.execute(local_sql("""SELECT date_trunc('hour', timestamp AT TIME ZONE __EW_TIMEZONE__) + floor(extract(minute from timestamp)/15) * interval '15 min',
                               avg(price), avg(outdoor_temp)
-                       FROM sensor_log WHERE timestamp > now() - make_interval(days => %s) GROUP BY 1 ORDER BY 1""", (args.days,))
+                       FROM sensor_log WHERE timestamp > now() - make_interval(days => %s) GROUP BY 1 ORDER BY 1"""), (args.days,))
         steps = [(r[0], float(r[1]) if r[1] is not None else None, float(r[2]) if r[2] is not None else None) for r in cur.fetchall()]
     import zoneinfo
     swe = zoneinfo.ZoneInfo("Europe/Stockholm")

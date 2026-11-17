@@ -21,6 +21,7 @@ köra över mätning eller konfigurerade gränser). Annars används configens v�
 Rena funktioner testas i tests/test_battery_learning.py; learn_from_db() läser databasen.
 """
 
+from local_sql import local_sql
 import math
 from datetime import datetime
 
@@ -308,22 +309,22 @@ def learn_from_db(engine, configured, days=21, *, as_of=None):
         rows = c.execute(text(f"""SELECT extract(epoch FROM timestamp), battery_soc, battery_power_w, net_power, price
                                  FROM sensor_log WHERE timestamp > now() - make_interval(days => :d)
                                    AND battery_soc IS NOT NULL {guard} ORDER BY timestamp"""), args).fetchall()
-        solar = c.execute(text(f"""SELECT extract(hour FROM timestamp AT TIME ZONE 'Europe/Stockholm')::int,
+        solar = c.execute(text(local_sql(f"""SELECT extract(hour FROM timestamp AT TIME ZONE __EW_TIMEZONE__)::int,
                                          avg(solar_forecast_w), avg(pv_power_w)
                                   FROM sensor_log WHERE timestamp > now() - make_interval(days => :d)
                                     AND solar_forecast_w IS NOT NULL AND pv_power_w IS NOT NULL {guard}
-                                  GROUP BY date_trunc('hour', timestamp), 1"""), args).fetchall()
-        load = c.execute(text(f"""SELECT extract(isodow FROM h)::int - 1, extract(hour FROM h)::int, kw FROM (
-                                    SELECT date_trunc('hour', timestamp AT TIME ZONE 'Europe/Stockholm') AS h,
+                                  GROUP BY date_trunc('hour', timestamp), 1""")), args).fetchall()
+        load = c.execute(text(local_sql(f"""SELECT extract(isodow FROM h)::int - 1, extract(hour FROM h)::int, kw FROM (
+                                    SELECT date_trunc('hour', timestamp AT TIME ZONE __EW_TIMEZONE__) AS h,
                                            avg(GREATEST(0, COALESCE(house_consumption_w, net_power + COALESCE(pv_power_w, 0)
                                                 - COALESCE(battery_power_w, 0))) / 1000.0
                                                - COALESCE(ev_power_kw, 0) - COALESCE(ev_carport_power_kw, 0)) AS kw
-                                    FROM sensor_log WHERE timestamp > now() - interval '28 days' {guard} GROUP BY 1) t"""
+                                    FROM sensor_log WHERE timestamp > now() - interval '28 days' {guard} GROUP BY 1) t""")
                                  ), args).fetchall()
-        y = c.execute(text(f"""SELECT extract(epoch FROM timestamp), net_power, battery_power_w, price FROM sensor_log
-                              WHERE timestamp >= date_trunc('day', now() AT TIME ZONE 'Europe/Stockholm') AT TIME ZONE 'Europe/Stockholm' - interval '1 day'
-                                AND timestamp < date_trunc('day', now() AT TIME ZONE 'Europe/Stockholm') AT TIME ZONE 'Europe/Stockholm'
-                              {guard} ORDER BY timestamp"""), args).fetchall()
+        y = c.execute(text(local_sql(f"""SELECT extract(epoch FROM timestamp), net_power, battery_power_w, price FROM sensor_log
+                              WHERE timestamp >= (date_trunc('day', now() AT TIME ZONE __EW_TIMEZONE__) - interval '1 day') AT TIME ZONE __EW_TIMEZONE__
+                                AND timestamp < date_trunc('day', now() AT TIME ZONE __EW_TIMEZONE__) AT TIME ZONE __EW_TIMEZONE__
+                              {guard} ORDER BY timestamp""")), args).fetchall()
     f = lambda v: float(v) if v is not None else None
     samples = [(float(ts), f(soc), f(p)) for ts, soc, p, _, _ in rows]
     model = learn(samples, [(h, f(fc), f(a)) for h, fc, a in solar], configured)

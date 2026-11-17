@@ -16,6 +16,7 @@ Dygnen räknas i svensk tid. daily_rows() läser databasen; build_day()/summariz
 tests/test_savings.py.
 """
 
+from local_sql import local_sql
 from sqlalchemy import text
 
 # Andel av dygnets förbrukning per timme (00-23) i ett typiskt svenskt småhus utan styrning (vinterhalvår, normerad
@@ -24,9 +25,9 @@ PROFILE = [2.6, 2.3, 2.2, 2.2, 2.3, 2.8, 3.8, 4.8, 4.9, 4.4, 4.1, 4.0, 3.9, 3.8,
 _PS = sum(PROFILE)
 PROFILE = [p / _PS for p in PROFILE]
 
-_HOURLY_SQL = text("""
-    SELECT (timestamp AT TIME ZONE 'Europe/Stockholm')::date AS d,
-           extract(hour FROM timestamp AT TIME ZONE 'Europe/Stockholm')::int AS h,
+_HOURLY_SQL = """
+    SELECT (timestamp AT TIME ZONE __EW_TIMEZONE__)::date AS d,
+           extract(hour FROM timestamp AT TIME ZONE __EW_TIMEZONE__)::int AS h,
            avg(price) AS p,
            sum(GREATEST(net_power, 0)) / 60000.0 AS kwh,
            sum(GREATEST(net_power, 0) * price) / 60000.0 AS cost
@@ -35,7 +36,7 @@ _HOURLY_SQL = text("""
       AND timestamp >= now() - make_interval(days => :days)
     GROUP BY 1, 2
     ORDER BY 1, 2
-""")
+"""
 
 
 def vat_factor() -> float:
@@ -64,7 +65,7 @@ def daily_rows(conn, days=40, min_hours=12):
     """[{day, kwh, day_avg (profilpris), paid_avg, saved_kr, would_cost_kr}] för de senaste dagarna. min_hours: så många
     timmar med data krävs för att ett dygn ska räknas (12 för hela dygn; 1 för "idag hittills")."""
     by_day = {}
-    for d, h, p, k, c in conn.execute(_HOURLY_SQL, {"days": int(days)}).fetchall():
+    for d, h, p, k, c in conn.execute(text(local_sql(_HOURLY_SQL)), {"days": int(days)}).fetchall():
         by_day.setdefault(d, []).append((h, p, k, c))
     vf = vat_factor()
     out = []
@@ -131,15 +132,15 @@ def summarize_periods(rows, today):
 def _money_sql():
     import nordpool
     buy, sell = nordpool.sql_buy_cost_expr("price", "timestamp"), nordpool.sql_sell_income_expr("price")
-    return text(f"""
-        SELECT (timestamp AT TIME ZONE 'Europe/Stockholm')::date AS d,
+    return text(local_sql(f"""
+        SELECT (timestamp AT TIME ZONE __EW_TIMEZONE__)::date AS d,
                sum(GREATEST(net_power, 0)) / 60000.0 AS bought_kwh,
                sum(GREATEST(net_power, 0) * {buy}) / 60000.0 AS cost,
                sum(GREATEST(-net_power, 0)) / 60000.0 AS sold_kwh,
                sum(GREATEST(-net_power, 0) * {sell}) / 60000.0 AS income
         FROM sensor_log
         WHERE net_power IS NOT NULL AND price IS NOT NULL AND timestamp >= now() - make_interval(days => :days)
-        GROUP BY 1 ORDER BY 1""")
+        GROUP BY 1 ORDER BY 1"""))
 
 
 def money_rows(conn, days=40):

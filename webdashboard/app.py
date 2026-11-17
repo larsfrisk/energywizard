@@ -30,6 +30,7 @@ from sqlalchemy import create_engine, text
 import webauth
 import discovery
 import house_config
+from local_sql import local_sql
 import car_log
 import pump
 from image_updates import ImageUpdates
@@ -563,8 +564,8 @@ async def shadow_get():
     import shadow
     try:
         with ENGINE.connect() as c:
-            rows = c.execute(text("SELECT ts AT TIME ZONE 'Europe/Stockholm', what, detail FROM shadow_actions "
-                                  "ORDER BY ts DESC LIMIT 60")).fetchall()
+            rows = c.execute(text(local_sql("SELECT ts AT TIME ZONE __EW_TIMEZONE__, what, detail FROM shadow_actions "
+                                  "ORDER BY ts DESC LIMIT 60"))).fetchall()
     except Exception:          # tabellen finns först när något loggats
         rows = []
     try:
@@ -847,10 +848,10 @@ async def capacity_tariff_get():
     from datetime import datetime
     cfg = ew_settings.get("capacity_tariff") or {}
     with ENGINE.connect() as c:
-        rows = c.execute(text("""SELECT (h AT TIME ZONE 'Europe/Stockholm')::date, kw FROM (
+        rows = c.execute(text(local_sql("""SELECT (h AT TIME ZONE __EW_TIMEZONE__)::date, kw FROM (
                                    SELECT date_trunc('hour', timestamp) h, avg(GREATEST(net_power, 0)) / 1000.0 kw FROM sensor_log
-                                   WHERE timestamp >= date_trunc('month', now() AT TIME ZONE 'Europe/Stockholm') AT TIME ZONE 'Europe/Stockholm'
-                                     AND timestamp < date_trunc('hour', now()) GROUP BY 1) x""")).fetchall()
+                                   WHERE timestamp >= date_trunc('month', now() AT TIME ZONE __EW_TIMEZONE__) AT TIME ZONE __EW_TIMEZONE__
+                                     AND timestamp < date_trunc('hour', now()) GROUP BY 1) x"""))).fetchall()
     peaks = [(d, float(k or 0)) for d, k in rows]
     today = datetime.now(zoneinfo.ZoneInfo("Europe/Stockholm")).date()
     n, distinct = int(cfg.get("top_n") or 3), cfg.get("distinct_days", True) is not False
@@ -1229,7 +1230,7 @@ async def overview(request: Request):
     bakom ett JSON-API istället för Streamlit-rendering)."""
     with ENGINE.connect() as c:
         row = c.execute(text(
-            "SELECT *, timestamp AT TIME ZONE 'Europe/Stockholm' AS sthlm_time FROM sensor_log ORDER BY timestamp DESC LIMIT 1"
+            local_sql("SELECT *, timestamp AT TIME ZONE __EW_TIMEZONE__ AS sthlm_time FROM sensor_log ORDER BY timestamp DESC LIMIT 1")
         )).mappings().first()
         price_hist = c.execute(text(
             "SELECT time_start, sek_per_kwh FROM elpriser WHERE time_start >= now() - interval '24 hours' ORDER BY time_start"
@@ -1345,7 +1346,7 @@ def _latest_row(c):
     """Senaste raden i sensor_log som dict - delad av alla de nya datasidorna nedan
     istället för att varje endpoint skriver om samma SELECT * ... LIMIT 1."""
     row = c.execute(text(
-        "SELECT *, timestamp AT TIME ZONE 'Europe/Stockholm' AS sthlm_time FROM sensor_log ORDER BY timestamp DESC LIMIT 1"
+        local_sql("SELECT *, timestamp AT TIME ZONE __EW_TIMEZONE__ AS sthlm_time FROM sensor_log ORDER BY timestamp DESC LIMIT 1")
     )).mappings().first()
     return dict(row) if row else None
 
@@ -1424,8 +1425,8 @@ async def api_car():
             "SELECT car_id, SUM(kw) / 4.0 AS kwh FROM ev_plan_slots WHERE t_slot::date = CURRENT_DATE GROUP BY car_id"   # 15-min-slottar: kW × 0,25 h
         )).mappings().all()
         try:
-            slots = c.execute(text("SELECT car_id, t_slot, kw, start_soc, end_soc FROM ev_plan_slots "
-                                   "WHERE t_slot >= (now() AT TIME ZONE 'Europe/Stockholm') - interval '15 minutes' ORDER BY t_slot")).fetchall()
+            slots = c.execute(text(local_sql("SELECT car_id, t_slot, kw, start_soc, end_soc FROM ev_plan_slots "
+                                   "WHERE t_slot >= (now() AT TIME ZONE __EW_TIMEZONE__) - interval '15 minutes' ORDER BY t_slot"))).fetchall()
             plan_prices = c.execute(text("SELECT time_start, sek_per_kwh FROM elpriser WHERE time_start >= now() - interval '1 hour' "
                                          "AND time_start < now() + interval '36 hours' ORDER BY time_start")).fetchall()
         except Exception:
@@ -1482,8 +1483,8 @@ async def api_solar():
         price_24h = _price_24h(c)
         ov = _overrides(c, ("solar_auto_export", "notify_solar_limit"))
         # Dagens produktion: växelriktarens egen räknare om den finns, annars uppmätt effekt minut för minut.
-        pv_today = c.execute(text("SELECT sum(pv_power_w) / 60000.0 FROM sensor_log WHERE pv_power_w > 0 AND "
-                                  "timestamp >= date_trunc('day', now() AT TIME ZONE 'Europe/Stockholm') AT TIME ZONE 'Europe/Stockholm'")).scalar()
+        pv_today = c.execute(text(local_sql("SELECT sum(pv_power_w) / 60000.0 FROM sensor_log WHERE pv_power_w > 0 AND "
+                                  "timestamp >= date_trunc('day', now() AT TIME ZONE __EW_TIMEZONE__) AT TIME ZONE __EW_TIMEZONE__"))).scalar()
     auto = str(ov.get("solar_auto_export", "true")).lower() != "false"
     price_now = _n(row.get("price"))
     return {"ok": True, "pv_power_w": _n(row.get("pv_power_w")),
@@ -1549,9 +1550,9 @@ async def api_plan():
     now = datetime.now(zoneinfo.ZoneInfo("Europe/Stockholm"))
     with ENGINE.connect() as c:
         prices = c.execute(text(
-            "SELECT time_start, sek_per_kwh FROM elpriser "
-            "WHERE time_start >= date_trunc('day', now() AT TIME ZONE 'Europe/Stockholm') AT TIME ZONE 'Europe/Stockholm' "
-            "ORDER BY time_start")).fetchall()
+            local_sql("SELECT time_start, sek_per_kwh FROM elpriser "
+            "WHERE time_start >= date_trunc('day', now() AT TIME ZONE __EW_TIMEZONE__) AT TIME ZONE __EW_TIMEZONE__ "
+            "ORDER BY time_start"))).fetchall()
         try:
             ev_rows = c.execute(text("SELECT car_id, t_slot, kw FROM ev_plan_slots")).fetchall()
         except Exception:
@@ -1804,9 +1805,9 @@ async def api_spa():
         cfg = _settings_row(c, ("spa_force_heat", "spa_normal_temp", "spa_max_temp", "spa_low_temp",
                                 "spa_schedule_enabled", "spa_target_datetime", "spa_target_temp"))
         ov = _overrides(c, ("spa_force_eco",))
-        hist = c.execute(text("""SELECT date_trunc('hour', timestamp AT TIME ZONE 'Europe/Stockholm') h, avg(spa_temp), avg(spa_target),
+        hist = c.execute(text(local_sql("""SELECT date_trunc('hour', timestamp AT TIME ZONE __EW_TIMEZONE__) h, avg(spa_temp), avg(spa_target),
                                         avg(spa_heater_running::int) FROM sensor_log WHERE timestamp > now() - interval '24 hours'
-                                 GROUP BY 1 ORDER BY 1""")).fetchall()
+                                 GROUP BY 1 ORDER BY 1"""))).fetchall()
     return {"ok": True, "temp": _n(row.get("spa_temp")), "target": _n(row.get("spa_target")),
             "heater_running": bool(row.get("spa_heater_running")), "power_w": _n(row.get("spa_power_w")),
             "signal_pct": _n(row.get("spa_signal_pct")), "rf_channel": _n(row.get("spa_rf_channel")),

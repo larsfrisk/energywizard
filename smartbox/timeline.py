@@ -19,6 +19,7 @@ kopplas till bilnamn på samma sätt som resten av gränssnittet (CHARGER_CAR). 
 och testas i tests/test_timeline.py; load() läser databasen.
 """
 
+from local_sql import local_sql, installation_timezone
 from datetime import datetime, timedelta
 import zoneinfo
 
@@ -32,6 +33,7 @@ CAR_COLORS = ["#22d3a0", "#38bdf8", "#a78bfa", "#f472b6"]
 
 
 def _hour(ts):
+    SWE = installation_timezone()
     ts = ts.astimezone(SWE) if ts.tzinfo else ts.replace(tzinfo=SWE)
     return ts.replace(minute=0, second=0, microsecond=0)
 
@@ -129,15 +131,16 @@ def load(conn, now=None, cars=None, has_spa=None, has_heat=None):
     from sqlalchemy import text
     import nordpool
     import plan_brief
+    SWE = installation_timezone()
     now = (now or datetime.now(SWE)).astimezone(SWE)
     h0 = _hour(now)
 
     past = {}
-    rows = conn.execute(text("""
-        SELECT date_trunc('hour', timestamp AT TIME ZONE 'Europe/Stockholm') AS h,
+    rows = conn.execute(text(local_sql("""
+        SELECT date_trunc('hour', timestamp AT TIME ZONE __EW_TIMEZONE__) AS h,
                avg(price), avg(pv_power_w), avg(compressor_running), avg(spa_heater_running::int),
                avg(ev_power_kw), avg(ev_carport_power_kw), avg(battery_power_w)
-        FROM sensor_log WHERE timestamp >= :start GROUP BY 1 ORDER BY 1"""),
+        FROM sensor_log WHERE timestamp >= :start GROUP BY 1 ORDER BY 1""")),
         {"start": h0 - timedelta(hours=24)}).fetchall()
     f = lambda v: float(v) if v is not None else None
     for h, pr, pv, comp, spa, ev1, ev2, bat in rows:

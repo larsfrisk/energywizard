@@ -10,6 +10,7 @@ Visas i appen (Historik) och på webben (Historik) med samma sammanfattning (sum
 
 I skuggläge beställs ingenting, och då sparas inget heller.
 """
+from local_sql import local_sql
 from datetime import timedelta
 
 KEEP_DAYS = 30
@@ -111,10 +112,10 @@ def record(get_db, checks, now_ts: float) -> None:
 
 
 SQL_DAY = """SELECT ts, device, ok, ordered, actual, note FROM control_journal
-             WHERE ts >= (date_trunc('day', NOW() AT TIME ZONE 'Europe/Stockholm') - make_interval(days => :back))
-                          AT TIME ZONE 'Europe/Stockholm'
-               AND ts <  (date_trunc('day', NOW() AT TIME ZONE 'Europe/Stockholm') - make_interval(days => :back - 1))
-                          AT TIME ZONE 'Europe/Stockholm'
+             WHERE ts >= (date_trunc('day', NOW() AT TIME ZONE __EW_TIMEZONE__) - make_interval(days => :back))
+                          AT TIME ZONE __EW_TIMEZONE__
+               AND ts <  (date_trunc('day', NOW() AT TIME ZONE __EW_TIMEZONE__) - make_interval(days => :back - 1))
+                          AT TIME ZONE __EW_TIMEZONE__
              ORDER BY ts"""
 
 
@@ -122,7 +123,7 @@ def day_summary(conn, back: int = 0) -> list:
     """Sammanfattning för ett dygn (0 = idag, 1 = igår) via en SQLAlchemy-anslutning (appen och webben)."""
     from sqlalchemy import text
     try:
-        rows = conn.execute(text(SQL_DAY), {"back": int(back)}).all()
+        rows = conn.execute(text(local_sql(SQL_DAY)), {"back": int(back)}).all()
     except Exception:
         conn.rollback()      # tabellen finns inte än (motorn har inte hunnit skriva); lämna anslutningen användbar
         return []

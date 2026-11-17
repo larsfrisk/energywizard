@@ -2,6 +2,7 @@
 learning.py - Funktioner för att analysera historisk data och skapa modeller.
 """
 
+from local_sql import local_sql
 import pandas as pd
 import numpy as np
 import pickle
@@ -486,12 +487,12 @@ def get_ev_habit_profile(car_id, max_age_hours=24, status_col="ev_status"):
     try:
         with sm_logger.get_db() as conn:
             status_col = status_col if status_col in ("ev_status", "ev_carport_status") else "ev_status"
-            df = pd.read_sql(f"""
-                SELECT timestamp AT TIME ZONE 'Europe/Stockholm' as ts, 
+            df = pd.read_sql(local_sql(f"""
+                SELECT timestamp AT TIME ZONE __EW_TIMEZONE__ as ts,
                        {status_col} as status
                 FROM sensor_log
                 WHERE timestamp >= NOW() - INTERVAL '60 days'
-            """, conn)
+            """), conn)
             
         if df.empty: return {}
         
@@ -612,12 +613,12 @@ def get_solar_profile(max_age_hours=24, force_recalculation=False):
     try:
         with sm_logger.get_db() as conn:
             # Leta efter klara dagar senaste året. 90:e percentilen fångar en molnfri dag perfekt.
-            df = pd.read_sql("""
-                SELECT timestamp AT TIME ZONE 'Europe/Stockholm' as ts, pv_power_w
+            df = pd.read_sql(local_sql("""
+                SELECT timestamp AT TIME ZONE __EW_TIMEZONE__ as ts, pv_power_w
                 FROM sensor_log
                 WHERE timestamp >= NOW() - INTERVAL '365 days'
                   AND pv_power_w > 50
-            """, conn)
+            """), conn)
             
         if df.empty or len(df) < 100:
             _mark_too_little_data("solar", now)
@@ -693,15 +694,15 @@ def get_base_load_profile(max_age_hours=24, force_recalculation=False):
     try:
         with sm_logger.get_db() as conn:
             # Hämta senaste 30 dagarnas förbrukning där vi faktiskt köpte el
-            df = pd.read_sql("""
-                SELECT timestamp AT TIME ZONE 'Europe/Stockholm' as ts, 
+            df = pd.read_sql(local_sql("""
+                SELECT timestamp AT TIME ZONE __EW_TIMEZONE__ as ts,
                        GREATEST(net_power, 0) / 1000.0 as grid_import_kw,
                        COALESCE(ev_power_kw, 0) as ev_nissan,
                        COALESCE(ev_carport_power_kw, 0) as ev_tesla
                 FROM sensor_log
                 WHERE timestamp >= NOW() - INTERVAL '30 days'
                   AND net_power > 0
-            """, conn)
+            """), conn)
             
         if df.empty or len(df) < 1000:
             _mark_too_little_data("base_load", now)
@@ -758,11 +759,11 @@ def get_price_shape_profile(max_age_hours=24):
         return {}
     try:
         with sm_logger.get_db() as conn:
-            df = pd.read_sql("""
-                SELECT time_start AT TIME ZONE 'Europe/Stockholm' AS ts, sek_per_kwh
+            df = pd.read_sql(local_sql("""
+                SELECT time_start AT TIME ZONE __EW_TIMEZONE__ AS ts, sek_per_kwh
                 FROM elpriser
                 WHERE time_start >= NOW() - INTERVAL '365 days' AND sek_per_kwh IS NOT NULL
-            """, conn)
+            """), conn)
         if df.empty:
             _mark_too_little_data("price_shape", now)
             return {}
@@ -806,14 +807,14 @@ def get_hot_water_habit_profile(max_age_hours=24):
 def _hot_water_habit_compute():
     try:
         with sm_logger.get_db() as conn:
-            df = pd.read_sql("""
-                SELECT timestamp AT TIME ZONE 'Europe/Stockholm' as ts, 
+            df = pd.read_sql(local_sql("""
+                SELECT timestamp AT TIME ZONE __EW_TIMEZONE__ as ts,
                        water_temp
                 FROM sensor_log
                 WHERE timestamp >= NOW() - INTERVAL '60 days'
                   AND water_temp IS NOT NULL
                 ORDER BY timestamp ASC
-            """, conn)
+            """), conn)
             
         if df.empty: return {}
         

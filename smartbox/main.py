@@ -1,3 +1,4 @@
+from local_sql import local_sql
 import asyncio
 import json
 import time
@@ -747,23 +748,23 @@ def _ev_heating_model(now):
         balance = float(opts.get("balance_temp_c", 10.0))
         days = int(opts.get("window_days", 30))
         with logger.get_db() as conn:
-            loads = pd.read_sql(f"""
-                SELECT timestamp AT TIME ZONE 'Europe/Stockholm' AS ts,
+            loads = pd.read_sql(local_sql(f"""
+                SELECT timestamp AT TIME ZONE __EW_TIMEZONE__ AS ts,
                        GREATEST(GREATEST(net_power, 0) / 1000.0 - COALESCE(ev_power_kw, 0) - COALESCE(ev_carport_power_kw, 0), 0) AS other_kw
                 FROM sensor_log
                 WHERE timestamp >= NOW() - INTERVAL '{days} days' AND net_power > 0
-            """, conn)
-            temps = pd.read_sql(f"""
-                SELECT timestamp AT TIME ZONE 'Europe/Stockholm' AS ts, outdoor_temp AS temp
+            """), conn)
+            temps = pd.read_sql(local_sql(f"""
+                SELECT timestamp AT TIME ZONE __EW_TIMEZONE__ AS ts, outdoor_temp AS temp
                 FROM sensor_log
                 WHERE timestamp >= NOW() - INTERVAL '{days} days' AND outdoor_temp IS NOT NULL
-            """, conn)
+            """), conn)
             if len(temps) < 100:     # ingen utegivare i loggen: använd väderprognosens egna timvärden bakåt i tiden
-                temps = pd.read_sql(f"""
-                    SELECT timestamp AT TIME ZONE 'Europe/Stockholm' AS ts, temp
+                temps = pd.read_sql(local_sql(f"""
+                    SELECT timestamp AT TIME ZONE __EW_TIMEZONE__ AS ts, temp
                     FROM weather_forecast
                     WHERE timestamp >= NOW() - INTERVAL '{days} days' AND timestamp < NOW() AND temp IS NOT NULL
-                """, conn)
+                """), conn)
         df = ev_heating.hourly_frame(loads, temps)
         manual = opts.get("kw_per_degree", "auto")
         if isinstance(manual, (int, float)) and not isinstance(manual, bool):
@@ -1853,10 +1854,10 @@ while True:
                 if _ct.get("enabled"):
                     if _cap_cache["at"] is None or (now - _cap_cache["at"]) > timedelta(minutes=10):
                         with logger.get_db() as _c, _c.cursor() as _cur:
-                            _cur.execute("""SELECT (h AT TIME ZONE 'Europe/Stockholm')::date, kw FROM (
+                            _cur.execute(local_sql("""SELECT (h AT TIME ZONE __EW_TIMEZONE__)::date, kw FROM (
                                               SELECT date_trunc('hour', timestamp) h, avg(GREATEST(net_power, 0)) / 1000.0 kw
-                                              FROM sensor_log WHERE timestamp >= date_trunc('month', now() AT TIME ZONE 'Europe/Stockholm') AT TIME ZONE 'Europe/Stockholm'
-                                                AND timestamp < date_trunc('hour', now()) GROUP BY 1) x""")
+                                              FROM sensor_log WHERE timestamp >= date_trunc('month', now() AT TIME ZONE __EW_TIMEZONE__) AT TIME ZONE __EW_TIMEZONE__
+                                                AND timestamp < date_trunc('hour', now()) GROUP BY 1) x"""))
                             _cap_cache["peaks"] = [(d, float(k or 0)) for d, k in _cur.fetchall()]
                         _cap_cache["at"] = now
                     _lim, _ci = capacity_tariff.limit_kw(_cap_cache["peaks"], now.date(), int(_ct.get("top_n") or 3),

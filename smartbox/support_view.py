@@ -4,6 +4,7 @@ Läser bara det som redan sparas: kontrolljournalen (beställt mot uppmätt varj
 elpriserna och de uppmätta effekterna i sensor_log. Ingen ny journal. Saknade minuter räknas aldrig som att planen
 följdes: varje andel anger vad den räknas på ("följde 3 av 12 loggade min", "12 av 15 min mätta").
 Ren funktion (quarters) + läsare (load) - testas i tests/test_issue_386_support_view.py."""
+from local_sql import local_sql
 from collections import defaultdict
 from datetime import timedelta
 
@@ -53,10 +54,10 @@ def quarters(journal, prices, measured):
 def load(conn, back=0):
     """Ett dygns kvartar (0 = idag, 1 = igår) via en SQLAlchemy-anslutning (webben)."""
     from sqlalchemy import text
-    win = ("ts >= (date_trunc('day', NOW() AT TIME ZONE 'Europe/Stockholm') - make_interval(days => :b)) AT TIME ZONE 'Europe/Stockholm' "
-           "AND ts < (date_trunc('day', NOW() AT TIME ZONE 'Europe/Stockholm') - make_interval(days => :b - 1)) AT TIME ZONE 'Europe/Stockholm'")
+    win = ("ts >= (date_trunc('day', NOW() AT TIME ZONE __EW_TIMEZONE__) - make_interval(days => :b)) AT TIME ZONE __EW_TIMEZONE__ "
+           "AND ts < (date_trunc('day', NOW() AT TIME ZONE __EW_TIMEZONE__) - make_interval(days => :b - 1)) AT TIME ZONE __EW_TIMEZONE__")
     try:
-        journal = conn.execute(text(f"SELECT ts, device, ok, ordered, actual, note FROM control_journal WHERE {win} ORDER BY ts"), {"b": int(back)}).all()
+        journal = conn.execute(text(local_sql(f"SELECT ts, device, ok, ordered, actual, note FROM control_journal WHERE {win} ORDER BY ts")), {"b": int(back)}).all()
     except Exception:
         conn.rollback()
         journal = []
