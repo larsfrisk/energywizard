@@ -2789,5 +2789,18 @@
  "Gäller vanlig laddning. Balansering kan använda batteriets separata underhållsgräns.": "Applies to normal charging. Balancing can use the battery’s separate maintenance ceiling.",
  "Marginal över reservnivån (%)": "Margin above reserve (%)",
  "Styrd urladdning stoppas vid reservnivån plus denna marginal.": "Forced discharging stops at the reserve level plus this margin.",
- "Ogiltiga batterigränser": "Invalid battery limits"
+ "Ogiltiga batterigränser": "Invalid battery limits",
+ "Värmer nu på billiga timmar så att badet är varmt i tid": "Heating now during cheap hours so the hot tub is warm in time",
+ "Bra tider att köra disk eller tvätt:": "Good times to run the dishwasher or laundry:",
+ "Fasströmmar (nät): L1 {a} A · L2 {b} A · L3 {c} A.": "Grid phase currents: L1 {a} A · L2 {b} A · L3 {c} A.",
+ "Nätimport {import} kW mot känt {known} kW → minst {unknown} kW oförklarat enligt fasströmmarna.": "Grid import {import} kW versus known {known} kW → at least {unknown} kW unexplained according to phase currents.",
+ "(Solvärdet var oförändrat i 5 min och räknades inte med.)": "(The solar reading was unchanged for 5 minutes and was excluded.)",
+ "Nästa badtid mån #:#": "Next bathing time Mon #:#",
+ "Nästa badtid tis #:#": "Next bathing time Tue #:#",
+ "Nästa badtid ons #:#": "Next bathing time Wed #:#",
+ "Nästa badtid tor #:#": "Next bathing time Thu #:#",
+ "Nästa badtid fre #:#": "Next bathing time Fri #:#",
+ "Nästa badtid lör #:#": "Next bathing time Sat #:#",
+ "Nästa badtid sön #:#": "Next bathing time Sun #:#",
+ "Bilen laddar": "Car charging"
 }
