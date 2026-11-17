@@ -2,6 +2,7 @@
 Söker igenom källkoden (text mellan taggar, strängar och mallar) efter svensk text och kör den genom översättningen.
 Fallerar när en ny text saknar översättning - så att ingen ändring kan mergas utan den (Emil 2026-11-14)."""
 import os
+import ast
 import re
 import sys
 
@@ -12,6 +13,8 @@ import i18n_py
 
 FILES = [os.path.join(ROOT, "ewapp", "static", "app.js"), os.path.join(ROOT, "webdashboard", "static", "app.js")] + \
     [os.path.join(ROOT, "smartbox", "static", f) for f in sorted(os.listdir(os.path.join(ROOT, "smartbox", "static"))) if f.endswith(".js")]
+FILES += [os.path.join(ROOT, app, 'static', f) for app in ('ewapp', 'webdashboard')
+          for f in sorted(os.listdir(os.path.join(ROOT, app, 'static'))) if f.endswith('.html')]
 SV_HINT = re.compile(r"[åäöÅÄÖ]|\b(och|inte|för|att|är|på|till|med|eller|när|kvar|idag|imorgon|ingen|laddar|laddat|veckan|månad|dygn|"
                      r"timmar|minuter|sparat|billig|dyr|elpris|bilen|huset|pumpen|planen|visa|stäng|spara|avbryt|välj|ladda|sol|nät|inne|"
                      r"ute|mål|läge|klar|borta|hemma|vilar|går|köper|säljer|totalt|senast|nästa|förra|alla|inga|okänd|saknas)\b", re.I)
@@ -51,3 +54,28 @@ def test_avslutande_parentes_följer_med():
     assert i18n_py.tr("Gråzon (1.39 kr). Ligger kvar i läge 'EXPENSIVE'.", "en").startswith("Grey zone (1.39 kr).")
     js = open(os.path.join(ROOT, "smartbox", "i18n", "i18n.js"), encoding="utf-8").read()
     assert "en avslutande parentes som hör till texten" in js
+
+
+def test_api_display_fields_are_translated():
+    """Backend UI/error/discovery text must not bypass the frontend source scan."""
+    fields = {'label', 'title', 'reason', 'detail', 'note', 'message', 'error', 'text', 'description'}
+    files = [os.path.join(ROOT, app, 'app.py') for app in ('ewapp', 'webdashboard')]
+    files += [os.path.join(ROOT, 'smartbox', f) for f in os.listdir(os.path.join(ROOT, 'smartbox')) if f.endswith('.py')]
+    missing = []
+    for file in files:
+        with open(file, encoding='utf-8') as stream:
+            tree = ast.parse(stream.read())
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Dict):
+                continue
+            for key, value in zip(node.keys, node.values):
+                if not (isinstance(key, ast.Constant) and key.value in fields
+                        and isinstance(value, ast.Constant) and isinstance(value.value, str)):
+                    continue
+                source = value.value
+                if len(source) < 3 or not SV_HINT.search(source):
+                    continue
+                for lang in ('en', 'cs'):
+                    if not _translated(source, lang):
+                        missing.append(f'{lang}: {source} ({os.path.relpath(file, ROOT)}:{value.lineno})')
+    assert not missing, '\n'.join(missing)

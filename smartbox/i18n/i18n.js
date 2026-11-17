@@ -105,10 +105,11 @@
     return null;
   }
 
-  function lookup(core) {
+  function lookup(core, catalogOnly = false) {
     if (dict[core] !== undefined && dict[core] !== "") return dict[core];
     const nums = core.match(NUM) || [], key = core.replace(NUM, "#");
     if (dict[key] !== undefined && dict[key] !== "") return fill(dict[key], nums);
+    if (catalogOnly) return null;
     const named = namedLookup(core);
     if (named !== null) return named;
     for (const [re, fn] of RULES) { const m = core.match(re); if (m && lang === "en") return fn(m); }
@@ -117,6 +118,10 @@
 
   function tr(s) {
     if (!s || lang === "sv") return s;
+    // Match complete catalog entries before stripping icons/punctuation or
+    // splitting paragraphs; some headings and help texts include those.
+    const complete = lookup(s.trim(), true);
+    if (complete !== null) return (s.match(/^\s*/) || [""])[0] + complete + (s.match(/\s*$/) || [""])[0];
     // Notification bodies contain paragraphs; match each line independently.
     if (/[\r\n]/.test(s)) return s.split(/(\r?\n)/).map((p) => /[\r\n]/.test(p) ? p : tr(p)).join("");
     const lead = (s.match(LEAD) || [""])[0];
@@ -139,11 +144,12 @@
     }
     // flera meningar eller delar: översätt var för sig
     for (const sep of [/(?<=[.!?]) (?=[A-ZÅÄÖ])/, / · /, / – /, / - /]) {
-      const parts = core.split(sep);
+      // Keep each part's punctuation: a catalog key may include its final dot.
+      const parts = rest.split(sep);
       if (parts.length > 1) {
-        const joiner = core.match(sep) ? core.match(sep)[0] || " " : " ";
+        const joiner = rest.match(sep) ? rest.match(sep)[0] || " " : " ";
         const out = parts.map((p) => tr(p));
-        if (out.some((x, i) => x !== parts[i])) return lead + out.join(joiner) + trail;
+        if (out.some((x, i) => x !== parts[i])) return lead + out.join(joiner);
       }
     }
     if (LOOKS_SV.test(core) && core.length < 400) missingSet.add(core.replace(NUM, "#"));
