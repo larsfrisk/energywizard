@@ -84,7 +84,8 @@ services:
   ewapp:
     image: ghcr.io/murre87/energywizard-ewapp:latest   # byggs av GitHub vid push och hämtas av Watchtower
     build:
-      context: ./ewapp
+      context: .
+      dockerfile: ewapp/Dockerfile
       args:
         APP_VERSION: ${APP_VERSION:-local}
     labels:
@@ -94,7 +95,6 @@ services:
     env_file:
       - ${DASHBOARD_ENV_PATH:-./secrets/dashboard.env}
     volumes:
-      - ./smartbox:/smartbox:ro
       - ${HOUSE_CONFIG_HOST_PATH:-./config/examples/emil_house.yaml}:/house_config.yaml:ro   # bilarna och laddboxarna ur installationen
       - ew_data:/data
     depends_on:
@@ -122,7 +122,9 @@ services:
   ####################################################################
   webdashboard:
     image: ghcr.io/murre87/energywizard-webdashboard:latest   # byggs av GitHub vid push och hämtas av Watchtower
-    build: ./webdashboard
+    build:
+      context: .
+      dockerfile: webdashboard/Dockerfile
     labels:
       - com.centurylinklabs.watchtower.enable=true
     container_name: webdashboard
@@ -133,7 +135,6 @@ services:
     ports:
       - "8503:8503"
     volumes:
-      - ./smartbox:/smartbox:ro
       - ew_data:/data
       # Entitetsväljarens "Spara och starta": skrivbar bara när install.sh satt HOUSE_CONFIG_MODE=rw
       # och HOUSE_CONFIG_WRITABLE=1. Annars läsbar, och väljaren erbjuder bara nedladdning.

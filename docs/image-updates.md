@@ -87,3 +87,20 @@ index's selected entry. Unsupported/ambiguous platforms and unavailable old
 manifests report Unable to check rather than guessing.
 
 Protocol reference: [Registry HTTP API V2](https://distribution.github.io/distribution/spec/api/).
+
+## Split UI runtime compatibility
+
+The EWApp and webdashboard images include their matching shared Python modules,
+translations and static assets under `/opt/energywizard/smartbox`. They use that
+image-owned directory ahead of any legacy `/smartbox` host mount. Updating images
+therefore does not require updating a host checkout to supply new helpers such as
+`public_errors` or `webauth.session_key`.
+
+Build these two images from the repository root, using `-f ewapp/Dockerfile` or
+`-f webdashboard/Dockerfile`; Docker Compose and CI select that context. The root
+`.dockerignore` allows only runtime source directories and excludes environment
+files. The all-in-one image retains its existing `/smartbox` runtime layout.
+
+CI verifies authenticated mobile EV state, schedule write/read and desktop EV
+details/proxy access using synthetic HA/PostgreSQL on an internal Docker network,
+while deliberately mounting stale host modules. No real installation is used.

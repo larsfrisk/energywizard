@@ -21,7 +21,8 @@ import zoneinfo
 import re
 import requests
 
-sys.path.insert(0, "/smartbox")
+# Image updates must not import shared helpers from an older host checkout.
+sys.path.insert(0, "/opt/energywizard/smartbox" if os.path.isdir("/opt/energywizard/smartbox") else "/smartbox")
 from fastapi import FastAPI, Request
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles

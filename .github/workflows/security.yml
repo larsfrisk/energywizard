@@ -32,11 +32,13 @@ jobs:
           EW_REPO: ${{ github.event.pull_request.head.repo.clone_url || format('https://github.com/{0}', github.repository) }}
           EW_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
-          docker build --pull --platform "$EW_PLATFORM" \
+          build_context="$EW_CONTEXT"
+          case "$EW_CONTEXT" in ewapp|webdashboard) build_context=. ;; esac
+          docker build --pull --platform "$EW_PLATFORM" -f "$EW_CONTEXT/Dockerfile" \
             --build-arg ENERGYWIZARD_REF="$EW_REF" \
             --build-arg ENERGYWIZARD_REPO="$EW_REPO" \
             --build-arg ENERGYWIZARD_COMMIT="$EW_COMMIT" \
-            -t ew-audit "$EW_CONTEXT"
+            -t ew-audit "$build_context"
       - uses: ./.github/actions/audit-image
         with:
           image: ew-audit

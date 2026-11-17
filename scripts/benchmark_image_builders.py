@@ -45,6 +45,8 @@ def image_identity(image, context, commit):
                           image, '-W', '-f=${Package} ${Version}\n')
     folders = ['/smartbox', '/ewapp', '/webdashboard'] if context == 'ha-addon/smartbox' else [
         {'smartbox': '/app', 'ewapp': '/ew', 'webdashboard': '/wd', 'telemetry-collector': '/app'}[context]]
+    if context in ('ewapp', 'webdashboard'):
+        folders.append('/opt/energywizard/smartbox')
     code = ("import hashlib,json,pathlib; "
             f"roots={folders!r}; "
             "print(json.dumps({str(p):hashlib.sha256(p.read_bytes()).hexdigest() "
@@ -52,7 +54,8 @@ def image_identity(image, context, commit):
     sources = json.loads(output('docker', 'run', '--rm', '--network', 'none', '--entrypoint', 'python3', image, '-c', code))
     expected = {}
     for directory in folders:
-        source = ROOT / directory.strip('/') if context == 'ha-addon/smartbox' else ROOT / context
+        source = ROOT / 'smartbox' if directory == '/opt/energywizard/smartbox' else (
+            ROOT / directory.strip('/') if context == 'ha-addon/smartbox' else ROOT / context)
         for path in source.rglob('*.py'):
             expected[directory + '/' + str(path.relative_to(source))] = hashlib.sha256(path.read_bytes()).hexdigest()
     if sources != expected:
@@ -76,8 +79,6 @@ def startup(image, context, name):
             '-e', 'POSTGRES_DB=benchmark', POSTGRES)
         args[args.index('none')] = network
         args[args.index('POSTGRES_HOST=127.0.0.1')] = 'POSTGRES_HOST=' + db
-    if context in ('ewapp', 'webdashboard'):
-        args += ['-v', f'{ROOT / "smartbox"}:/smartbox:ro']
     args.append(image)
     try:
         run(*args)
@@ -158,14 +159,17 @@ def benchmark(context, folder, commit, ref, repo, repeats=2):
                                   '--build-arg', 'ENERGYWIZARD_COMMIT=' + commit,
                                   '--build-arg', 'ENERGYWIZARD_REF=' + ref,
                                   '--build-arg', 'ENERGYWIZARD_REPO=' + repo]
+                        build_context = '.' if context in ('ewapp', 'webdashboard') else context
+                        dockerfile = str(ROOT / context / 'Dockerfile')
                         if builder == 'buildkit':
                             run('docker', 'buildx', 'build', '--builder', name, '--pull', '--no-cache',
                                 '--platform', 'linux/' + arch, '--provenance=false', '--sbom=false',
                                 '--output', f'type=docker,dest={archive.resolve()}', '-t', image,
-                                *common, str(ROOT / context))
+                                *common, '-f', dockerfile, str(ROOT / build_context))
                         else:
                             run(*buildah, 'bud', '--isolation', 'chroot', '--format', 'docker', '--layers=false',
-                                '--pull=always', '--no-cache', '-t', image, *common, context)
+                                '--pull=always', '--no-cache', '-t', image, *common,
+                                '-f', dockerfile.replace(str(ROOT), '/workspace'), build_context)
                             # This is only a local archive export, never a registry push.
                             run(*buildah, 'push', image, f'docker-archive:/out/{archive.name}:{image}')
                         row['build_export_s'] = round(time.monotonic() - start, 3)

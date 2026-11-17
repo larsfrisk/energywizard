@@ -1,9 +1,10 @@
-"""EnergyWizard Mobil (ewapp): lättviktig mobilsida för laddning. Delar HA-, databas- och överstyrningslogik med smartbox (monteras från ./smartbox).
+"""EnergyWizard Mobil (ewapp): lättviktig mobilsida för laddning. Delar HA-, databas- och överstyrningslogik med smartbox (paketeras med bilden).
 Serveras under /m/ (nginx tar bort prefixet). Allt kräver inloggning med samma lösenord som dashboarden. Bil-knapparna skriver samma överstyrningar som dashboarden (overrides) och slår på/av laddaren direkt."""
 import base64, hashlib, hmac, ipaddress, json, math, os, re, sys, time, datetime as dt
 from zoneinfo import ZoneInfo
 
-sys.path.insert(0, "/smartbox")
+# Image updates must not import shared helpers from an older host checkout.
+sys.path.insert(0, "/opt/energywizard/smartbox" if os.path.isdir("/opt/energywizard/smartbox") else "/smartbox")
 import requests
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, JSONResponse, Response

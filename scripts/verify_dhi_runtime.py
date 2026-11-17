@@ -66,7 +66,8 @@ def main():
         for component, port in COMPONENTS.items():
             image = f'ew-dhi-verify-{component}-{arch}'
             docker('build', '--pull', '--platform', args.platform,
-                   '-f', str(root / component / 'Dockerfile.dhi'), '-t', image, str(root / component))
+                   '-f', str(root / component / 'Dockerfile.dhi'), '-t', image,
+                   str(root if component in ('ewapp', 'webdashboard') else root / component))
             docker('run', '--rm', '--platform', args.platform, '--network', 'none',
                    '--entrypoint', '/opt/venv/bin/python', image, '-m', 'pip', 'check')
             name, volume = prefix + '-' + component, prefix + '-' + component + '-data'
@@ -83,8 +84,6 @@ def main():
                        '-v', f'{volume}:/data']
             for key, value in common_env.items():
                 command += ['-e', f'{key}={value}']
-            if component in ('webdashboard', 'ewapp'):
-                command += ['-v', f'{root / "smartbox"}:/smartbox:ro']
             containers.append(name)
             docker(*command, image)
             if component == 'smartbox':

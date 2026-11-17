@@ -1,0 +1,14 @@
+# UI images build from the repository root; send only their runtime sources.
+**
+!smartbox/
+!smartbox/**
+!ewapp/
+!ewapp/**
+!webdashboard/
+!webdashboard/**
+**/__pycache__/
+**/*.pyc
+**/.env
+**/.env.*
+**/*.env
+**/*.local.*

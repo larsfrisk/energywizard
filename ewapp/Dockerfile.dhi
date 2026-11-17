@@ -5,7 +5,8 @@ RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH" PIP_DISABLE_PIP_VERSION_CHECK=1
 RUN python -m pip install --no-cache-dir --only-binary=:all: pip==26.3 setuptools==84.2.1 wheel==0.46.3 \
     && pip install --no-cache-dir fastapi "uvicorn[standard]" requests sqlalchemy "psycopg[binary]" pillow pandas "numpy<2.4" psycopg_pool
-COPY . .
+COPY ewapp/ .
+COPY smartbox/ /opt/energywizard/smartbox/
 RUN python make_icons.py
 
 FROM dhi.io/python:3.11-debian13@sha256:1bb857892e25f7df5c34a6bd5f8695a450e85c8ab8511c02f98ad9282943435e
@@ -16,5 +17,6 @@ ENV APP_VERSION=$APP_VERSION PATH="/opt/venv/bin:$PATH"
 WORKDIR /ew
 COPY --from=builder /opt/venv /opt/venv
 COPY --from=builder /ew /ew
+COPY --from=builder /opt/energywizard/smartbox /opt/energywizard/smartbox
 EXPOSE 8502
 CMD ["/opt/venv/bin/python", "-m", "uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8502"]
