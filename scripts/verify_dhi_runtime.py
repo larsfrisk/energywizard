@@ -66,7 +66,8 @@ def main():
         for component, port in COMPONENTS.items():
             image = f'ew-dhi-verify-{component}-{arch}'
             docker('build', '--pull', '--platform', args.platform,
-                   '-f', str(root / component / 'Dockerfile.dhi'), '-t', image, str(root / component))
+                   '-f', str(root / component / 'Dockerfile.dhi'), '-t', image,
+                   str(root if component in ('ewapp', 'webdashboard') else root / component))
             docker('run', '--rm', '--platform', args.platform, '--network', 'none',
                    '--entrypoint', '/opt/venv/bin/python', image, '-m', 'pip', 'check')
             name, volume = prefix + '-' + component, prefix + '-' + component + '-data'
@@ -83,8 +84,6 @@ def main():
                        '-v', f'{volume}:/data']
             for key, value in common_env.items():
                 command += ['-e', f'{key}={value}']
-            if component in ('webdashboard', 'ewapp'):
-                command += ['-v', f'{root / "smartbox"}:/smartbox:ro']
             containers.append(name)
             docker(*command, image)
             if component == 'smartbox':
@@ -119,7 +118,10 @@ def main():
                 docker('exec', name, '/opt/venv/bin/python', '-c', volume_check)
                 # Validate application-level settings writes against the same owned volume.
                 if component != 'telemetry-collector':
-                    settings_check = ("import sys; sys.path.insert(0,'/smartbox'); import ew_settings; "
+                    settings_check = ("import os,sys; "
+                                      "sys.path.insert(0,'/opt/energywizard/smartbox' "
+                                      "if os.path.isdir('/opt/energywizard/smartbox') else '/smartbox'); "
+                                      "import ew_settings; "
                                       "ew_settings.update(language='en'); assert ew_settings.get('language')=='en'")
                     docker('exec', name, '/opt/venv/bin/python', '-c', settings_check)
                 rows.append({'component': component, 'platform': args.platform,

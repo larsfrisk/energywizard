@@ -9,7 +9,8 @@ ARG APP_VERSION=dev
 ENV APP_VERSION=$APP_VERSION
 WORKDIR /ew
 RUN pip install --no-cache-dir fastapi "uvicorn[standard]" requests sqlalchemy "psycopg[binary]" pillow pandas "numpy<2.4" psycopg_pool   # /api/plan importerar smartbox/nordpool.py -> logger.py (pandas) -> settings.py (psycopg_pool); tests/test_ewapp_deps.py
-COPY . .
+COPY ewapp/ .
+COPY smartbox/ /opt/energywizard/smartbox/
 RUN python make_icons.py
 EXPOSE 8502
 CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8502"]

@@ -31,7 +31,8 @@ jobs:
           persist-credentials: false
       - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
-          context: ./${{ matrix.app }}
+          context: ${{ contains(fromJSON('["ewapp", "webdashboard"]'), matrix.app) && '.' || format('./{0}', matrix.app) }}
+          file: ./${{ matrix.app }}/Dockerfile
           pull: true
           build-args: |
             APP_VERSION=1.${{ github.run_number }}
