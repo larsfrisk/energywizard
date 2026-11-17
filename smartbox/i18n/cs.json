@@ -2789,5 +2789,18 @@
  "Gäller vanlig laddning. Balansering kan använda batteriets separata underhållsgräns.": "Platí pro běžné nabíjení. Vyvažování může použít samostatný limit baterie pro údržbu.",
  "Marginal över reservnivån (%)": "Rezerva nad minimální úrovní (%)",
  "Styrd urladdning stoppas vid reservnivån plus denna marginal.": "Řízené vybíjení se zastaví na minimální úrovni zvýšené o tuto rezervu.",
- "Ogiltiga batterigränser": "Neplatné limity baterie"
+ "Ogiltiga batterigränser": "Neplatné limity baterie",
+ "Värmer nu på billiga timmar så att badet är varmt i tid": "Ohřev nyní během levných hodin, aby byla vířivka včas teplá",
+ "Bra tider att köra disk eller tvätt:": "Vhodné časy pro mytí nádobí nebo praní:",
+ "Fasströmmar (nät): L1 {a} A · L2 {b} A · L3 {c} A.": "Fázové proudy (síť): L1 {a} A · L2 {b} A · L3 {c} A.",
+ "Nätimport {import} kW mot känt {known} kW → minst {unknown} kW oförklarat enligt fasströmmarna.": "Odběr ze sítě {import} kW oproti známým {known} kW → alespoň {unknown} kW nevysvětlených podle fázových proudů.",
+ "(Solvärdet var oförändrat i 5 min och räknades inte med.)": "(Hodnota solární výroby se 5 minut nezměnila a nebyla započítána.)",
+ "Nästa badtid mån #:#": "Další koupání po #:#",
+ "Nästa badtid tis #:#": "Další koupání út #:#",
+ "Nästa badtid ons #:#": "Další koupání st #:#",
+ "Nästa badtid tor #:#": "Další koupání čt #:#",
+ "Nästa badtid fre #:#": "Další koupání pá #:#",
+ "Nästa badtid lör #:#": "Další koupání so #:#",
+ "Nästa badtid sön #:#": "Další koupání ne #:#",
+ "Bilen laddar": "Auto se nabíjí"
 }

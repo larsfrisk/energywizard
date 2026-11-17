@@ -117,6 +117,8 @@
 
   function tr(s) {
     if (!s || lang === "sv") return s;
+    // Notification bodies contain paragraphs; match each line independently.
+    if (/[\r\n]/.test(s)) return s.split(/(\r?\n)/).map((p) => /[\r\n]/.test(p) ? p : tr(p)).join("");
     const lead = (s.match(LEAD) || [""])[0];
     let rest = s.slice(lead.length);
     const trail = (rest.match(TRAIL) || [""])[0];
