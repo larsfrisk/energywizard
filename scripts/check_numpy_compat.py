@@ -59,7 +59,7 @@ def candidate_result(target,record=None,cpu_model='qemu64',output=None):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--candidate-target', choices=('candidate', 'candidate-openblas'), default='candidate')
+    parser.add_argument('--candidate-target', choices=('candidate', 'candidate-openblas', 'candidate-openblas-current'), default='candidate')
     parser.add_argument('--cpu-model',choices=CPU_MODELS,default='qemu64')
     parser.add_argument('--output',type=Path,help='Record a successful strict evaluation result')
     parser.add_argument('--record-experimental-rejection',type=Path,

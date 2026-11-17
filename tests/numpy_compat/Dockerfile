@@ -53,5 +53,29 @@ COPY --from=openblas-builder /wheels /wheels
 RUN python -m pip install --no-cache-dir --no-deps --force-reinstall /wheels/*.whl \
     && rm -rf /wheels && python -m pip check
 
+# Separate experiment: upstream 0.3.34 fixes QEMU's Opteron-like CPUID dispatch.
+# Keep the Debian OpenBLAS rejection above reproducible; no runtime overrides.
+FROM builder AS current-openblas-builder
+ADD --checksum=sha256:cd7e129868320cc2d033afa920e31202dfe0b8066a5b66661900ccc0f197dfed https://github.com/OpenMathLib/OpenBLAS/releases/download/v0.3.34/OpenBLAS-0.3.34.tar.gz /tmp/openblas.tar.gz
+RUN mkdir /tmp/openblas && tar -xzf /tmp/openblas.tar.gz -C /tmp/openblas --strip-components=1 \
+    && make -C /tmp/openblas -j2 DYNAMIC_ARCH=1 NUM_THREADS=64 \
+    && make -C /tmp/openblas PREFIX=/opt/openblas install \
+    && rm -rf /tmp/openblas /tmp/openblas.tar.gz
+ENV PKG_CONFIG_PATH=/opt/openblas/lib/pkgconfig
+RUN rm -f /wheels/*.whl \
+    && python -m pip wheel --no-cache-dir --no-deps --wheel-dir /wheels \
+    'https://files.pythonhosted.org/packages/d0/ad/fed0499ce6a338d2a03ebae59cd15093910c8875328855781952abf6c2fe/numpy-2.4.6.tar.gz#sha256=f3a3570c4a2a16746ac2c31a7c7c7b0c186b95ce902e33db6f28094ed7387dda' \
+    -Csetup-args=-Dcpu-baseline=none -Csetup-args=-Dblas=openblas \
+    -Csetup-args=-Dlapack=openblas -Csetup-args=-Dallow-noblas=false -Ccompile-args=-j2
+
+FROM upstream AS candidate-openblas-current
+RUN apt-get update && apt-get install -y --no-install-recommends libgfortran5 \
+    && rm -rf /var/lib/apt/lists/*
+COPY --from=current-openblas-builder /opt/openblas/lib/ /opt/openblas/lib/
+ENV LD_LIBRARY_PATH=/opt/openblas/lib
+COPY --from=current-openblas-builder /wheels /wheels
+RUN python -m pip install --no-cache-dir --no-deps --force-reinstall /wheels/*.whl \
+    && rm -rf /wheels && python -m pip check
+
 FROM candidate AS regression
 RUN python -m pip install --no-cache-dir pytest

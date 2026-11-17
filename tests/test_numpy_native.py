@@ -56,7 +56,7 @@ def test_failed_probe_is_removed(monkeypatch, outcome):
     assert run.call_args_list[1].args[0] == ['docker', 'rm', '-f', name]
 
 
-@pytest.mark.parametrize('target', ['candidate', 'candidate-openblas'])
+@pytest.mark.parametrize('target', ['candidate', 'candidate-openblas', 'candidate-openblas-current'])
 def test_selected_variant_is_built_measured_and_identified(monkeypatch,tmp_path,target):
     output=tmp_path/'report.json'
     monkeypatch.setattr(sys,'argv',['check_numpy_native.py','--candidate-target',target,'--output',str(output)])

@@ -15,7 +15,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        target: [candidate, candidate-openblas]
+        target: [candidate, candidate-openblas, candidate-openblas-current]
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -24,6 +24,12 @@ jobs:
           persist-credentials: false
       - if: matrix.target == 'candidate'
         run: python3 scripts/check_numpy_compat.py
+      - if: matrix.target == 'candidate-openblas-current'
+        name: Strict current OpenBLAS CPU controls
+        run: |
+          python3 scripts/check_numpy_compat.py --candidate-target candidate-openblas-current --output numpy-legacy-current-qemu64.json
+          python3 scripts/check_numpy_compat.py --candidate-target candidate-openblas-current --cpu-model intel-v1 --output numpy-legacy-current-intel-v1.json
+          python3 scripts/check_numpy_compat.py --candidate-target candidate-openblas-current --cpu-model amd-3dnow --output numpy-legacy-current-amd-3dnow.json
       - if: matrix.target == 'candidate-openblas'
         run: python3 scripts/check_numpy_compat.py --candidate-target candidate-openblas --record-experimental-rejection numpy-legacy-openblas.json
       - if: matrix.target == 'candidate-openblas'
@@ -32,9 +38,9 @@ jobs:
           python3 scripts/check_numpy_compat.py --candidate-target candidate-openblas --cpu-model intel-v1 --output numpy-legacy-intel-v1.json
           python3 scripts/check_numpy_compat.py --candidate-target candidate-openblas --cpu-model amd-3dnow --output numpy-legacy-amd-3dnow.json
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        if: always() && matrix.target == 'candidate-openblas'
+        if: always() && matrix.target != 'candidate'
         with:
-          name: numpy-legacy-openblas
+          name: numpy-legacy-${{ matrix.target }}
           path: numpy-legacy-*.json
           retention-days: 14
           if-no-files-found: error
@@ -42,7 +48,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        target: [candidate, candidate-openblas]
+        target: [candidate, candidate-openblas, candidate-openblas-current]
         runner: [ubuntu-24.04, ubuntu-24.04-arm]
         include:
           - {runner: ubuntu-24.04, arch: amd64}

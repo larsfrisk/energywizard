@@ -1,5 +1,5 @@
 # Optional hardened build; authenticate to dhi.io before building.
-FROM dhi.io/python:3.11-debian13-dev@sha256:5718cc9f67bccbb0b54c9badc50988b8617292aa4e730d38854d1b81cdb9121a AS builder
+FROM dhi.io/python:3.11-debian13-dev@sha256:a4ccb5b75d709d9a23b2576cec305412f9852ccb9a461859a4e2c109ac8587f3 AS builder
 WORKDIR /wd
 RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH" PIP_DISABLE_PIP_VERSION_CHECK=1

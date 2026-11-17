@@ -1,0 +1,8 @@
+# Evaluation builds need the numerical probes excluded by the UI root context.
+**
+!smartbox/
+!smartbox/requirements.txt
+!tests/
+!tests/numpy_compat/
+!tests/numpy_compat/smoke.py
+!tests/numpy_compat/benchmark.py
