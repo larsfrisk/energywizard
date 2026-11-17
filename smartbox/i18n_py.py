@@ -180,13 +180,15 @@ def _named_lookup(core, d):
     return None
 
 
-def _lookup(core, d):
+def _lookup(core, d, catalog_only=False):
     if core in d:
         return d[core]
     nums = NUM.findall(core)
     key = NUM.sub("#", core)
     if key in d:
         return _fill(d[key], nums)
+    if catalog_only:
+        return None
     return _named_lookup(core, d)
 
 
@@ -195,6 +197,12 @@ def tr(s: str, lang: str | None = None) -> str:
     if not s or lang == "sv":
         return s
     d = _dict(lang)
+    complete = _lookup(s.strip(), d, catalog_only=True)
+    if complete is not None:
+        return s[:len(s) - len(s.lstrip())] + complete + s[len(s.rstrip()):]
+    if '\n' in s or '\r' in s:
+        return ''.join(part if '\n' in part or '\r' in part else tr(part, lang)
+                       for part in re.split(r'(\r?\n)', s))
     n = _lead_len(s)
     lead, rest = s[:n], s[n:]
     m = TRAIL.search(rest)
@@ -223,12 +231,13 @@ def tr(s: str, lang: str | None = None) -> str:
             if m:
                 return lead + fn(m) + trail
     for sep in SPLITS:
-        parts = sep.split(core)
+        # Preserve punctuation on each sentence so complete catalog keys match.
+        parts = sep.split(rest)
         if len(parts) > 1:
-            j = sep.search(core).group(0) or " "
+            j = sep.search(rest).group(0) or " "
             out = [tr(p, lang) for p in parts]
             if out != parts:
-                return lead + j.join(out) + trail
+                return lead + j.join(out)
     if LOOKS_SV.search(core) and len(core) < 400 and len(missing) < 2000:
         k = NUM.sub("#", core)
         missing[k] = missing.get(k, 0) + 1
