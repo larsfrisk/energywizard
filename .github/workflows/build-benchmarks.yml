@@ -1,0 +1,76 @@
+name: Build performance benchmarks
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - .github/workflows/build-benchmarks.yml
+      - scripts/benchmark_audit_tooling.py
+      - scripts/benchmark_image_builders.py
+permissions:
+  contents: read
+jobs:
+  tooling:
+    runs-on: ${{ matrix.arch == 'arm64' && 'ubuntu-24.04-arm' || 'ubuntu-24.04' }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [amd64, arm64]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.11.18"
+      - name: Measure isolated empty and warm download caches
+        run: python scripts/benchmark_audit_tooling.py --output "$RUNNER_TEMP/tooling.json"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: audit-tooling-${{ matrix.arch }}
+          path: ${{ runner.temp }}/tooling.json
+          if-no-files-found: error
+
+  builders:
+    # Privileged builders only see trusted same-repository code, never fork PRs.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ${{ matrix.arch == 'arm64' && 'ubuntu-24.04-arm' || 'ubuntu-24.04' }}
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [amd64, arm64]
+        context: [smartbox, ewapp, webdashboard, telemetry-collector, ha-addon/smartbox]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+        with:
+          version: v0.39.0
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.11.18"
+          cache: pip
+          cache-dependency-path: .github/actions/audit-image/requirements.txt
+      - name: Install pinned audit tooling
+        run: python -m pip --disable-pip-version-check install -r .github/actions/audit-image/requirements.txt
+      - name: Measure both builders without publishing
+        env:
+          EW_CONTEXT: ${{ matrix.context }}
+          EW_BENCH_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+          EW_BENCH_REF: ${{ github.head_ref || github.ref_name }}
+          EW_BENCH_REPO: ${{ github.event.pull_request.head.repo.clone_url || format('https://github.com/{0}', github.repository) }}
+        run: python scripts/benchmark_image_builders.py --context "$EW_CONTEXT" --output "$RUNNER_TEMP/builder-benchmark"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: builders-${{ matrix.arch }}-${{ strategy.job-index }}
+          path: |
+            ${{ runner.temp }}/builder-benchmark/**/*.json
+            ${{ runner.temp }}/builder-benchmark/**/requirements.txt
+          if-no-files-found: error
+          retention-days: 14
