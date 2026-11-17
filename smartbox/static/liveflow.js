@@ -57,15 +57,19 @@
       }
       const big = showsPower(n, isL) ? kw(n.w) : esc((n.detail || "").split("·").pop().trim().replace(/^inne\s*/i, ""));
       const st = esc(status(n)).slice(0, c ? 14 : 22), at = opts.attrs ? opts.attrs(n) : "";
-      const soc = n.key === "batteri" ? (n.detail || "").match(/·\s*(\d+ %)$/) : null;
+      const soc = n.key === "batteri" || n.key.startsWith("ev_") ? (n.detail || "").match(/·\s*(\d+ %)$/) : null;
       const p = c ? 10 : 14;
+      const label = (opts.icons === false ? "" : n.icon + " ") + (c ? n.label.split(" ")[0] : n.label);
+      const labelFit = soc && !isL && label.length * G.fs.rlab * .6 > w - 2 * p - 38
+        ? ` textLength="${w - 2 * p - 38}" lengthAdjust="spacingAndGlyphs"` : "";
       cards += `<g ${at} transform="translate(${n.x},${(n.y - n.h / 2).toFixed(1)})" style="cursor:pointer">
         <rect width="${w}" height="${n.h}" rx="${c ? 12 : 16}" fill="var(--card2, var(--card))" stroke="${n.active ? col : "var(--line)"}" stroke-width="${n.active ? 1.6 : 1}"/>`
         + (isL ? `<text x="${p}" y="${c ? 19 : 26}" font-size="${G.fs.lab}" fill="${col}" font-weight="700">${opts.icons === false ? "" : esc(n.icon) + " "}${esc(n.label)}</text>
         <text x="${p}" y="${c ? 41 : 55}" font-size="${G.fs.big}" font-weight="800" fill="var(--txt)">${kw(n.w)}</text>
         <text x="${w - p + 2}" y="${c ? 19 : 55}" font-size="${G.fs.st}" fill="var(--mut)" text-anchor="end">${st}</text>
         ${soc ? `<text x="${w - p + 2}" y="${c ? 41 : 26}" font-size="${G.fs.st}" fill="var(--txt)" text-anchor="end">${esc(soc[1])}</text>` : ""}`
-        : `<text x="${p - 1}" y="${c ? 15 : 24}" font-size="${G.fs.rlab}" fill="${n.active ? col : "var(--mut)"}" font-weight="700">${opts.icons === false ? "" : esc(n.icon) + " "}${esc(c ? n.label.split(" ")[0] : n.label)}</text>
+        : `<text x="${p - 1}" y="${c ? 15 : 24}" font-size="${G.fs.rlab}" fill="${n.active ? col : "var(--mut)"}" font-weight="700"${labelFit}>${esc(label)}</text>
+        ${soc ? `<text x="${w - p + 3}" y="${c ? 15 : 24}" font-size="${G.fs.rst}" fill="var(--txt)" text-anchor="end">${esc(soc[1])}</text>` : ""}
         <text x="${p - 1}" y="${c ? 30 : 47}" font-size="${G.fs.rbig}" font-weight="700" fill="var(--txt)">${big}</text>
         <text x="${w - p + 3}" y="${c ? 30 : 47}" font-size="${G.fs.rst}" fill="var(--mut)" text-anchor="end">${st}</text>`) + `</g>`;
     });
