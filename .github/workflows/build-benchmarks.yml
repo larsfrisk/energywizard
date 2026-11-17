@@ -8,6 +8,10 @@ on:
       - scripts/benchmark_image_builders.py
 permissions:
   contents: read
+concurrency:
+  group: build-performance-${{ github.event.pull_request.number || github.ref }}
+  # Only superseded disposable benchmarks; no release workflow shares this group.
+  cancel-in-progress: true
 jobs:
   tooling:
     runs-on: ${{ matrix.arch == 'arm64' && 'ubuntu-24.04-arm' || 'ubuntu-24.04' }}

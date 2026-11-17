@@ -19,9 +19,11 @@ def module(name):
 
 def test_only_downloaded_audit_tooling_is_cached():
     action = yaml.load((ROOT / '.github/actions/audit-image/action.yml').read_text(), Loader=yaml.BaseLoader)
-    setup = action['runs']['steps'][0]['with']
-    assert setup['cache'] == 'pip' and setup['cache-dependency-path'].endswith('/requirements.txt')
-    install = action['runs']['steps'][1]
+    steps = action['runs']['steps']
+    setup = next(s for s in steps if 'setup-python@' in s.get('uses',''))['with']
+    assert setup['cache'] == 'pip' and setup['cache-dependency-path'] == '${{ steps.audit-path.outputs.requirements }}'
+    assert 'realpath' in next(s for s in steps if s.get('id') == 'audit-path')['run']
+    install = next(s for s in steps if s.get('name') == 'Install audit tooling')
     assert '-r "$EW_AUDIT_REQUIREMENTS"' in install['run']
     assert any('audit_image.py' in str(step) for step in action['runs']['steps'])
     # No cache action restores scans, feeds, inventories or built image layers.
