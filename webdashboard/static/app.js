@@ -2219,9 +2219,8 @@ async function renderInstallningar() {
     </div>
     <div class="card" style="margin-bottom:16px" id="mqttcard" hidden>
       <div style="font-size:1.1rem;font-weight:700">📡 Home Assistant via MQTT</div>
-      <div class="note" style="margin-top:4px;line-height:1.5">Med MQTT blir EnergyWizard en riktig enhet i Home Assistant: sensorerna behåller sina namn,
-        går att redigera och finns kvar när HA startar om, och du kan slå på/av skuggläget och den automatiska exportstyrningen från HA.
-        Använd samma broker som Home Assistant (oftast Mosquitto-tillägget). Tomt = av, sensorerna skickas då som förut.</div>
+      <div class="note" style="margin-top:4px;line-height:1.5"><span>Med MQTT blir EnergyWizard en riktig enhet i Home Assistant: sensorerna behåller sina namn, går att redigera och finns kvar när HA startar om, och du kan slå på/av skuggläget och den automatiska exportstyrningen från HA.</span>
+        <span>Använd samma broker som Home Assistant (oftast Mosquitto-tillägget).</span> <span>Tomt = av, sensorerna skickas då som förut.</span></div>
       <div id="mqttbody" style="margin-top:10px"></div>
     </div>
     <div class="card" style="margin-bottom:16px" id="shadowcard">

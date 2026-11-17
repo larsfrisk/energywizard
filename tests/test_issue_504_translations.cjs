@@ -12,6 +12,22 @@ async function check(lang) {
   }
   // Use the actual rendered heading from #504, including its icon.
   const web=fs.readFileSync('webdashboard/static/app.js','utf8');
+  // Test actual rendered settings text, not just catalog keys. Units and
+  // template line breaks previously made these entries fail in the UI.
+  const temperature=web.match(/<div class="note">(Vid billig el \/ Auto:[\s\S]*?)<\/div>/)[1];
+  const fmt=vm.runInNewContext('('+web.match(/function fmt\([^\n]+/)[0]+')');
+  for(const [cheap,expensive] of [[22,20],[21.5,18.5],[null,20],[22,null],[null,null]]) {
+    const rendered=vm.runInNewContext('`'+temperature+'`',{fmt,d:{temp_cheap:cheap,temp_expensive:expensive}});
+    const translated=tr(rendered);
+    assert.doesNotMatch(translated,/Vid billig|Vid dyr/,`${lang}: ${translated}`);
+    assert.ok(translated.includes(fmt(cheap,1,'°C'))&&translated.includes(fmt(expensive,1,'°C')));
+  }
+  const mqtt=web.slice(web.indexOf('id="mqttcard"'),web.indexOf('<div id="mqttbody"'));
+  const mqttHelp=mqtt.match(/<div class="note"[^>]*>([\s\S]*)<\/div>/)[1];
+  const renderedMqtt=mqttHelp.split(/<[^>]*>/).map(tr).join('').replace(/\s+/g,' ').trim();
+  assert.doesNotMatch(renderedMqtt,/Med MQTT|riktig enhet|sensorerna|går att|Använd samma|oftast|skuggläget|Tomt|förut/,`${lang}: ${renderedMqtt}`);
+  assert.match(renderedMqtt,/MQTT/);
+  assert.match(renderedMqtt,/Mosquitto/);
   const heading=web.match(/<h2>(☀️ Ordning för solöverskott)<\/h2>/)[1];
   assert.equal(tr(heading),lang==='en'?'☀️ Order for solar surplus':'☀️ Pořadí pro solární přebytek');
   assert.equal(tr('  '+heading+'\n'),'  '+dict[heading]+'\n');
