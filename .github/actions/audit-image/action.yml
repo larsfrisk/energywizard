@@ -41,6 +41,9 @@ runs:
         EW_AUDIT_IMAGE: ${{ inputs.image }}
         EW_AUDIT_SCRIPT: ${{ github.action_path }}/../../../scripts/audit_image.py
       run: python "$EW_AUDIT_SCRIPT" "$EW_AUDIT_IMAGE" --output "$RUNNER_TEMP/image-audit" --grype-cache-dir "$RUNNER_TEMP/grype-downloads"
+    - name: Allow the runner to archive scanner downloads
+      shell: bash
+      run: sudo chown -R "$(id -u):$(id -g)" "$RUNNER_TEMP/grype-downloads"
     - uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       if: success() && steps.grype-downloads.outputs.cache-hit != 'true'
       with:
