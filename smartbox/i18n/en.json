@@ -2802,5 +2802,6 @@
  "Nästa badtid fre #:#": "Next bathing time Fri #:#",
  "Nästa badtid lör #:#": "Next bathing time Sat #:#",
  "Nästa badtid sön #:#": "Next bathing time Sun #:#",
- "Bilen laddar": "Car charging"
+ "Bilen laddar": "Car charging",
+ "Konfigurationen kunde inte uppdateras. Den befintliga filen har inte ändrats.": "The configuration could not be updated. The existing file has not been changed."
 }

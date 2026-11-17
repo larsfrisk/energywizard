@@ -78,6 +78,40 @@ BATTERY_DRIVER_REGISTRY = {"generic": GenericBatteryDriver, "ferroamp_modbus": F
 # samma mönster som värmepumpens modbus_host) snarare än att hårdkodas i en checkad-in YAML.
 
 
+def merge_setup_config(existing: dict, generated: dict) -> dict:
+    """Update setup-owned fields without discarding manually configured values."""
+    from copy import deepcopy
+
+    def merge(old, new):
+        if isinstance(old, dict) and isinstance(new, dict):
+            out = deepcopy(old)
+            for key, value in new.items():
+                out[key] = merge(old.get(key), value)
+            return out
+        return deepcopy(new)
+
+    out = merge(existing, generated)
+    if "house_id" in existing:
+        out["house_id"] = existing["house_id"]
+    if "fuse" in existing:
+        out["fuse"] = deepcopy(existing["fuse"])
+    for name in ("heat_pump", "battery"):
+        old, new = existing.get(name), generated.get(name)
+        if not isinstance(old, dict) or not isinstance(new, dict):
+            continue
+        if new.get("driver") and old.get("driver") != new["driver"]:
+            out[name] = deepcopy(new)  # Never reuse another driver's connection or commands.
+            continue
+        defaults = ("capacity_kwh", "reserve_soc", "priority_soc", "max_power_w", "bank_kwh", "control") \
+            if name == "battery" else ("connection", "host", "base_shift", "indoor_from_z1")
+        for key in defaults:
+            if key in old:
+                out[name][key] = deepcopy(old[key])
+    old_cars = {car.get("id"): car for car in existing.get("evs", []) if isinstance(car, dict)}
+    out["evs"] = [merge(old_cars.get(car.get("id"), {}), car) for car in generated.get("evs", [])]
+    return out
+
+
 def load_house_config(path: str) -> dict:
     """Läser en house_config.yaml. En helt tom/minimal fil (bara house_id) är giltig."""
     with open(path, encoding="utf-8") as f:

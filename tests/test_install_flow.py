@@ -128,3 +128,53 @@ def test_save_writes_in_place(wd, tmp_path, monkeypatch):
     assert p.stat().st_ino == inode                       # samma fil: Docker-monteringen ser ändringen
     import house_config
     house_config.load_house_config(str(p))                # och motorn kan läsa den
+
+
+def test_setup_save_preserves_manual_configuration(wd, tmp_path, monkeypatch):
+    import yaml
+    original = {"house_id": "my-house", "loads": [{"id": "oven", "power_w": 2200}],
+                "fuse": {"main_fuse_a": 16, "custom_limit": 12},
+                "battery": {"enabled": True, "driver": "generic", "capacity_kwh": 24,
+                            "reserve_soc": 35, "control": "av", "normal_max_soc": 85,
+                            "entities": {"soc": "sensor.old", "manual": "sensor.custom"}},
+                "extensions": {"nested": [1, 2]}}
+    p = tmp_path / "house_config.yaml"
+    p.write_text(yaml.safe_dump(original), encoding="utf-8")
+    inode = p.stat().st_ino
+    monkeypatch.setattr(wd, "HOUSE_CONFIG_FILE", str(p))
+    monkeypatch.setenv("HOUSE_CONFIG_WRITABLE", "1")
+    selected = {**SEL, "battery": {"driver": "generic", "soc_entity": "sensor.new"}}
+    r = asyncio.run(wd.api_save_house_config(_FakeRequest(selected, _cookie(wd))))
+    assert r["ok"] is True
+    saved = yaml.safe_load(p.read_text())
+    for key in ("house_id", "loads", "fuse", "extensions"):
+        assert saved[key] == original[key]
+    for key in ("capacity_kwh", "reserve_soc", "control", "normal_max_soc"):
+        assert saved["battery"][key] == original["battery"][key]
+    assert saved["battery"]["entities"] == {"soc": "sensor.new", "manual": "sensor.custom"}
+    assert p.stat().st_ino == inode
+
+
+@pytest.mark.parametrize("text", ["loads: [broken", "- not-a-mapping"])
+def test_setup_save_refuses_invalid_existing_file(wd, tmp_path, monkeypatch, text):
+    p = tmp_path / "house_config.yaml"
+    p.write_text(text)
+    monkeypatch.setattr(wd, "HOUSE_CONFIG_FILE", str(p))
+    monkeypatch.setenv("HOUSE_CONFIG_WRITABLE", "1")
+    result = asyncio.run(wd.api_save_house_config(_FakeRequest(SEL, _cookie(wd))))
+    assert result.status_code == 409
+    assert p.read_text() == text
+
+
+def test_setup_merge_updates_car_fields_and_replaces_changed_driver():
+    import house_config
+    existing = {"evs": [{"id": "car", "battery_kwh": 75, "manual": True,
+                         "charger": {"phases": 1, "max_a": 10}}, {"id": "removed"}],
+                "battery": {"driver": "old", "host": "old-device", "modes": {"charge": "old-command"}}}
+    new = {"evs": [{"id": "car", "battery_kwh": 60, "charger": {"id": "selected"}}],
+           "battery": {"driver": "generic", "enabled": True}}
+    merged = house_config.merge_setup_config(existing, new)
+    assert merged["evs"] == [{"id": "car", "battery_kwh": 60, "manual": True,
+                              "charger": {"phases": 1, "max_a": 10, "id": "selected"}}]
+    assert merged["battery"] == new["battery"]
+    assert existing["battery"]["host"] == "old-device"

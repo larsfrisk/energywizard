@@ -2441,9 +2441,29 @@ async def api_save_house_config(request: Request):
         return resp
     if getattr(resp, "status_code", 200) != 200:
         return resp
+    import yaml
+    try:
+        with open(HOUSE_CONFIG_FILE, encoding="utf-8") as current:
+            existing = yaml.safe_load(current) or {}
+        if not isinstance(existing, dict):
+            raise ValueError("Configuration must be a mapping")
+        merged = house_config.merge_setup_config(existing, yaml.safe_load(resp.body))
+        yaml_text = yaml.safe_dump(merged, allow_unicode=True, sort_keys=False)
+        # Validate the actual merged document, not just the discovery template.
+        import tempfile
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", encoding="utf-8") as candidate:
+            candidate.write(yaml_text)
+            candidate.flush()
+            cfg = house_config.load_house_config(candidate.name)
+            for build in (house_config.build_car_drivers, house_config.build_heat_pump_driver,
+                          house_config.build_solar_driver, house_config.build_spa_driver,
+                          house_config.build_battery_driver):
+                build(cfg)
+    except Exception:
+        return JSONResponse({"ok": False, "error": "Konfigurationen kunde inte uppdateras. Den befintliga filen har inte ändrats."}, status_code=409)
     # Skrivs på plats (samma fil, inte en ny): Docker monterar filen, och en ny fil syns inte i motorn.
     with open(HOUSE_CONFIG_FILE, "w", encoding="utf-8") as f:
-        f.write(resp.body.decode("utf-8"))
+        f.write(yaml_text)
     return {"ok": True, "message": "Sparat. Motorn startar om och läser in den nya inställningen inom en minut."}
 
 

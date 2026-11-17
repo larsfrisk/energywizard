@@ -2802,5 +2802,6 @@
  "Nästa badtid fre #:#": "Další koupání pá #:#",
  "Nästa badtid lör #:#": "Další koupání so #:#",
  "Nästa badtid sön #:#": "Další koupání ne #:#",
- "Bilen laddar": "Auto se nabíjí"
+ "Bilen laddar": "Auto se nabíjí",
+ "Konfigurationen kunde inte uppdateras. Den befintliga filen har inte ändrats.": "Konfiguraci se nepodařilo aktualizovat. Stávající soubor nebyl změněn."
 }
