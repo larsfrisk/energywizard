@@ -8,11 +8,28 @@ on:
   workflow_call:
 permissions:
   contents: read
+  pull-requests: read
 jobs:
+  route:
+    runs-on: ubuntu-latest
+    outputs:
+      run_checks: ${{ steps.route.outputs.run_checks }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - id: route
+        run: python3 scripts/ci_branch_checks.py
+        env:
+          GH_TOKEN: ${{ github.token }}
   security:
+    needs: route
+    if: needs.route.outputs.run_checks == 'true'
     uses: ./.github/workflows/security.yml
 
   pytest:
+    needs: route
+    if: needs.route.outputs.run_checks == 'true'
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -47,7 +64,8 @@ jobs:
   # Körs bara på grenar/PR, inte vid push till main: ett fel här ska inte stoppa
   # bygget av produktionsbilderna (docker.yml anropar den här filen).
   ha-tillagg:
-    if: github.ref != 'refs/heads/main'
+    needs: route
+    if: github.ref != 'refs/heads/main' && needs.route.outputs.run_checks == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
