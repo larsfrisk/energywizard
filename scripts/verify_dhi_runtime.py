@@ -118,7 +118,10 @@ def main():
                 docker('exec', name, '/opt/venv/bin/python', '-c', volume_check)
                 # Validate application-level settings writes against the same owned volume.
                 if component != 'telemetry-collector':
-                    settings_check = ("import sys; sys.path.insert(0,'/smartbox'); import ew_settings; "
+                    settings_check = ("import os,sys; "
+                                      "sys.path.insert(0,'/opt/energywizard/smartbox' "
+                                      "if os.path.isdir('/opt/energywizard/smartbox') else '/smartbox'); "
+                                      "import ew_settings; "
                                       "ew_settings.update(language='en'); assert ew_settings.get('language')=='en'")
                     docker('exec', name, '/opt/venv/bin/python', '-c', settings_check)
                 rows.append({'component': component, 'platform': args.platform,
