@@ -21,5 +21,16 @@ for (const compact of [true, false]) {
   const solar = flow.svg({ nodes: [{ key: 'sol', label: 'Sol', role: 'source', w: 500,
     detail: 'Laddar · 57 %' }] }, { compact });
   assert.doesNotMatch(solar, /57 %/);
+  for (const [w, state] of [[0, 'Laddar inte'], [3700, 'Laddar 3.7 kW']]) {
+    for (const soc of [0, 72, 100, null]) {
+      const html = flow.svg({nodes:[{key:'ev_nissan',label:'Nissan Leaf',icon:'🚗',role:'load',
+        w,active:w>0,detail:state+(soc==null?'':` · ${soc} %`)}]}, {compact});
+      if(soc==null) assert.doesNotMatch(html,/\d+ %/);
+      else assert.match(html,new RegExp(`y="${compact?15:24}"[^>]*>${soc} %</text>`));
+      assert.match(html,w===0?/>0<tspan/:/>3,7<tspan/);
+      assert.match(html,w===0?/>laddar inte<\//:/>laddar<\//);
+      assert.doesNotMatch(html,/NaN|undefined|null/);
+    }
+  }
 }
 console.log('Battery SoC, zero/full/unknown charge, power and operating states passed in both overview layouts');
