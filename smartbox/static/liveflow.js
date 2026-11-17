@@ -50,10 +50,10 @@
     let paths = "", dots = "", cards = "";
     all.forEach((n, i) => {
       const isL = n.x < hub.x, w = isL ? G.LW : G.RW, sx = isL ? n.x + w : n.x, ex = isL ? hub.x - G.hub : hub.x + G.hub, col = color(n), id = `${pre}${i}`;
-      paths += `<path id="${id}" d="M${sx} ${n.y.toFixed(1)} C${(sx + ex) / 2} ${n.y.toFixed(1)} ${(sx + ex) / 2} ${hub.y} ${ex} ${hub.y}" fill="none" stroke="${col}" stroke-width="${n.active ? (c ? 2 : 2.5) : 1.2}" stroke-dasharray="${n.active ? "0" : "2 5"}" opacity="${n.active ? .6 : .25}"/>`;
+      paths += `<path data-flow-key="path-${esc(n.key)}" id="${id}" d="M${sx} ${n.y.toFixed(1)} C${(sx + ex) / 2} ${n.y.toFixed(1)} ${(sx + ex) / 2} ${hub.y} ${ex} ${hub.y}" fill="none" stroke="${col}" stroke-width="${n.active ? (c ? 2 : 2.5) : 1.2}" stroke-dasharray="${n.active ? "0" : "2 5"}" opacity="${n.active ? .6 : .25}"/>`;
       if (n.active && motion) {
         const k = Math.abs(n.w || 1000) / 1000, dur = Math.max(0.8, 3.2 - k * 0.35).toFixed(2), cnt = k > 3 ? 3 : 2;
-        for (let j = 0; j < cnt; j++) dots += `<circle r="${((c ? 2.6 : 3.5) + Math.min(2, k / 2)).toFixed(1)}" fill="${col}"><animateMotion dur="${dur}s" begin="${(-j * dur / cnt).toFixed(2)}s" repeatCount="indefinite" keyPoints="${inward(n) ? "0;1" : "1;0"}" keyTimes="0;1" calcMode="linear"><mpath href="#${id}"/></animateMotion></circle>`;
+        for (let j = 0; j < cnt; j++) dots += `<circle data-flow-key="dot-${esc(n.key)}-${j}" r="${((c ? 2.6 : 3.5) + Math.min(2, k / 2)).toFixed(1)}" fill="${col}"><animateMotion dur="${dur}s" begin="${(-j * dur / cnt).toFixed(2)}s" repeatCount="indefinite" keyPoints="${inward(n) ? "0;1" : "1;0"}" keyTimes="0;1" calcMode="linear"><mpath href="#${id}"/></animateMotion></circle>`;
       }
       const big = showsPower(n, isL) ? kw(n.w) : esc((n.detail || "").split("·").pop().trim().replace(/^inne\s*/i, ""));
       const st = esc(status(n)).slice(0, c ? 14 : 22), at = opts.attrs ? opts.attrs(n) : "";
@@ -62,7 +62,7 @@
       const label = (opts.icons === false ? "" : n.icon + " ") + (c ? n.label.split(" ")[0] : n.label);
       const labelFit = soc && !isL && label.length * G.fs.rlab * .6 > w - 2 * p - 38
         ? ` textLength="${w - 2 * p - 38}" lengthAdjust="spacingAndGlyphs"` : "";
-      cards += `<g ${at} transform="translate(${n.x},${(n.y - n.h / 2).toFixed(1)})" style="cursor:pointer">
+      cards += `<g data-flow-key="card-${esc(n.key)}" ${at} transform="translate(${n.x},${(n.y - n.h / 2).toFixed(1)})" style="cursor:pointer">
         <rect width="${w}" height="${n.h}" rx="${c ? 12 : 16}" fill="var(--card2, var(--card))" stroke="${n.active ? col : "var(--line)"}" stroke-width="${n.active ? 1.6 : 1}"/>`
         + (isL ? `<text x="${p}" y="${c ? 19 : 26}" font-size="${G.fs.lab}" fill="${col}" font-weight="700">${opts.icons === false ? "" : esc(n.icon) + " "}${esc(n.label)}</text>
         <text x="${p}" y="${c ? 41 : 55}" font-size="${G.fs.big}" font-weight="800" fill="var(--txt)">${kw(n.w)}</text>
@@ -74,10 +74,60 @@
         <text x="${w - p + 3}" y="${c ? 30 : 47}" font-size="${G.fs.rst}" fill="var(--mut)" text-anchor="end">${st}</text>`) + `</g>`;
     });
     const hk = house && house.w != null ? f1(house.w / 1000) : "–", s = G.hub * 2;
-    const hubSvg = `<g ${opts.hubAttrs || ""} style="cursor:pointer" transform="translate(${hub.x - G.hub},${hub.y - G.hub})"><rect width="${s}" height="${s}" rx="${c ? 18 : 26}" fill="var(--card2, var(--card))" stroke="var(--acc)" stroke-width="${c ? 1.6 : 2}"/>
+    const hubSvg = `<g data-flow-key="hub" ${opts.hubAttrs || ""} style="cursor:pointer" transform="translate(${hub.x - G.hub},${hub.y - G.hub})"><rect width="${s}" height="${s}" rx="${c ? 18 : 26}" fill="var(--card2, var(--card))" stroke="var(--acc)" stroke-width="${c ? 1.6 : 2}"/>
       <path d="M${s * .32} ${s * .47} L${s / 2} ${s * .31} L${s * .68} ${s * .47} V${s * .68} H${s * .32} Z" fill="none" stroke="var(--acc)" stroke-width="${c ? 2 : 2.5}" stroke-linejoin="round"/>
       <text x="${s / 2}" y="${s * .9}" text-anchor="middle" font-size="${G.fs.hub}" font-weight="800" fill="var(--txt)">${hk} kW</text></g>`;
     return `<svg viewBox="0 0 ${G.W} ${H}" style="width:100%;height:auto;display:block${c ? "" : `;max-width:${G.W * 1.1}px;margin:0 auto`}" role="img" aria-label="Elen just nu">${paths}${dots}${hubSvg}${cards}</svg>`;
   }
-  window.EWLiveFlow = { svg, status };
+  // Preserve SVG/SMIL element identity across polls so active dots keep moving.
+  function patch(current, next) {
+    const tr = (value) => window.I18N ? window.I18N.tr(value) : value;
+    if (current.nodeType === 3) {
+      const value = tr(next.nodeValue);
+      if (current.nodeValue !== value) current.nodeValue = value;
+      return;
+    }
+    for (const attr of Array.from(current.attributes)) {
+      if (!next.hasAttribute(attr.name)) current.removeAttribute(attr.name);
+    }
+    for (const attr of Array.from(next.attributes)) {
+      // Changing begin reschedules an existing SMIL animation. Its initial
+      // staggering should survive new power readings and duration changes.
+      if (current.localName === "animateMotion" && attr.name === "begin") continue;
+      const value = attr.name === "aria-label" ? tr(attr.value) : attr.value;
+      if (current.getAttribute(attr.name) !== value) current.setAttribute(attr.name, value);
+    }
+    const key = (node) => node.nodeType === 1 ? node.getAttribute("data-flow-key") : null;
+    const wanted = new Set(Array.from(next.childNodes, key).filter(Boolean));
+    const keyed = new Map();
+    for (const child of Array.from(current.childNodes)) {
+      const id = key(child);
+      if (id && !wanted.has(id)) child.remove();
+      else if (id) keyed.set(id, child);
+    }
+    let cursor = current.firstChild;
+    for (const child of next.childNodes) {
+      const id = key(child);
+      let old = id ? keyed.get(id) : cursor;
+      if (!old || key(old) !== id || old.nodeType !== child.nodeType || old.nodeName !== child.nodeName) {
+        old = child.cloneNode(true);
+        current.insertBefore(old, cursor);
+      } else {
+        if (old !== cursor) current.insertBefore(old, cursor);
+        patch(old, child);
+      }
+      cursor = old.nextSibling;
+    }
+    while (cursor) { const old = cursor; cursor = cursor.nextSibling; old.remove(); }
+  }
+
+  function update(container, data, opts) {
+    const template = document.createElement("template");
+    template.innerHTML = svg(data, opts);
+    const next = template.content.firstElementChild;
+    const current = container.firstElementChild;
+    if (current && next) patch(current, next);
+    else container.replaceChildren(...template.content.childNodes);
+  }
+  window.EWLiveFlow = { svg, status, update };
 })();
