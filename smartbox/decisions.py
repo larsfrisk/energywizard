@@ -9,6 +9,7 @@ Regler:
  - Valt läge låses i minst PUMP_MIN_MINUTES för att skydda kompressorn.
 """
 
+from local_sql import local_sql, installation_timezone
 from datetime import datetime, timedelta
 import math
 import learning
@@ -80,17 +81,17 @@ def check_spa_schedule_plan(now, target_dt, curr_temp, target_temp, model_interc
         now_dt_naive = now_slot.replace(tzinfo=None)
 
         with sm_logger.get_db() as conn:
-            df_p = pd.read_sql("""
-                SELECT time_start AT TIME ZONE 'Europe/Stockholm' AS t, sek_per_kwh as price
+            df_p = pd.read_sql(local_sql("""
+                SELECT time_start AT TIME ZONE __EW_TIMEZONE__ AS t, sek_per_kwh as price
                 FROM elpriser
                 WHERE time_start >= %s AND time_start <= %s
-            """, conn, params=(now_hour, target_dt + timedelta(hours=1)))
+            """), conn, params=(now_hour, target_dt + timedelta(hours=1)))
 
-            df_w = pd.read_sql("""
-                SELECT timestamp AT TIME ZONE 'Europe/Stockholm' AS t, cloud_cover, temp
+            df_w = pd.read_sql(local_sql("""
+                SELECT timestamp AT TIME ZONE __EW_TIMEZONE__ AS t, cloud_cover, temp
                 FROM weather_forecast
                 WHERE timestamp >= %s AND timestamp <= %s
-            """, conn, params=(now_hour, target_dt + timedelta(hours=1)))
+            """), conn, params=(now_hour, target_dt + timedelta(hours=1)))
 
         full_idx = pd.date_range(start=now_dt_naive, end=target_dt_naive + timedelta(hours=1), freq='15min')
         
@@ -105,7 +106,7 @@ def check_spa_schedule_plan(now, target_dt, curr_temp, target_temp, model_interc
 
         if not df_w.empty: # Väderdata
             df_w['t_hour'] = pd.to_datetime(df_w['t']).dt.floor('h').dt.tz_localize(None)
-            df_w['solar_w'] = df_w.apply(lambda r: safe_get_smart_solar_w(r['cloud_cover'], r['t_hour'].replace(tzinfo=weather.SWE_TZ)), axis=1)
+            df_w['solar_w'] = df_w.apply(lambda r: safe_get_smart_solar_w(r['cloud_cover'], r['t_hour'].replace(tzinfo=installation_timezone())), axis=1)
             hourly_solar = df_w.groupby('t_hour')['solar_w'].mean().reset_index()
             df_plan['t_hour'] = df_plan['t_slot'].dt.floor('h')
             df_plan = pd.merge(df_plan, hourly_solar, on='t_hour', how='left').fillna({'solar_w': 0})
@@ -338,18 +339,18 @@ def calculate_ev_charge_plan(now, ev_schedule, car_data, cfg):
     planning_window_end = max_dt + timedelta(hours=1)
     try:
         with logger.get_db() as conn:
-            df_prices = pd.read_sql("""
-                SELECT time_start AT TIME ZONE 'Europe/Stockholm' AS t, sek_per_kwh
+            df_prices = pd.read_sql(local_sql("""
+                SELECT time_start AT TIME ZONE __EW_TIMEZONE__ AS t, sek_per_kwh
                 FROM elpriser
                 WHERE time_start >= %s AND time_start < %s
                 ORDER BY time_start ASC
-            """, conn, params=(now.replace(minute=0, second=0), planning_window_end))
-            df_weather = pd.read_sql("""
-                SELECT timestamp AT TIME ZONE 'Europe/Stockholm' AS t, cloud_cover, temp
+            """), conn, params=(now.replace(minute=0, second=0), planning_window_end))
+            df_weather = pd.read_sql(local_sql("""
+                SELECT timestamp AT TIME ZONE __EW_TIMEZONE__ AS t, cloud_cover, temp
                 FROM weather_forecast
                 WHERE timestamp >= %s AND timestamp < %s
                 ORDER BY timestamp ASC
-            """, conn, params=(now.replace(minute=0, second=0, microsecond=0), planning_window_end))
+            """), conn, params=(now.replace(minute=0, second=0, microsecond=0), planning_window_end))
     except Exception as e:
         print(f"❌ EV Plan: DB-fel: {e}")
         return pd.DataFrame()

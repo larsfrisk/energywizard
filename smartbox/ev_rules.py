@@ -19,6 +19,7 @@ Priset jämförs med spotpriset i samma skala som EnergyWizards prisgraf (elpris
   - solar_balance_w: balanspunkt över mätaren under solladdning. 0 = noll export, +300 = tillåt 300 W köp,
     -300 = behåll 300 W export.
 """
+from local_sql import local_sql
 from datetime import timedelta
 
 FLOOR_DEFAULT = 50
@@ -70,11 +71,14 @@ def _last_price_end(now):
     try:
         import logger
         with logger.get_db() as conn, conn.cursor() as cur:
-            cur.execute("SELECT MAX(time_start) AT TIME ZONE 'Europe/Stockholm' FROM elpriser WHERE time_start > now()")
+            cur.execute(local_sql("SELECT MAX(time_start) AT TIME ZONE __EW_TIMEZONE__ FROM elpriser WHERE time_start > now()"))
             r = cur.fetchone()
         if r and r[0]:
             t = r[0] + timedelta(minutes=15)
-            return t.replace(tzinfo=now.tzinfo) if now.tzinfo else t
+            if now.tzinfo:
+                from local_sql import installation_timezone
+                return t.replace(tzinfo=installation_timezone()).astimezone(now.tzinfo)
+            return t
     except Exception:
         pass
     return None

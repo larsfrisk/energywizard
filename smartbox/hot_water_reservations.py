@@ -1,4 +1,5 @@
 """Modelled boost reservations over a separate boost-excluded background forecast."""
+from local_sql import local_sql
 from datetime import datetime, timedelta
 import math
 
@@ -56,10 +57,10 @@ def off_profile(engine, now):
     import battery_learning
     try:
         with engine.connect() as c:
-            rows = c.execute(text("""
+            rows = c.execute(text(local_sql("""
                 SELECT extract(isodow FROM h)::int - 1, extract(hour FROM h)::int, kw
                 FROM (
-                    SELECT date_trunc('hour', timestamp AT TIME ZONE 'Europe/Stockholm') h,
+                    SELECT date_trunc('hour', timestamp AT TIME ZONE __EW_TIMEZONE__) h,
                       avg(GREATEST(0, house_consumption_w / 1000.0
                           - COALESCE(ev_power_kw,0) - COALESCE(ev_carport_power_kw,0))) kw
                     FROM sensor_log
@@ -70,7 +71,7 @@ def off_profile(engine, now):
                                                           AND extract(epoch FROM timestamp)+5
                     GROUP BY 1 HAVING count(*) >= 30
                 ) samples
-            """), {'start': now-timedelta(days=28), 'finish': now}).fetchall()
+            """)), {'start': now-timedelta(days=28), 'finish': now}).fetchall()
         return battery_learning.median_load_profile(rows)
     except Exception:
         return {}  # Explicit configured background, never the mixed-history profile.

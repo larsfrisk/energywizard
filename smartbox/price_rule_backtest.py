@@ -27,6 +27,7 @@ Körs på servern där historiken finns:
     docker exec smartbox python price_rule_backtest.py --days 90
 """
 
+from local_sql import local_sql
 import argparse
 from datetime import datetime, timedelta
 
@@ -191,9 +192,9 @@ def _load_days(conn, days):
                 pr = [(t + timedelta(minutes=15 * q), p) for t, p in pr for q in range(4)]
             if len(pr) < 92:
                 continue
-            cur.execute("""SELECT EXTRACT(HOUR FROM timestamp AT TIME ZONE 'Europe/Stockholm')::int,
+            cur.execute(local_sql("""SELECT EXTRACT(HOUR FROM timestamp AT TIME ZONE __EW_TIMEZONE__)::int,
                                   AVG(outdoor_temp), AVG(pv_power_w), AVG(indoor_temp)
-                           FROM sensor_log WHERE timestamp >= %s AND timestamp < %s GROUP BY 1""", (d0, d1))
+                           FROM sensor_log WHERE timestamp >= %s AND timestamp < %s GROUP BY 1"""), (d0, d1))
             hourly = {int(h): (o, s, i) for h, o, s, i in cur.fetchall()}
             if sum(1 for h in range(24) if h in hourly and hourly[h][0] is not None) < 20:
                 continue

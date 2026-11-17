@@ -1,3 +1,4 @@
+from local_sql import local_sql
 import json
 import math
 import os
@@ -796,19 +797,19 @@ def get_monthly_power_peaks():
         
     try:
         with get_db() as conn:
-            df_peaks = pd.read_sql("""
+            df_peaks = pd.read_sql(local_sql("""
                 WITH hourly_data AS (
                     SELECT 
-                        DATE_TRUNC('hour', timestamp AT TIME ZONE 'Europe/Stockholm') as hour_ts,
-                        DATE(timestamp AT TIME ZONE 'Europe/Stockholm') as day_date,
+                        DATE_TRUNC('hour', timestamp AT TIME ZONE __EW_TIMEZONE__) as hour_ts,
+                        DATE(timestamp AT TIME ZONE __EW_TIMEZONE__) as day_date,
                         AVG(GREATEST(net_power, 0)) / 1000.0 as hr_consumed
                     FROM sensor_log
-                    WHERE timestamp >= DATE_TRUNC('month', NOW() AT TIME ZONE 'Europe/Stockholm')
+                    WHERE timestamp >= DATE_TRUNC('month', NOW() AT TIME ZONE __EW_TIMEZONE__) AT TIME ZONE __EW_TIMEZONE__
                       AND net_power IS NOT NULL
                     GROUP BY 1, 2
                 )
                 SELECT * FROM hourly_data
-            """, conn)
+            """), conn)
             
             res = {'bas_p1': 0.0, 'bas_p2': 0.0, 'hog_p1': 0.0, 'hog_p2': 0.0}
             if not df_peaks.empty:

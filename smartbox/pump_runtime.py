@@ -4,6 +4,7 @@ Pumpens räknare (timmar, Husdata-register 34-37) loggas redan varje minut i sen
 permanent i tabellen pump_runtime_daily (räknarens värde per dygn). Timmar per månad/år = skillnaden mellan dygnens
 räknarvärden (delta). Tabellen fylls på bakåt från sensor_log vid start och uppdateras varje minut för dagens datum.
 """
+from local_sql import local_sql
 from sqlalchemy import text
 import nordpool
 
@@ -21,7 +22,7 @@ CREATE TABLE IF NOT EXISTS pump_runtime_daily (
 # (en räknare kan aldrig öka mer än 24 h på ett dygn).
 _SELECT_DAYS = """
 WITH d AS (
-    SELECT (timestamp AT TIME ZONE 'Europe/Stockholm')::date AS day,
+    SELECT (timestamp AT TIME ZONE __EW_TIMEZONE__)::date AS day,
            compressor_runtime_h c, aux_runtime_h a1, aux_runtime_2_h a2, warm_water_runtime_h w
     FROM sensor_log WHERE compressor_runtime_h IS NOT NULL {where}
 ), m AS (
@@ -51,13 +52,13 @@ def ensure_and_backfill(engine):
     """Skapar tabellen och fyller på alla dygn som finns i sensor_log (säkert att köra upprepat)."""
     with engine.begin() as c:
         c.execute(text(DDL))
-        c.execute(text(_UPSERT.format(select=_SELECT_DAYS.format(where=""))))
+        c.execute(text(local_sql(_UPSERT.format(select=_SELECT_DAYS.format(where="")))))
 
 
 def upsert_today(engine):
     with engine.begin() as c:
-        where = "AND timestamp >= (date_trunc('day', now() AT TIME ZONE 'Europe/Stockholm') AT TIME ZONE 'Europe/Stockholm')"
-        c.execute(text(_UPSERT.format(select=_SELECT_DAYS.format(where=where))))
+        where = "AND timestamp >= (date_trunc('day', now() AT TIME ZONE __EW_TIMEZONE__) AT TIME ZONE __EW_TIMEZONE__)"
+        c.execute(text(local_sql(_UPSERT.format(select=_SELECT_DAYS.format(where=where)))))
 
 
 _DELTAS = """
@@ -96,7 +97,7 @@ _PUMP_W_SQL = """CASE WHEN fwd IS NULL THEN 2700 WHEN fwd <= 25 THEN 2000
     WHEN fwd <= 60 THEN 3460 + (fwd - 50) * (4180 - 3460) / 10 ELSE 4180 END"""
 _SOLAR_SQL = """
 WITH w AS (
-    SELECT (timestamp AT TIME ZONE 'Europe/Stockholm') lt, net_power, compressor_running k, COALESCE(pv_power_w, 0) pv, fwd,
+    SELECT (timestamp AT TIME ZONE __EW_TIMEZONE__) lt, net_power, compressor_running k, COALESCE(pv_power_w, 0) pv, fwd,
            COALESCE(price, 0) price,
            CASE WHEN raw <= 1200 THEN LEAST(raw, 900) ELSE 0 END dt
     FROM (SELECT timestamp, net_power, compressor_running, pv_power_w, forward_temp AS fwd, price,
@@ -127,7 +128,7 @@ def solar_free(conn):
     counter = {p[0]: p[1] for p in periods(conn, "month")}          # månad -> kompressortimmar från pumpens räknare
     out_m = []
     buy = nordpool.sql_buy_cost_expr("price")
-    for r in conn.execute(text(_SOLAR_SQL.format(grp="date_trunc('month', lt)::date", buy=buy))).fetchall():
+    for r in conn.execute(text(local_sql(_SOLAR_SQL.format(grp="date_trunc('month', lt)::date", buy=buy)))).fetchall():
         m = r[0]
         nxt = datetime(m.year + (m.month // 12), m.month % 12 + 1, 1)
         start = max(datetime(m.year, m.month, 1), first_l or datetime(m.year, m.month, 1))
@@ -143,7 +144,7 @@ def solar_free(conn):
                       "komp_kwh": round(kwh * scale), "komp_sol_kwh": round(sol_kwh * scale), "sparat_kr": round(sparat * scale)})
     out_h = [{"timme": int(r[0]), "hus_h": round(float(r[2] or 0), 1), "komp_h": round(float(r[3] or 0), 1),
               "komp_gratis_h": round(float(r[4] or 0), 1)}
-             for r in conn.execute(text(_SOLAR_SQL.format(grp="extract(hour FROM lt)::int", buy=buy))).fetchall()]
+             for r in conn.execute(text(local_sql(_SOLAR_SQL.format(grp="extract(hour FROM lt)::int", buy=buy)))).fetchall()]
     return {"manader": out_m, "timmar": out_h}
 
 
@@ -153,7 +154,7 @@ def solar_free(conn):
 # är uppe (pv > 100 W). Exempel: nät 0 W → 100 % sol, nät = laddeffekten → 0 %, natt → 0 %.
 _EV_SQL = """
 WITH w AS (
-    SELECT date_trunc('month', timestamp AT TIME ZONE 'Europe/Stockholm')::date mth, net_power, COALESCE(pv_power_w, 0) pv,
+    SELECT date_trunc('month', timestamp AT TIME ZONE __EW_TIMEZONE__)::date mth, net_power, COALESCE(pv_power_w, 0) pv,
            COALESCE(price, 0) price, COALESCE(ev_power_kw, 0) * 1000 lite, COALESCE(ev_carport_power_kw, 0) * 1000 cp,
            CASE WHEN raw <= 1200 THEN LEAST(raw, 900) ELSE 0 END dt
     FROM (SELECT timestamp, net_power, pv_power_w, price, ev_power_kw, ev_carport_power_kw,
@@ -179,7 +180,7 @@ def ev_solar(conn):
     first_l = first.astimezone(swe).replace(tzinfo=None) if first else None
     now_l = datetime.now(swe).replace(tzinfo=None)
     out = []
-    for r in conn.execute(text(_EV_SQL.format(buy=nordpool.sql_buy_cost_expr("price")))).fetchall():
+    for r in conn.execute(text(local_sql(_EV_SQL.format(buy=nordpool.sql_buy_cost_expr("price"))))).fetchall():
         m = r[0]
         nxt = datetime(m.year + (m.month // 12), m.month % 12 + 1, 1)
         start = max(datetime(m.year, m.month, 1), first_l or datetime(m.year, m.month, 1))

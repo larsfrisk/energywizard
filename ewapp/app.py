@@ -11,6 +11,7 @@ from fastapi.staticfiles import StaticFiles
 from sqlalchemy import create_engine, text
 
 import homeassistant as H
+from local_sql import local_sql
 import timed_override   # #397: varmvatten "Till" med tid
 
 TZ = ZoneInfo("Europe/Stockholm")
@@ -669,8 +670,8 @@ def api_flow(request: Request):
     import json as _json
     import live_flow
     with ENGINE.connect() as c:
-        row = c.execute(text("SELECT *, timestamp AT TIME ZONE 'Europe/Stockholm' AS sthlm_time FROM sensor_log "
-                             "ORDER BY timestamp DESC LIMIT 1")).mappings().first()
+        row = c.execute(text(local_sql("SELECT *, timestamp AT TIME ZONE __EW_TIMEZONE__ AS sthlm_time FROM sensor_log "
+                             "ORDER BY timestamp DESC LIMIT 1"))).mappings().first()
     if row is None:
         return {"ok": False}
     row = dict(row)
@@ -1185,9 +1186,9 @@ def plan_api():
     now = dt.datetime.now(TZ)
     with ENGINE.connect() as c:
         prices = c.execute(text(
-            "SELECT time_start, sek_per_kwh FROM elpriser "
-            "WHERE time_start >= date_trunc('day', now() AT TIME ZONE 'Europe/Stockholm') AT TIME ZONE 'Europe/Stockholm' "
-            "ORDER BY time_start")).fetchall()
+            local_sql("SELECT time_start, sek_per_kwh FROM elpriser "
+            "WHERE time_start >= date_trunc('day', now() AT TIME ZONE __EW_TIMEZONE__) AT TIME ZONE __EW_TIMEZONE__ "
+            "ORDER BY time_start"))).fetchall()
         try:
             ev_rows = c.execute(text("SELECT car_id, t_slot, kw FROM ev_plan_slots")).fetchall()
         except Exception:
@@ -1814,9 +1815,9 @@ async def trip(request: Request):
 @app.get("/api/report")
 def report():
     with ENGINE.connect() as c:
-        rows = c.execute(text("""SELECT date_trunc('day', timestamp AT TIME ZONE 'Europe/Stockholm') d, sum(COALESCE(house_consumption_w, 0)) / 60000.0, sum(COALESCE(pv_power_w, 0)) / 60000.0, sum(COALESCE(ev_power_kw, 0) + COALESCE(ev_carport_power_kw, 0)) / 60.0,
+        rows = c.execute(text(local_sql("""SELECT date_trunc('day', timestamp AT TIME ZONE __EW_TIMEZONE__) d, sum(COALESCE(house_consumption_w, 0)) / 60000.0, sum(COALESCE(pv_power_w, 0)) / 60000.0, sum(COALESCE(ev_power_kw, 0) + COALESCE(ev_carport_power_kw, 0)) / 60.0,
                                         sum(COALESCE(house_consumption_w, 0) * price) / 60000.0, avg(price)
-                                 FROM sensor_log WHERE timestamp >= NOW() - INTERVAL '7 days' AND house_consumption_w IS NOT NULL GROUP BY 1 ORDER BY 1""")).fetchall()
+                                 FROM sensor_log WHERE timestamp >= NOW() - INTERVAL '7 days' AND house_consumption_w IS NOT NULL GROUP BY 1 ORDER BY 1"""))).fetchall()
     f = lambda x: 0.0 if x is None else float(x)
     days = [{"d": r[0].strftime("%a %d/%m"), "use": round(f(r[1]), 1), "sun": round(f(r[2]), 1), "ev": round(f(r[3]), 1), "cost": round(f(r[4]), 1)} for r in rows]
     tot = {"use": round(sum(d["use"] for d in days), 1), "sun": round(sum(d["sun"] for d in days), 1), "ev": round(sum(d["ev"] for d in days), 1), "cost": round(sum(d["cost"] for d in days), 1),

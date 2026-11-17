@@ -10,6 +10,7 @@ med ungefär lika mycket som bilen tog (kvot nära 1) ser mätaren bilen; steg d
 det inte. För få laddtimmar eller en kvot däremellan = okänt (inget ändras). Ren logik + en databasfråga; motorn kör
 det en gång per dygn och sparar svaret i ew_settings ("ev_in_meter").
 """
+from local_sql import local_sql
 from statistics import median
 
 MIN_HOURS = 6           # så många laddtimmar (med jämförelsetimmar) innan vi säger något
@@ -38,7 +39,7 @@ def detect(hours):
     return None, round(r, 2), len(ratios)
 
 
-SQL = """SELECT extract(hour FROM h AT TIME ZONE 'Europe/Stockholm')::int, hus, bil FROM (
+SQL = """SELECT extract(hour FROM h AT TIME ZONE __EW_TIMEZONE__)::int, hus, bil FROM (
            SELECT date_trunc('hour', timestamp) h, avg(house_consumption_w) / 1000.0 hus,
                   avg(COALESCE(ev_power_kw, 0) + COALESCE(ev_carport_power_kw, 0)) bil, count(*) n
            FROM sensor_log WHERE timestamp > NOW() - INTERVAL '60 days' AND house_consumption_w IS NOT NULL
@@ -47,7 +48,7 @@ SQL = """SELECT extract(hour FROM h AT TIME ZONE 'Europe/Stockholm')::int, hus, 
 
 def from_db(get_db):
     with get_db() as conn, conn.cursor() as cur:
-        cur.execute(SQL)
+        cur.execute(local_sql(SQL))
         return detect([(int(h), float(a or 0), float(b or 0)) for h, a, b in cur.fetchall()])
 
 

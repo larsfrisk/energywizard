@@ -4,6 +4,7 @@ som sensorer i Home Assistant, för dashboard-flikarna "Översikt" och "Analys".
 Körs i en egen bakgrundstråd (start() anropas en gång från main.py) och läser bara från databasen, så den
 kan aldrig påverka styrningen. Sensorerna skapas via HA:s REST-API (icke-persistenta, uppdateras varje minut).
 """
+from local_sql import local_sql
 import threading
 import time
 import zoneinfo
@@ -22,7 +23,7 @@ CHARGER_CARS = ["laddbox_1", "laddbox_2"]
 SWE = zoneinfo.ZoneInfo("Europe/Stockholm")
 INTERVAL_S = 60
 
-_TODAY = "(date_trunc('day', now() AT TIME ZONE 'Europe/Stockholm') AT TIME ZONE 'Europe/Stockholm')"
+_TODAY = "(date_trunc('day', now() AT TIME ZONE __EW_TIMEZONE__))"
 
 
 def _num(v, n=2):
@@ -32,17 +33,18 @@ def _num(v, n=2):
 def _day_prices(conn, offset_days):
     """Kvartspriser (kr/kWh) för idag (0) eller imorgon (1) som [[epoch_ms, pris], ...]."""
     rows = conn.execute(text(
-        f"SELECT extract(epoch FROM time_start) * 1000, sek_per_kwh FROM elpriser "
-        f"WHERE time_start >= {_TODAY} + interval '{offset_days} day' "
-        f"AND time_start < {_TODAY} + interval '{offset_days + 1} day' ORDER BY time_start")).fetchall()
+        local_sql(f"SELECT extract(epoch FROM time_start) * 1000, sek_per_kwh FROM elpriser "
+        f"WHERE time_start >= ({_TODAY} + interval '{offset_days} day') AT TIME ZONE __EW_TIMEZONE__ "
+        f"AND time_start < ({_TODAY} + interval '{offset_days + 1} day') AT TIME ZONE __EW_TIMEZONE__ ORDER BY time_start"))).fetchall()
     return [[int(r[0]), round(float(r[1]), 4)] for r in rows if r[1] is not None]
 
 
 def _cheapest_dearest(prices):
     """Billigaste och dyraste hela timme (lokal tid) av en dags kvartspriser."""
+    import nordpool
     by_hour = {}
     for ts_ms, p in prices:
-        h = datetime.fromtimestamp(ts_ms / 1000, SWE).hour
+        h = datetime.fromtimestamp(ts_ms / 1000, nordpool.price_timezone()).hour
         by_hour.setdefault(h, []).append(p)
     if not by_hour:
         return None, None, None
@@ -54,6 +56,7 @@ def _cheapest_dearest(prices):
 
 def _collect():
     import nordpool
+    SWE = nordpool.price_timezone()
     currency_symbol = nordpool.cost_settings()["symbol"]
     ent = {"sensor.smartbox_puls": (datetime.now(SWE).isoformat(timespec="seconds"),
                                     {"friendly_name": "Smartbox Puls", "device_class": "timestamp", "icon": "mdi:heart-pulse"})}
@@ -123,8 +126,8 @@ def _collect():
         # Idag: köpt el från nätet, effektviktat snittpris och vad tajmningen sparat mot dygnssnittet.
         # (Bygger på nätimporten net_power > 0 – avg_w_tot är pumpens SCHABLON och ingen mätning av husets last.)
         e = c.execute(text(
-            f"SELECT sum(net_power) / 60000.0, sum(net_power * price) / nullif(sum(net_power), 0) FROM sensor_log "
-            f"WHERE timestamp >= {_TODAY} AND net_power > 0 AND price IS NOT NULL")).fetchone()
+            local_sql(f"SELECT sum(net_power) / 60000.0, sum(net_power * price) / nullif(sum(net_power), 0) FROM sensor_log "
+            f"WHERE timestamp >= {_TODAY} AT TIME ZONE __EW_TIMEZONE__ AND net_power > 0 AND price IS NOT NULL"))).fetchone()
         if e and e[0] is not None and day_avg is not None and e[1] is not None:
             kwh, wprice = float(e[0]), float(e[1])
             ent["sensor.smartbox_forbrukning_idag"] = (_num(kwh, 1), {"friendly_name": "Smartbox Köpt el idag", "unit_of_measurement": "kWh", "device_class": "energy", "icon": "mdi:counter"})

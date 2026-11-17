@@ -10,6 +10,7 @@ Just nu körs den i SKUGGLÄGE: run_backtest() replayar planeraren mot din histo
 och uppskattar besparingen — den styr INGET live förrän den validerats.
 """
 
+from local_sql import local_sql
 from datetime import datetime, timedelta
 import learning
 import logger as sm_logger
@@ -34,24 +35,24 @@ def _hourly_day(day_start):
     rows = {}
     try:
         with sm_logger.get_db() as conn, conn.cursor() as cur:
-            cur.execute("""
-                SELECT EXTRACT(HOUR FROM timestamp AT TIME ZONE 'Europe/Stockholm')::int AS h,
+            cur.execute(local_sql("""
+                SELECT EXTRACT(HOUR FROM timestamp AT TIME ZONE __EW_TIMEZONE__)::int AS h,
                        AVG(outdoor_temp), AVG(pv_power_w), AVG(indoor_temp)
                 FROM sensor_log
                 WHERE timestamp >= %s AND timestamp < %s
                   AND outdoor_temp IS NOT NULL AND indoor_temp IS NOT NULL
                 GROUP BY 1
-            """, (day_start, day_end))
+            """), (day_start, day_end))
             for h, out, pv, ind in cur.fetchall():
                 rows[int(h)] = {'outdoor': float(out) if out is not None else None,
                                 'solar': float(pv) if pv is not None else 0.0,
                                 'indoor': float(ind) if ind is not None else None,
                                 'price': None}
-            cur.execute("""
-                SELECT EXTRACT(HOUR FROM time_start AT TIME ZONE 'Europe/Stockholm')::int AS h,
+            cur.execute(local_sql("""
+                SELECT EXTRACT(HOUR FROM time_start AT TIME ZONE __EW_TIMEZONE__)::int AS h,
                        AVG(sek_per_kwh)
                 FROM elpriser WHERE time_start >= %s AND time_start < %s GROUP BY 1
-            """, (day_start, day_end))
+            """), (day_start, day_end))
             for h, p in cur.fetchall():
                 if int(h) in rows:
                     rows[int(h)]['price'] = float(p) if p is not None else None
