@@ -30,6 +30,7 @@ from sqlalchemy import create_engine, text
 import webauth
 import discovery
 import house_config
+from public_errors import validation_message
 from local_sql import local_sql
 import car_log
 import pump
@@ -104,7 +105,7 @@ AUTH = webauth.Auth(salt="webdash", family_write_prefixes=(), cookie="ew_web")  
 # det är ett separat omverifieringsflöde (eget "ew2"-cookie, lösenord igen, 10 minuters
 # fönster) som förtjänar sin egen, noga testade implementation - inte en hastig kopia.
 EWAPP_URL = os.environ.get("EWAPP_URL", "http://ewapp:8502")
-_EWAPP_SECRET = hashlib.sha256(("ewapp|" + webauth.owner_password()).encode()).digest()
+_EWAPP_SECRET = webauth.session_key(webauth.owner_password(), "ewapp")
 
 
 def _ewapp_cookie() -> str:
@@ -119,7 +120,7 @@ async def _ewapp_proxy(path: str, body: dict, extra_cookies: dict | None = None)
         cookies.update(extra_cookies or {})
         r = requests.post(f"{EWAPP_URL}{path}", cookies=cookies, json=body, timeout=25)
     except requests.RequestException as e:
-        return JSONResponse({"detail": f"Nådde inte ewapp: {e}"}, status_code=502)
+        return JSONResponse({"detail": "Nådde inte ewapp"}, status_code=502)
     try:
         data = r.json()
     except ValueError:
@@ -640,7 +641,7 @@ async def price_entities():
         r.raise_for_status()
         states = r.json()
     except Exception as e:
-        return {"ok": False, "error": f"Kunde inte läsa Home Assistant: {e}", "entities": []}
+        return {"ok": False, "error": "Kunde inte läsa Home Assistant", "entities": []}
     out = []
     for st in states:
         e = st.get("entity_id", "")
@@ -678,7 +679,7 @@ async def notify_target_get(request: Request):
         r.raise_for_status()
         svcs = next((d.get("services") or {} for d in r.json() if d.get("domain") == "notify"), {})
     except Exception as e:
-        return {"ok": False, "error": f"Kunde inte läsa Home Assistant: {e}"}
+        return {"ok": False, "error": "Kunde inte läsa Home Assistant"}
     phones = sorted(n for n in svcs if n.startswith("mobile_app_"))
     # #170: även andra notify-tjänster (grupper, e-post, Telegram ...) och egna skript (får title och message)
     others = sorted(n for n in svcs if not n.startswith("mobile_app_") and n not in ("notify", "persistent_notification"))
@@ -937,7 +938,7 @@ async def sensors_get(request: Request):
         r.raise_for_status()
         states = r.json()
     except Exception as e:
-        return {"ok": False, "error": f"Kunde inte läsa Home Assistant: {e}"}
+        return {"ok": False, "error": "Kunde inte läsa Home Assistant"}
     temps, hums = [], []
     for st in states:
         e, a = st.get("entity_id", ""), st.get("attributes") or {}
@@ -1046,7 +1047,7 @@ async def price_settings_set(request: Request):
                 raise ValueError("ČEZ HDO saknar giltiga priser för NT och VT. Ange priserna manuellt eller konfigurera dem i integrationen.")
             upd.update(price_buy_nt=rates[0], price_buy_vt=rates[1])
     except ValueError as exc:
-        return JSONResponse({"error": str(exc)}, status_code=400)
+        return JSONResponse({"error": validation_message(exc)}, status_code=400)
     country = str(body.get("country") or "SE").upper()
     if country not in nordpool.COUNTRIES:
         return JSONResponse({"error": "Okänt land"}, status_code=400)
@@ -1128,7 +1129,7 @@ async def price_settings_set(request: Request):
     try:
         validate_result(nordpool.cost_settings(), upd)
     except ValueError as exc:
-        return JSONResponse({"error": str(exc)}, status_code=400)
+        return JSONResponse({"error": validation_message(exc)}, status_code=400)
     ew_settings.update(**upd)
     return {"ok": True}
 
@@ -1311,7 +1312,7 @@ async def updates(request: Request, force: bool = False):
             _wt_cache["ts"] = now
         except requests.RequestException as e:
             if _wt_cache["data"] is None:
-                return {"ok": False, "error": f"Kunde inte nå Watchtower: {e}"}
+                return {"ok": False, "error": "Kunde inte nå Watchtower"}
     containers = _wt_cache["data"].get("containers", [])
     pending = [c["name"] for c in containers if c.get("update_available")]
     return {
@@ -1339,7 +1340,7 @@ async def installs(request: Request):
         r.raise_for_status()
         return {"ok": True, "configured": True, **r.json()}
     except (requests.RequestException, ValueError) as e:
-        return {"ok": False, "configured": True, "error": f"Kunde inte nå telemetrisamlaren: {e}"}
+        return {"ok": False, "configured": True, "error": "Kunde inte nå telemetrisamlaren"}
 
 
 def _latest_row(c):
@@ -1837,7 +1838,7 @@ async def spa_bath_set(request: Request):
         mode = "nobath" if body.get("mode") == "nobath" else "bath"
         saved = spa_bath.clean(body.get("windows"), mode)
     except ValueError as e:
-        return JSONResponse({"error": str(e)}, status_code=400)
+        return JSONResponse({"error": validation_message(e)}, status_code=400)
     ew_settings.update(spa_bath_windows=saved, spa_bath_mode=mode)
     return {"ok": True, "message": spa_bath.summary(saved, mode)}
 
@@ -1960,7 +1961,7 @@ async def schedule_get():
         r = requests.get(f"{EWAPP_URL}/api/schedule", cookies={"ew": _ewapp_cookie()}, timeout=25)
         return JSONResponse(r.json(), status_code=r.status_code)
     except Exception as e:
-        return JSONResponse({"detail": f"Nådde inte ewapp: {e}"}, status_code=502)
+        return JSONResponse({"detail": "Nådde inte ewapp"}, status_code=502)
 
 
 @app.post("/api/schedule")
@@ -2059,7 +2060,7 @@ async def tesla_access_state():
         r.raise_for_status()
         data = r.json()
     except Exception as e:
-        return JSONResponse({"detail": f"Nådde inte ewapp: {e}"}, status_code=502)
+        return JSONResponse({"detail": "Nådde inte ewapp"}, status_code=502)
     car = next((c for c in data.get("cars", []) if c.get("access")), None)
     return {"ok": True, "access": car.get("access") if car else None, "car": car.get("name") if car else None}
 
@@ -2072,7 +2073,7 @@ async def api_discover():
     try:
         res = {"ok": True, **discovery.discover_house()}
     except Exception as e:
-        return {"ok": False, "error": f"Kunde inte skanna Home Assistant: {e}"}
+        return {"ok": False, "error": "Kunde inte skanna Home Assistant"}
     res["form"] = _wizard_form()                          # #173: tidigare sparade val fylls i även efter ny skanning
     try:                                                   # #168: senaste skanningen visas igen när man kommer tillbaka
         import json as _json
@@ -2155,7 +2156,7 @@ async def api_discover_modbus():
         found = await asyncio.to_thread(pump.scan_for_husdata)
         return {"ok": True, "found": found}
     except Exception as e:
-        return {"ok": False, "error": f"Kunde inte söka på nätverket: {e}"}
+        return {"ok": False, "error": "Kunde inte söka på nätverket"}
 
 
 def _yaml_str(v) -> str:
@@ -2219,7 +2220,9 @@ def _build_house_config_yaml(sel: dict) -> str:
         if hp_driver in ("generic_climate", "ha_entities"):
             lines += ["  entities:"]
             for key, val in (hp.get("entities") or {}).items():
-                if re.fullmatch(r"[a-z_]+", str(key)) and re.fullmatch(r"[a-z_]+\.[a-z0-9_]+", str(val)):
+                if (isinstance(key, str) and isinstance(val, str) and len(key) <= 64 and len(val) <= 193
+                        and re.fullmatch(r"[a-z_]{1,64}", key)
+                        and re.fullmatch(r"[a-z_]{1,64}\.[a-z0-9_]{1,128}", val)):
                     lines.append(f"    {key}: {val}")
             if hp_driver == "ha_entities" and not (hp.get("entities") or {}).get("room_target"):
                 lines.append("    # room_target: number.XXX  # valfritt - pumpens rumsbörvärde, behövs för att EnergyWizard ska styra")
@@ -2409,7 +2412,7 @@ async def api_generate_house_config(request: Request):
             house_config.build_spa_driver(cfg)
             house_config.build_battery_driver(cfg)
     except Exception as e:
-        return JSONResponse({"ok": False, "error": f"Den genererade filen gick inte att läsa in: {e}"}, status_code=500)
+        return JSONResponse({"ok": False, "error": "Den genererade filen gick inte att läsa in"}, status_code=500)
     return Response(content=yaml_text, media_type="text/yaml",
                      headers={"Content-Disposition": "attachment; filename=house_config.yaml"})
 

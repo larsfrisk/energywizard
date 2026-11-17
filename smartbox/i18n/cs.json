@@ -2803,5 +2803,15 @@
  "Nästa badtid lör #:#": "Další koupání so #:#",
  "Nästa badtid sön #:#": "Další koupání ne #:#",
  "Bilen laddar": "Auto se nabíjí",
- "Konfigurationen kunde inte uppdateras. Den befintliga filen har inte ändrats.": "Konfiguraci se nepodařilo aktualizovat. Stávající soubor nebyl změněn."
+ "Konfigurationen kunde inte uppdateras. Den befintliga filen har inte ändrats.": "Konfiguraci se nepodařilo aktualizovat. Stávající soubor nebyl změněn.",
+ "Nådde inte ewapp": "Mobilní aplikace není dostupná",
+ "Kunde inte läsa Home Assistant": "Nepodařilo se načíst Home Assistant",
+ "Kunde inte nå Watchtower": "Watchtower není dostupný",
+ "Kunde inte nå telemetrisamlaren": "Sběrač telemetrie není dostupný",
+ "Kunde inte skanna Home Assistant": "Nepodařilo se prohledat Home Assistant",
+ "Kunde inte söka på nätverket": "Nepodařilo se prohledat síť",
+ "Den genererade filen gick inte att läsa in": "Vygenerovanou konfiguraci se nepodařilo načíst",
+ "Kan inte nå Home Assistant": "Home Assistant není dostupný",
+ "Home Assistant svarar inte": "Home Assistant neodpovídá",
+ "Home Assistant svarade inte": "Home Assistant neodpověděl"
 }
