@@ -41,3 +41,26 @@ qualification run it is manual-only, so PR updates do not repeatedly launch the
 80-trial matrix. This work does not switch the release
 builder: adoption requires repeatable, qualified end-to-end gains across both
 architectures. Previous QEMU/native timings do not establish Buildah performance.
+
+## Measured results, 2026-11-17
+
+[Controlled run](https://github.com/murre87/energywizard/actions/runs/44053159806) at `cc3be9456cd11671683aa573d026007c07b278eb`: all 80 trials qualified. Downloaded artifact hashes, exact image IDs, valid Grype databases, Python findings, CISA evidence hashes and identical source/package fingerprints were independently checked. Raw reports remain in run artifacts; [durable measurements](build-performance-results-2026-11-17.json) record artifact digests and tool versions.
+
+Median seconds include build/export, import, startup and complete audit; two counterbalanced repeats per cell. One-time tool preparation is recorded separately in the measurements.
+
+| Native context | Cold BuildKit | Cold Buildah | Warm BuildKit | Warm Buildah |
+|---|---:|---:|---:|---:|
+| amd64/ewapp | 74.6 | 72.2 | 29.1 | 27.9 |
+| amd64/ha-addon/smartbox | 110.1 | 111.0 | 62.7 | 67.0 |
+| amd64/smartbox | 88.7 | 87.6 | 39.9 | 42.6 |
+| amd64/telemetry-collector | 62.0 | 61.0 | 14.7 | 16.2 |
+| amd64/webdashboard | 81.0 | 83.8 | 34.0 | 39.5 |
+| arm64/ewapp | 146.1 | 147.4 | 41.3 | 44.5 |
+| arm64/ha-addon/smartbox | 188.0 | 194.5 | 84.1 | 94.5 |
+| arm64/smartbox | 163.3 | 166.9 | 54.3 | 64.9 |
+| arm64/telemetry-collector | 126.8 | 131.8 | 22.8 | 27.0 |
+| arm64/webdashboard | 143.2 | 143.7 | 39.6 | 41.9 |
+
+**Decision: retain BuildKit.** Results vary across contexts and architectures; two repeats do not establish a general Buildah improvement. No release builder was changed.
+
+The pinned Grype online-update probe took 26.542 seconds with an empty cache and 0.667 seconds with a current cache. With networking disabled, an explicit update failed even with that current cache, confirming the refresh gate fails closed. These are scanner-update timings, not a claimed whole-workflow speedup. Native pip-cache trials saved 1.09 seconds on AMD64 and 1.82 seconds on ARM64, less than observed remote cache overhead; persistent pip caching was rejected.
