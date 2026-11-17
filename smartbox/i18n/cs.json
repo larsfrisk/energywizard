@@ -3018,5 +3018,8 @@
  "Bara ägaren kan ändra det här": "Toto může změnit pouze vlastník",
  "Bara ägaren kan ändra språket för hela installationen": "Jazyk celé instalace může změnit pouze vlastník",
  "Okänt språk": "Neznámý jazyk",
- "Enphase: 'charge' = Full backup. Ingen tvingad urladdning via integrationen.": "Enphase: 'charge' = Full backup. Integrace neumí vynucené vybíjení."
+ "Enphase: 'charge' = Full backup. Ingen tvingad urladdning via integrationen.": "Enphase: 'charge' = Full backup. Integrace neumí vynucené vybíjení.",
+ "Vid billig el / Auto: {cheap} · Vid dyr el: {expensive}": "Při levné elektřině / automaticky: {cheap} · Při drahé elektřině: {expensive}",
+ "Med MQTT blir EnergyWizard en riktig enhet i Home Assistant: sensorerna behåller sina namn, går att redigera och finns kvar när HA startar om, och du kan slå på/av skuggläget och den automatiska exportstyrningen från HA.": "Přes MQTT se EnergyWizard stane skutečným zařízením v Home Assistantu: senzory si zachovají názvy, lze je upravovat a zůstávají i po restartu HA. Stínový režim a automatické řízení přetoků lze přepínat z HA.",
+ "Använd samma broker som Home Assistant (oftast Mosquitto-tillägget).": "Použijte stejný broker jako Home Assistant (obvykle doplněk Mosquitto)."
 }
