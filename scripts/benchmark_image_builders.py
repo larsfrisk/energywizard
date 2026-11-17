@@ -118,14 +118,21 @@ def benchmark(context, folder, commit, ref, repo, repeats=2):
                 'buildx': output('docker', 'buildx', 'version'), 'buildkit_image': BUILDKIT,
                 'buildah_image': BUILDAH, 'cache_policy': 'pull plus no-cache for both cold/warm builds',
                 'runner': {'machine': platform.machine(), 'cpu_count': os.cpu_count()}}
-    metadata['buildah_version'] = output('docker', 'run', '--rm', '--entrypoint', 'buildah', BUILDAH, '--version')
-    metadata['buildkit_version'] = output('docker', 'run', '--rm', '--entrypoint', 'buildkitd', BUILDKIT, '--version')
+    metadata['tool_preparation_s'] = {}
+    for tool, executable, image in [('buildah', 'buildah', BUILDAH), ('buildkit', 'buildkitd', BUILDKIT)]:
+        start = time.monotonic()
+        metadata[tool + '_version'] = output('docker', 'run', '--rm', '--entrypoint', executable, image, '--version')
+        metadata['tool_preparation_s'][tool] = round(time.monotonic() - start, 3)
     baseline = None
     for repeat in range(repeats):
         # Alternate order to reduce warmed scanner/network bias.
         for builder in (('buildkit', 'buildah') if repeat % 2 == 0 else ('buildah', 'buildkit')):
             name = f'{prefix}-{repeat}-{builder}'
             storage = name + '-storage'
+            scanner_cache = name + '-grype'
+            # Each builder/repeat pays its own first feed download. A shared
+            # scanner cache would incorrectly make the second builder look faster.
+            run('docker', 'volume', 'create', scanner_cache)
             setup_at = time.monotonic()
             if builder == 'buildkit':
                 run('docker', 'buildx', 'create', '--name', name, '--driver', 'docker-container',
@@ -143,6 +150,7 @@ def benchmark(context, folder, commit, ref, repo, repeats=2):
                     image = prefix + ':' + trial
                     archive = folder / (trial + '.tar')
                     row = {'repeat': repeat, 'builder': builder, 'cache': cache,
+                           'scanner_cache': cache,
                            'setup_s': round(setup_s if cache == 'cold' else 0, 3), 'qualified': False}
                     try:
                         start = time.monotonic()
@@ -172,7 +180,8 @@ def benchmark(context, folder, commit, ref, repo, repeats=2):
                         row['startup_s'] = round(time.monotonic() - start, 3)
                         start = time.monotonic()
                         report = folder / trial
-                        run(sys.executable, str(ROOT / 'scripts/audit_image.py'), row['image_id'], '--output', str(report))
+                        run(sys.executable, str(ROOT / 'scripts/audit_image.py'), row['image_id'],
+                            '--grype-cache-volume', scanner_cache, '--output', str(report))
                         row['audit_s'] = round(time.monotonic() - start, 3)
                         inventory = json.loads((report / 'inventory.json').read_text())
                         identity['python_sha256'] = hashlib.sha256(json.dumps(sorted(inventory, key=lambda x:x['name']), sort_keys=True).encode()).hexdigest()
@@ -197,6 +206,7 @@ def benchmark(context, folder, commit, ref, repo, repeats=2):
                     run('docker', 'buildx', 'rm', '-f', name, check=False)
                 else:
                     run('docker', 'volume', 'rm', storage, check=False)
+                run('docker', 'volume', 'rm', scanner_cache, check=False)
     return all(row['qualified'] for row in rows) and len(rows) == repeats * 4
 
 

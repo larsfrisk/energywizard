@@ -77,6 +77,9 @@ def test_each_trial_rebuilds_imports_starts_and_audits_exact_image(tmp_path, mon
     assert len(rows)==8 and len(starts)==8
     assert sum('audit_image.py' in str(c) for c in calls)==8
     assert all(c[2]=='sha256:exact-built-id' for c in calls if c[0]==b.sys.executable)
+    audits=[c for c in calls if c[0]==b.sys.executable]
+    caches=[c[c.index('--grype-cache-volume')+1] for c in audits]
+    assert len(set(caches))==4 and all(caches.count(c)==2 for c in set(caches))
     builds=[c for c in calls if 'bud' in c or c[:3]==('docker','buildx','build')]
     assert len(builds)==8 and all('--no-cache' in c for c in builds)
     assert all('--pull' in c or '--pull=always' in c for c in builds)

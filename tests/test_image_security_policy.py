@@ -4,6 +4,7 @@ import importlib.util
 from pathlib import Path
 
 import pytest
+import argparse
 
 spec = importlib.util.spec_from_file_location('audit_image', Path(__file__).resolve().parents[1] / 'scripts/audit_image.py')
 audit = importlib.util.module_from_spec(spec)
@@ -76,3 +77,10 @@ def test_inventory_is_pinned_and_rejects_requirement_injection():
         audit.requirements([{'name': 'pip', 'version': '26.3\nmalicious'}])
     with pytest.raises(ValueError):
         audit.requirements([])
+
+
+def test_scanner_cache_names_cannot_be_paths_or_mount_options():
+    assert audit.cache_volume('ew-benchmark-123') == 'ew-benchmark-123'
+    for value in ['/var/run/docker.sock', 'cache:/secret', '../home', '', 'x' * 129]:
+        with pytest.raises(argparse.ArgumentTypeError):
+            audit.cache_volume(value)

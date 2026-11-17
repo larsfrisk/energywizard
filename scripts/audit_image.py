@@ -21,6 +21,12 @@ KEV_URLS = (
 )
 
 
+def cache_volume(value):
+    if not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.-]{0,127}', value):
+        raise argparse.ArgumentTypeError('Invalid scanner cache volume name')
+    return value
+
+
 def validate_kev(data, now=None):
     now = now or datetime.now(timezone.utc)
     released = datetime.fromisoformat(data['dateReleased'].replace('Z', '+00:00'))
@@ -86,6 +92,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('image', help='Locally built Docker image')
     parser.add_argument('--output', type=Path, required=True)
+    parser.add_argument('--grype-cache-volume', type=cache_volume, default='ew-security-grype-cache',
+                        help='Dedicated scanner download cache (reports are never cached)')
     args = parser.parse_args()
     if not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9._/:@-]*', args.image):
         parser.error('Invalid local image reference')
@@ -114,7 +122,7 @@ def main():
         subprocess.run(['docker', 'image', 'save', '--output', str(archive), args.image], check=True)
         # Scan a local archive: no Docker socket, auth file or user home is mounted.
         subprocess.run(['docker', 'run', '--rm', '--volume', f'{folder}:/scan',
-                        '--volume', 'ew-security-grype-cache:/.cache/grype', GRYPE,
+                        '--volume', f'{args.grype_cache_volume}:/.cache/grype', GRYPE,
                         'docker-archive:/scan/image.tar', '--output', 'json',
                         '--file', '/scan/grype.json'], check=True)
     finally:
@@ -124,6 +132,7 @@ def main():
     (folder / 'kev.json').write_text(json.dumps(kev, indent=2), encoding='utf-8')
     blocked = policy_findings(report, validate_kev(kev))
     summary = {'image': args.image, 'scanned_at': datetime.now(timezone.utc).isoformat(),
+               'grype_cache_volume': args.grype_cache_volume,
                'python_findings': python_findings, 'blocked_image_findings': blocked,
                'total_scanner_matches': len(report['matches']),
                'kev_source': source, 'kev_released': kev['dateReleased'],

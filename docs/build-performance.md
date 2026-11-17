@@ -22,6 +22,10 @@ and complete image audit time. BuildKit combines build/export, so these stages a
 compared together for both builders. Every image must match the checked-out source
 and the first trial's OS/Python inventories. Mismatches, failed scans and startup
 failures are rejected; partial findings and timings remain in uploaded artifacts.
+Each builder/repeat has its own scanner cache: cold audits download their own
+feeds, warm audits reuse only that pair's cache and still validate/update feeds.
+Sharing one cache across builders would bias the first builder's total. One-time
+tool image preparation is recorded separately from per-image trial totals.
 Buildah uses a privileged container with dedicated overlay storage on disposable
 GitHub runners; fork PRs cannot run that job. Nothing is pushed or deployed.
 
