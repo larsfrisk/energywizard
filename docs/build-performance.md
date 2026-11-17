@@ -1,8 +1,10 @@
 # Build performance verification
 
-The audit action caches pip downloads keyed by its pinned tooling requirements,
-Python version and runner architecture. It still installs/verifies the tools and
-runs the complete installed-package, Grype and CISA policy for every exact image.
+The audit action installs its pinned tooling requirements in one pip invocation,
+then runs the complete installed-package, Grype and CISA policy for every exact
+image. A persistent pip download cache was tested but not retained: paired native
+installs saved about 1–2 seconds, while observed Actions restore/setup overhead
+was 2.9–5.2 seconds. Pip-only savings are not a demonstrated whole-job improvement.
 No scan results or vulnerability feeds are restored from Actions caches. Release
 `pull`/`no-cache`, daily security builds and publication gates remain unchanged.
 
@@ -30,7 +32,8 @@ Buildah uses a privileged container with dedicated overlay storage on disposable
 GitHub runners; fork PRs cannot run that job. Nothing is pushed or deployed.
 
 The workflow records tool versions, immutable tool images, runner CPU count,
-source commit, exact image IDs, feed evidence and raw findings. It runs only for
-benchmark changes or manual dispatch. This work does not switch the release
+source commit, exact image IDs, feed evidence and raw findings. After the initial
+qualification run it is manual-only, so PR updates do not repeatedly launch the
+80-trial matrix. This work does not switch the release
 builder: adoption requires repeatable, qualified end-to-end gains across both
 architectures. Previous QEMU/native timings do not establish Buildah performance.

@@ -17,14 +17,14 @@ def module(name):
     return mod
 
 
-def test_only_downloaded_audit_tooling_is_cached():
+def test_audit_tooling_uses_one_pinned_install_without_remote_cache_overhead():
     action = yaml.load((ROOT / '.github/actions/audit-image/action.yml').read_text(), Loader=yaml.BaseLoader)
     steps = action['runs']['steps']
     setup = next(s for s in steps if 'setup-python@' in s.get('uses',''))['with']
-    assert setup['cache'] == 'pip' and setup['cache-dependency-path'] == '${{ steps.audit-path.outputs.requirements }}'
-    assert 'realpath' in next(s for s in steps if s.get('id') == 'audit-path')['run']
+    assert 'cache' not in setup
     install = next(s for s in steps if s.get('name') == 'Install audit tooling')
     assert '-r "$EW_AUDIT_REQUIREMENTS"' in install['run']
+    assert install['run'].count('pip ')==1
     assert any('audit_image.py' in str(step) for step in action['runs']['steps'])
     # No cache action restores scans, feeds, inventories or built image layers.
     assert not any('actions/cache@' in step.get('uses', '') for step in action['runs']['steps'])
@@ -39,6 +39,7 @@ def test_benchmark_covers_native_architectures_without_publication_or_fork_privi
     assert "head.repo.full_name == github.repository" in job['if']
     assert 'ubuntu-24.04-arm' in job['runs-on']
     assert workflow['permissions'] == {'contents': 'read'}
+    assert set(workflow['on']) == {'workflow_dispatch'}
     assert not any('login-action' in str(step) or 'setup-qemu' in str(step) for step in job['steps'])
     assert next(s for s in job['steps'] if 'setup-buildx-action' in s.get('uses',''))['with']['version'] == 'v0.39.0'
 

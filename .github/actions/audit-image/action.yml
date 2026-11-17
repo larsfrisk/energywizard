@@ -10,22 +10,13 @@ inputs:
 runs:
   using: composite
   steps:
-    - id: audit-path
-      shell: bash
-      env:
-        EW_AUDIT_ACTION_DIR: ${{ github.action_path }}
-      run: printf 'requirements=%s\n' "$(realpath "$EW_AUDIT_ACTION_DIR/requirements.txt")" >> "$GITHUB_OUTPUT"
     - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
       with:
         python-version: "3.11.18"
-        # Cache downloaded tooling only. Every image inventory, scan and feed
-        # validation below still runs; no vulnerability reports are restored.
-        cache: pip
-        cache-dependency-path: ${{ steps.audit-path.outputs.requirements }}
     - name: Install audit tooling
       shell: bash
       env:
-        EW_AUDIT_REQUIREMENTS: ${{ steps.audit-path.outputs.requirements }}
+        EW_AUDIT_REQUIREMENTS: ${{ github.action_path }}/requirements.txt
       run: |
         python -m pip --disable-pip-version-check install -r "$EW_AUDIT_REQUIREMENTS"
     - name: Audit installed packages and CISA KEVs
