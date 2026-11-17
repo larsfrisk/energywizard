@@ -14,6 +14,7 @@ async function run(lang) {
   await context.window.I18N.ready;
   const tr=context.window.I18N.tr;
   start();
+  if(lang==='en') assert.equal(tr('Bra tider att köra disk eller tvätt:\n  00:00–06:00 (0.28 €/kWh)'), 'Good times to run the dishwasher or washing machine:\n  00:00–06:00 (0.28 €/kWh)');
   const spa='Nästa badtid tis 16:00 – Värmer nu på billiga timmar så att badet är varmt i tid.';
   const expected={en:'Next bathing time Tue 16:00 – Heating now during cheap hours so the hot tub is warm in time.',cs:'Další koupání út 16:00 – Ohřev nyní během levných hodin, aby byla vířivka včas teplá.'};
   assert.equal(tr(spa),expected[lang]||spa);
