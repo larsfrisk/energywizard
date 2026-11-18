@@ -11,7 +11,7 @@ PyYAML
 psycopg[binary] 
 psycopg_pool
 SQLAlchemy>=2.1.8
-scikit-learn==1.8.0
+scikit-learn==1.9.1
 paho-mqtt>=2.2.0
 lupa>=2.8            # Lua-värd för Sourcefuls FTW-drivrutiner (lua_host.py)
 websocket-client>=1.7  # FTW-drivrutiner med websocket (lua_host.py)
