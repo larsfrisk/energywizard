@@ -14,5 +14,5 @@ SQLAlchemy>=2.1.8
 scikit-learn==1.9.1
 paho-mqtt>=2.2.0
 lupa>=2.8            # Lua-värd för Sourcefuls FTW-drivrutiner (lua_host.py)
-websocket-client>=1.7  # FTW-drivrutiner med websocket (lua_host.py)
+websocket-client>=1.9.2  # FTW-drivrutiner med websocket (lua_host.py)
 cryptography>=50.0.2       # krypterade P1/HAN-mätare i FTW-drivrutiner (lua_host.py)
