@@ -47,7 +47,7 @@ def compare(capped, candidate):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output', type=Path, default=Path('numpy-native-report.json'))
-    parser.add_argument('--candidate-target', choices=('candidate', 'candidate-openblas'), default='candidate')
+    parser.add_argument('--candidate-target', choices=('candidate', 'candidate-openblas', 'candidate-openblas-current'), default='candidate')
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[1]
     rows = {}

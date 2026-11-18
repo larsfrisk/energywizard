@@ -3,6 +3,9 @@
 Tracked in [issue #273](https://github.com/murre87/energywizard/issues/273).
 No production deployments or volume ownership changes are part of this review.
 
+Latest dated follow-up: [November 17 qualification](security-qualification-2026-11-17.md).
+The sections below retain the original review's measurements and limitations.
+
 ## Image policy
 
 The normal images retain Python 3.11 and the existing `numpy<2.4` CPU compatibility

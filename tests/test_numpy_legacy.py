@@ -7,6 +7,7 @@ from unittest.mock import Mock
 import sys
 
 import pytest
+import yaml
 
 spec=importlib.util.spec_from_file_location('legacy',Path(__file__).resolve().parents[1]/'scripts/check_numpy_compat.py')
 legacy=importlib.util.module_from_spec(spec)
@@ -78,3 +79,35 @@ def test_passing_upstream_control_rejects_the_experiment(monkeypatch):
     monkeypatch.setattr(legacy,'run_image',probe)
     with pytest.raises(RuntimeError,match='unexpectedly passed'):legacy.main()
     assert probe.call_count==2
+
+
+def test_current_openblas_cannot_record_a_cpu_rejection(monkeypatch,tmp_path):
+    monkeypatch.setattr(sys,'argv',['probe','--candidate-target','candidate-openblas-current',
+        '--record-experimental-rejection',str(tmp_path/'result.json')])
+    invoke=Mock()
+    monkeypatch.setattr(legacy.subprocess,'run',invoke)
+    with pytest.raises(SystemExit):legacy.main()
+    invoke.assert_not_called()
+
+
+def test_evaluation_build_context_includes_numerical_probes():
+    root=Path(__file__).resolve().parents[1]
+    # A Dockerfile-specific allowlist prevents the root UI context from hiding
+    # both COPY inputs; it must not broaden production build contexts.
+    rules=(root/'tests/numpy_compat/Dockerfile.dockerignore').read_text().splitlines()
+    for path in ('smartbox/requirements.txt','tests/numpy_compat/smoke.py',
+                 'tests/numpy_compat/benchmark.py'):
+        assert '!'+path in rules
+        assert (root/path).is_file()
+
+
+def test_current_openblas_workflow_requires_all_cpu_controls():
+    root=Path(__file__).resolve().parents[1]
+    workflow=yaml.load((root/'.github/workflows/numpy-compat.yml').read_text(),Loader=yaml.BaseLoader)
+    steps=workflow['jobs']['legacy-cpu']['steps']
+    current=next(step for step in steps if step.get('if')=="matrix.target == 'candidate-openblas-current'")
+    assert '--record-experimental-rejection' not in current['run']
+    assert current['run'].count('--candidate-target candidate-openblas-current')==3
+    assert '--cpu-model intel-v1' in current['run']
+    assert '--cpu-model amd-3dnow' in current['run']
+    assert workflow['jobs']['native-stack']['strategy']['matrix']['runner']==['ubuntu-24.04','ubuntu-24.04-arm']

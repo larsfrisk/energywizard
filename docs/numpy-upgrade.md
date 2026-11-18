@@ -4,6 +4,10 @@ Review date: 2026-11-11. Tracked in [#280](https://github.com/murre87/energywiza
 following [#279](https://github.com/murre87/energywizard/pull/279) and the security
 review in [#273](https://github.com/murre87/energywizard/issues/273).
 
+The [November 17 follow-up](security-qualification-2026-11-17.md) adds a separate
+OpenBLAS 0.3.34 candidate for the upstream QEMU CPUID dispatch fix. Earlier
+candidate results below remain historical; production caps remain unchanged.
+
 ## Security coverage
 
 Fresh PyPI metadata identifies 2.3.5, 2.4.6 and 2.5.4 as the latest published,

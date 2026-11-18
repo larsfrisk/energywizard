@@ -1,0 +1,2525 @@
+{
+  "scope": "Dated local and native CI qualification; no deployment, physical legacy CPU or full application-image NumPy adoption claim.",
+  "sources": [
+    "https://docs.docker.com/dhi/how-to/verify/",
+    "https://openssl-library.org/news/secadv/20261110.txt",
+    "https://github.com/OpenMathLib/OpenBLAS/releases/tag/v0.3.34"
+  ],
+  "public_queries": {
+    "checked_at": "2026-11-17T22:40:53.981Z",
+    "numpy": [
+      {
+        "version": "2.3.5",
+        "requires_python": ">=3.11",
+        "advisories": []
+      },
+      {
+        "version": "2.4.6",
+        "requires_python": ">=3.11",
+        "advisories": []
+      }
+    ],
+    "kev": {
+      "date_released": "2026-11-17T17:53:15.5664Z",
+      "catalog_version": "2026.11.17",
+      "count": 1782,
+      "matches": []
+    }
+  },
+  "signed_vex": {
+    "checked_at": "2026-11-17T22:43:01.617625+00:00",
+    "key_url": "https://registry.scout.docker.com/keyring/dhi/latest.pub",
+    "key_sha256": "1d02bbccf149283ae6288d96264dcad3fb23ee1911d90324a48eab28e4cb8a5f",
+    "results": [
+      {
+        "base": "builder",
+        "reference": "dhi.io/python:3.11-debian13-dev@sha256:a4ccb5b75d709d9a23b2576cec305412f9852ccb9a461859a4e2c109ac8587f3",
+        "platform": "linux/amd64",
+        "manifest_digest": "sha256:eb65861c613110da6ef5a7f1e9985d9349003ae04f7a2b71769012bcbb404e5a",
+        "verification": "docker-key-only-public-log-entry-missing",
+        "vex_sha256": "0185716091c52152aa851054df115d7c3b001b94223264d03d540e1e7f6add68",
+        "statuses": {
+          "not_affected": 947,
+          "under_investigation": 16
+        },
+        "unresolved": [
+          "CVE-2024-2236",
+          "CVE-2025-12781",
+          "CVE-2026-18508",
+          "CVE-2026-3446",
+          "CVE-2026-54411",
+          "CVE-2026-54411",
+          "CVE-2026-54411",
+          "CVE-2026-54411",
+          "CVE-2026-54411",
+          "CVE-2026-54411",
+          "CVE-2026-54411",
+          "CVE-2026-54411",
+          "CVE-2026-54411",
+          "CVE-2026-54411",
+          "CVE-2026-54411",
+          "CVE-2026-54411"
+        ]
+      },
+      {
+        "base": "builder",
+        "reference": "dhi.io/python:3.11-debian13-dev@sha256:a4ccb5b75d709d9a23b2576cec305412f9852ccb9a461859a4e2c109ac8587f3",
+        "platform": "linux/arm64",
+        "manifest_digest": "sha256:def48eb90cc51e139a6b8f7b2f3e352602fb3ac7e7a02454f786d90725f75a6f",
+        "verification": "docker-key-only-public-log-entry-missing",
+        "vex_sha256": "1c699b1d04b01b6d2288545e59bde0c9ca2bf7dfa3f25aca2c2259328ea7f2e0",
+        "statuses": {
+          "not_affected": 947,
+          "under_investigation": 16
+        },
+        "unresolved": [
+          "CVE-2024-2236",
+          "CVE-2025-12781",
+          "CVE-2026-18508",
+          "CVE-2026-3446",
+          "CVE-2026-54411",
+          "CVE-2026-54411",
+          "CVE-2026-54411",
+          "CVE-2026-54411",
+          "CVE-2026-54411",
+          "CVE-2026-54411",
+          "CVE-2026-54411",
+          "CVE-2026-54411",
+          "CVE-2026-54411",
+          "CVE-2026-54411",
+          "CVE-2026-54411",
+          "CVE-2026-54411"
+        ]
+      },
+      {
+        "base": "runtime",
+        "reference": "dhi.io/python:3.11-debian13@sha256:1bb857892e25f7df5c34a6bd5f8695a450e85c8ab8511c02f98ad9282943435e",
+        "platform": "linux/amd64",
+        "manifest_digest": "sha256:b09f7c3e5be003ad27b5749b3dd0138e9c1bb22c41c10a302c708092575f22cc",
+        "verification": "docker-key-only-public-log-entry-missing",
+        "vex_sha256": "33f3a8fcb6422d47199f6088c0319906fc6e324c4081b99708a59da12d92c0d9",
+        "statuses": {
+          "not_affected": 192,
+          "under_investigation": 2
+        },
+        "unresolved": [
+          "CVE-2025-12781",
+          "CVE-2026-3446"
+        ]
+      },
+      {
+        "base": "runtime",
+        "reference": "dhi.io/python:3.11-debian13@sha256:1bb857892e25f7df5c34a6bd5f8695a450e85c8ab8511c02f98ad9282943435e",
+        "platform": "linux/arm64",
+        "manifest_digest": "sha256:7b961d13820ffb234f15944bcf9ebbfd6f07dbdd433981343ae72893deb4da39",
+        "verification": "docker-key-only-public-log-entry-missing",
+        "vex_sha256": "51b5e08180187b90d100cb59ba478b22f234ca56a8338da441e31897bf155151",
+        "statuses": {
+          "not_affected": 192,
+          "under_investigation": 2
+        },
+        "unresolved": [
+          "CVE-2025-12781",
+          "CVE-2026-3446"
+        ]
+      }
+    ]
+  },
+  "runtime": {
+    "checked_at": "2026-11-17T22:42:58.943078+00:00",
+    "scope": "Isolated startup and synthetic root-owned volumes; no device control",
+    "results": [
+      {
+        "component": "smartbox",
+        "platform": "linux/amd64",
+        "image_id": "sha256:0bf4e4de4023c15e2ed6e98dfe66bcd3dd587932ef2de048c317abfdb7e7f9ba",
+        "readiness": "installation-wait",
+        "root_owned_volume": "passed",
+        "status": "passed"
+      },
+      {
+        "component": "webdashboard",
+        "platform": "linux/amd64",
+        "image_id": "sha256:fb5cbaf481fa4bbc39b3870e84eba62bdca03d4af9319902a91c24a4deeb5cd8",
+        "readiness": "/api/ping",
+        "root_owned_volume": "passed",
+        "status": "passed"
+      },
+      {
+        "component": "ewapp",
+        "platform": "linux/amd64",
+        "image_id": "sha256:4f20274173be3903381f3f557c6d99c818607035e72a12180df8a01dc289bc32",
+        "readiness": "/api/ping",
+        "root_owned_volume": "passed",
+        "status": "passed"
+      },
+      {
+        "component": "telemetry-collector",
+        "platform": "linux/amd64",
+        "image_id": "sha256:70638b9408424bd574b6f4dc73047afe56a9f0754ae6bc6e0bc729f1939b3508",
+        "readiness": "/api/stats",
+        "root_owned_volume": "passed",
+        "status": "passed"
+      }
+    ]
+  },
+  "audit": {
+    "checked_at": "2026-11-17T22:44:58.609348+00:00",
+    "results": [
+      {
+        "component": "ewapp",
+        "platform": "linux/amd64",
+        "image_id": "sha256:4f20274173be3903381f3f557c6d99c818607035e72a12180df8a01dc289bc32",
+        "status": "passed",
+        "audit_exit_code": 0,
+        "matching_summary": true,
+        "total_scanner_matches": 192,
+        "summary": {
+          "image": "sha256:4f20274173be3903381f3f557c6d99c818607035e72a12180df8a01dc289bc32",
+          "scanned_at": "2026-11-17T22:44:18.300031+00:00",
+          "grype_cache": {
+            "kind": "volume",
+            "location": "ew-security-grype-cache"
+          },
+          "python_findings": [],
+          "blocked_image_findings": [],
+          "total_scanner_matches": 192,
+          "kev_source": "https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json",
+          "kev_released": "2026-11-17T17:53:15.5664Z",
+          "kev_sha256": "40a9e09d460cd005a5d416df60f4cda52f599ac9a5529372619771ec188d0a5b",
+          "scope": "No Python advisories, KEVs or available Debian fixes; other matches remain for review"
+        },
+        "raw_report_sha256": "0ff24a3d3e3629091dcab14c69bf60ef2fc00a2814e7bfe6fddcfae962403f30"
+      },
+      {
+        "component": "smartbox",
+        "platform": "linux/amd64",
+        "image_id": "sha256:0bf4e4de4023c15e2ed6e98dfe66bcd3dd587932ef2de048c317abfdb7e7f9ba",
+        "status": "passed",
+        "audit_exit_code": 0,
+        "matching_summary": true,
+        "total_scanner_matches": 192,
+        "summary": {
+          "image": "sha256:0bf4e4de4023c15e2ed6e98dfe66bcd3dd587932ef2de048c317abfdb7e7f9ba",
+          "scanned_at": "2026-11-17T22:44:40.122542+00:00",
+          "grype_cache": {
+            "kind": "volume",
+            "location": "ew-security-grype-cache"
+          },
+          "python_findings": [],
+          "blocked_image_findings": [],
+          "total_scanner_matches": 192,
+          "kev_source": "https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json",
+          "kev_released": "2026-11-17T17:53:15.5664Z",
+          "kev_sha256": "40a9e09d460cd005a5d416df60f4cda52f599ac9a5529372619771ec188d0a5b",
+          "scope": "No Python advisories, KEVs or available Debian fixes; other matches remain for review"
+        },
+        "raw_report_sha256": "a31c27ae3e25286446dff9b6d80807477a9a5f7836dfb70018cc4492a7b2ea5c"
+      },
+      {
+        "component": "telemetry-collector",
+        "platform": "linux/amd64",
+        "image_id": "sha256:70638b9408424bd574b6f4dc73047afe56a9f0754ae6bc6e0bc729f1939b3508",
+        "status": "passed",
+        "audit_exit_code": 0,
+        "matching_summary": true,
+        "total_scanner_matches": 192,
+        "summary": {
+          "image": "sha256:70638b9408424bd574b6f4dc73047afe56a9f0754ae6bc6e0bc729f1939b3508",
+          "scanned_at": "2026-11-17T22:44:46.345694+00:00",
+          "grype_cache": {
+            "kind": "volume",
+            "location": "ew-security-grype-cache"
+          },
+          "python_findings": [],
+          "blocked_image_findings": [],
+          "total_scanner_matches": 192,
+          "kev_source": "https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json",
+          "kev_released": "2026-11-17T17:53:15.5664Z",
+          "kev_sha256": "40a9e09d460cd005a5d416df60f4cda52f599ac9a5529372619771ec188d0a5b",
+          "scope": "No Python advisories, KEVs or available Debian fixes; other matches remain for review"
+        },
+        "raw_report_sha256": "6eadb83b9f21ffbeeba6cb317e621f43b0cef88335feade0c1bdbb497d0dbbb6"
+      },
+      {
+        "component": "webdashboard",
+        "platform": "linux/amd64",
+        "image_id": "sha256:fb5cbaf481fa4bbc39b3870e84eba62bdca03d4af9319902a91c24a4deeb5cd8",
+        "status": "passed",
+        "audit_exit_code": 0,
+        "matching_summary": true,
+        "total_scanner_matches": 192,
+        "summary": {
+          "image": "sha256:fb5cbaf481fa4bbc39b3870e84eba62bdca03d4af9319902a91c24a4deeb5cd8",
+          "scanned_at": "2026-11-17T22:44:58.594626+00:00",
+          "grype_cache": {
+            "kind": "volume",
+            "location": "ew-security-grype-cache"
+          },
+          "python_findings": [],
+          "blocked_image_findings": [],
+          "total_scanner_matches": 192,
+          "kev_source": "https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json",
+          "kev_released": "2026-11-17T17:53:15.5664Z",
+          "kev_sha256": "40a9e09d460cd005a5d416df60f4cda52f599ac9a5529372619771ec188d0a5b",
+          "scope": "No Python advisories, KEVs or available Debian fixes; other matches remain for review"
+        },
+        "raw_report_sha256": "9ab14b8c73fc7f967b5cc0c8de5490f31be0d46e0e57b74713c51d857440a04f"
+      }
+    ],
+    "scope": "Installed Python, raw image findings and current KEV policy; no CVE-free or VEX exemption claim",
+    "scanner": {
+      "name": "grype",
+      "version": "0.121.3",
+      "configuration": {
+        "output": [
+          "json"
+        ],
+        "file": "/scan/grype.json",
+        "pretty": false,
+        "distro": "",
+        "add-cpes-if-none": false,
+        "output-template-file": "",
+        "check-for-app-update": true,
+        "only-fixed": false,
+        "only-notfixed": false,
+        "ignore-wontfix": "",
+        "platform": "",
+        "search": {
+          "scope": "squashed",
+          "unindexed-archives": false,
+          "indexed-archives": true
+        },
+        "ignore": [
+          {
+            "vulnerability": "",
+            "include-aliases": false,
+            "reason": "",
+            "namespace": "",
+            "fix-state": "",
+            "package": {
+              "name": "kernel-headers",
+              "version": "",
+              "language": "",
+              "type": "rpm",
+              "location": "",
+              "upstream-name": "kernel"
+            },
+            "vex-status": "",
+            "vex-justification": "",
+            "match-type": "exact-indirect-match"
+          },
+          {
+            "vulnerability": "",
+            "include-aliases": false,
+            "reason": "",
+            "namespace": "",
+            "fix-state": "",
+            "package": {
+              "name": "linux(-.*)?-headers-.*",
+              "version": "",
+              "language": "",
+              "type": "deb",
+              "location": "",
+              "upstream-name": "linux.*"
+            },
+            "vex-status": "",
+            "vex-justification": "",
+            "match-type": "exact-indirect-match"
+          },
+          {
+            "vulnerability": "",
+            "include-aliases": false,
+            "reason": "",
+            "namespace": "",
+            "fix-state": "",
+            "package": {
+              "name": "linux-libc-dev",
+              "version": "",
+              "language": "",
+              "type": "deb",
+              "location": "",
+              "upstream-name": "linux"
+            },
+            "vex-status": "",
+            "vex-justification": "",
+            "match-type": "exact-indirect-match"
+          },
+          {
+            "vulnerability": "",
+            "include-aliases": false,
+            "reason": "",
+            "namespace": "",
+            "fix-state": "",
+            "package": {
+              "name": "linux-kbuild-.*",
+              "version": "",
+              "language": "",
+              "type": "deb",
+              "location": "",
+              "upstream-name": "linux.*"
+            },
+            "vex-status": "",
+            "vex-justification": "",
+            "match-type": "exact-indirect-match"
+          }
+        ],
+        "exclude": [],
+        "externalSources": {
+          "enable": false,
+          "maven": {
+            "searchUpstreamBySha1": true,
+            "baseUrl": "https://search.maven.org/solrsearch/select",
+            "rateLimit": 300000000
+          }
+        },
+        "match": {
+          "java": {
+            "using-cpes": false
+          },
+          "jvm": {
+            "using-cpes": true
+          },
+          "dotnet": {
+            "using-cpes": false
+          },
+          "golang": {
+            "using-cpes": false,
+            "always-use-cpe-for-stdlib": false,
+            "allow-main-module-pseudo-version-comparison": false
+          },
+          "javascript": {
+            "using-cpes": false
+          },
+          "python": {
+            "using-cpes": false
+          },
+          "ruby": {
+            "using-cpes": false
+          },
+          "rust": {
+            "using-cpes": false
+          },
+          "hex": {
+            "using-cpes": false
+          },
+          "stock": {
+            "using-cpes": true
+          },
+          "dpkg": {
+            "using-cpes": false,
+            "missing-epoch-strategy": "zero",
+            "use-cpes-for-eol": false
+          },
+          "rpm": {
+            "using-cpes": false,
+            "missing-epoch-strategy": "auto",
+            "use-cpes-for-eol": false
+          }
+        },
+        "fail-on-severity": "",
+        "registry": {
+          "insecure-skip-tls-verify": false,
+          "insecure-use-http": false,
+          "ca-cert": ""
+        },
+        "show-suppressed": false,
+        "include-matcher-suppressions": false,
+        "by-cve": false,
+        "SortBy": {
+          "sort-by": "risk"
+        },
+        "name": "",
+        "default-image-pull-source": "",
+        "from": null,
+        "vex-documents": [],
+        "vex-add": [],
+        "match-upstream-kernel-headers": false,
+        "fix-channel": {
+          "redhat-eus": {
+            "apply": "auto",
+            "versions": ">= 8.0"
+          },
+          "ubuntu-esm": {
+            "apply": "auto",
+            "versions": ""
+          }
+        },
+        "timestamp": true,
+        "alerts": {
+          "enable-eol-distro-warnings": true
+        },
+        "db": {
+          "cache-dir": "/.cache/grype/db",
+          "update-url": "https://grype.anchore.io/databases",
+          "ca-cert": "",
+          "auto-update": true,
+          "validate-by-hash-on-start": true,
+          "validate-age": true,
+          "max-allowed-built-age": 432000000000000,
+          "require-update-check": false,
+          "update-available-timeout": 30000000000,
+          "update-download-timeout": 300000000000,
+          "max-update-check-frequency": 7200000000000
+        },
+        "exp": {},
+        "dev": {
+          "db": {
+            "debug": false
+          }
+        }
+      },
+      "db": {
+        "status": {
+          "schemaVersion": "v6.1.10",
+          "from": "https://grype.anchore.io/databases/v6/vulnerability-db_v6.1.10_2026-11-17T00:22:24Z_1794896458.tar.zst?checksum=sha256%3A3f0cbdbc9d40fb69eaeacec1869b27a8c74f1894108804ace8b7468513e2df07",
+          "built": "2026-11-17T06:20:58Z",
+          "path": "/.cache/grype/db/6/vulnerability.db",
+          "valid": true
+        },
+        "providers": {
+          "alma": {
+            "captured": "2026-11-17T00:22:53Z",
+            "input": "xxh64:19c0ec9b8e82f66a"
+          },
+          "alpine": {
+            "captured": "2026-11-17T00:22:30Z",
+            "input": "xxh64:fa987f9392d28fb3"
+          },
+          "amazon": {
+            "captured": "2026-11-17T00:23:05Z",
+            "input": "xxh64:7504f7c74a9c361d"
+          },
+          "arch": {
+            "captured": "2026-11-17T00:22:24Z",
+            "input": "xxh64:d2577d0ce5ffb172"
+          },
+          "bitnami": {
+            "captured": "2026-11-17T00:22:29Z",
+            "input": "xxh64:c732250cc2011e83"
+          },
+          "chainguard": {
+            "captured": "2026-11-17T00:23:29Z",
+            "input": "xxh64:7cb9477b6a50b2e9"
+          },
+          "chainguard-libraries": {
+            "captured": "2026-11-17T00:22:35Z",
+            "input": "xxh64:5d096d7cce578b12"
+          },
+          "debian": {
+            "captured": "2026-11-17T00:23:26Z",
+            "input": "xxh64:c6a2230483ad9fdc"
+          },
+          "dhi": {
+            "captured": "2026-11-17T00:22:47Z",
+            "input": "xxh64:8fc49640234eaa72"
+          },
+          "echo": {
+            "captured": "2026-11-17T00:22:53Z",
+            "input": "xxh64:a3e2e025951b7594"
+          },
+          "eol": {
+            "captured": "2026-11-17T00:22:34Z",
+            "input": "xxh64:9272c69742a4ae10"
+          },
+          "epss": {
+            "captured": "2026-11-17T00:22:37Z",
+            "input": "xxh64:9d628fe7247000c3"
+          },
+          "fedora": {
+            "captured": "2026-11-17T00:24:14Z",
+            "input": "xxh64:db3008dbf1d69a87"
+          },
+          "github": {
+            "captured": "2026-11-17T00:22:53Z",
+            "input": "xxh64:f751a10108e14e08"
+          },
+          "govulndb": {
+            "captured": "2026-11-17T00:22:34Z",
+            "input": "xxh64:3196a429310da9e4"
+          },
+          "hummingbird": {
+            "captured": "2026-11-17T00:24:38Z",
+            "input": "xxh64:a0e26b96324ff59a"
+          },
+          "kev": {
+            "captured": "2026-11-17T00:22:27Z",
+            "input": "xxh64:4568728f33b4c2af"
+          },
+          "mariner": {
+            "captured": "2026-11-17T00:22:29Z",
+            "input": "xxh64:00f342be7a313fbc"
+          },
+          "minimos": {
+            "captured": "2026-11-17T00:22:34Z",
+            "input": "xxh64:63429d277e62af8e"
+          },
+          "nvd": {
+            "captured": "2026-11-17T00:23:42Z",
+            "input": "xxh64:4a51752f6e4ef385"
+          },
+          "oracle": {
+            "captured": "2026-11-17T00:22:26Z",
+            "input": "xxh64:3ae32942f2da894e"
+          },
+          "photon": {
+            "captured": "2026-11-17T00:22:35Z",
+            "input": "xxh64:973abed9db5baccb"
+          },
+          "rhel": {
+            "captured": "2026-11-17T01:49:22Z",
+            "input": "xxh64:dc3ed2a669377a28"
+          },
+          "secureos": {
+            "captured": "2026-11-17T00:23:37Z",
+            "input": "xxh64:045fed684fb2646f"
+          },
+          "sles": {
+            "captured": "2026-11-17T00:25:02Z",
+            "input": "xxh64:ef6348f8bda1727f"
+          },
+          "ubuntu": {
+            "captured": "2026-11-17T00:23:29Z",
+            "input": "xxh64:7a8a7271f5590bf2"
+          },
+          "wolfi": {
+            "captured": "2026-11-17T00:22:50Z",
+            "input": "xxh64:ee98272bfeac5d14"
+          }
+        }
+      },
+      "timestamp": "2026-11-17T22:44:39.668116213Z"
+    },
+    "vulnerability_ids": [
+      "CVE-2010-4756",
+      "CVE-2018-20796",
+      "CVE-2019-1010022",
+      "CVE-2019-1010023",
+      "CVE-2019-1010024",
+      "CVE-2019-1010025",
+      "CVE-2019-9192",
+      "CVE-2021-45346",
+      "CVE-2022-0563",
+      "CVE-2025-6141",
+      "CVE-2025-66382",
+      "CVE-2025-69720",
+      "CVE-2025-70873",
+      "CVE-2026-100290",
+      "CVE-2026-102010",
+      "CVE-2026-107496",
+      "CVE-2026-113351",
+      "CVE-2026-114690",
+      "CVE-2026-114691",
+      "CVE-2026-115455",
+      "CVE-2026-115456",
+      "CVE-2026-115506",
+      "CVE-2026-115819",
+      "CVE-2026-117610",
+      "CVE-2026-118370",
+      "CVE-2026-119371",
+      "CVE-2026-119372",
+      "CVE-2026-119373",
+      "CVE-2026-119374",
+      "CVE-2026-119375",
+      "CVE-2026-119376",
+      "CVE-2026-119377",
+      "CVE-2026-119378",
+      "CVE-2026-119379",
+      "CVE-2026-119591",
+      "CVE-2026-124317",
+      "CVE-2026-125709",
+      "CVE-2026-128241",
+      "CVE-2026-18374",
+      "CVE-2026-19499",
+      "CVE-2026-19542",
+      "CVE-2026-3184",
+      "CVE-2026-42250",
+      "CVE-2026-50812",
+      "CVE-2026-50813",
+      "CVE-2026-5435",
+      "CVE-2026-6238",
+      "CVE-2026-6368",
+      "CVE-2026-6791",
+      "CVE-2026-76642",
+      "CVE-2026-77117",
+      "CVE-2026-78408",
+      "CVE-2026-78409",
+      "CVE-2026-78410",
+      "CVE-2026-80489",
+      "CVE-2026-84243",
+      "CVE-2026-8674",
+      "CVE-2026-86805",
+      "CVE-2026-88822",
+      "CVE-2026-88823",
+      "CVE-2026-89092",
+      "CVE-2026-95619",
+      "CVE-2026-95691",
+      "CVE-2026-95692",
+      "CVE-2026-95818",
+      "CVE-2026-97399"
+    ]
+  },
+  "implementation": {
+    "pull_request": "https://github.com/murre87/energywizard/pull/511",
+    "commit": "305ed402b2fab009940573c6cea1f281f49bd824"
+  },
+  "numpy_local": {
+    "cpu_probes": [
+      {
+        "target": "candidate-openblas-current",
+        "status": "compatible_smoke",
+        "cpu_model": "qemu64",
+        "scope": "Selected emulated CPU only; not physical hardware qualification",
+        "output": "{\"numpy\": \"2.4.6\", \"pandas\": \"3.1.1\", \"status\": \"passed\", \"blas_libraries\": [{\"internal_api\": \"openblas\", \"version\": \"0.3.30\", \"architecture\": \"Katmai\", \"num_threads\": 1}, {\"internal_api\": \"openblas\", \"version\": \"0.3.34\", \"architecture\": \"Barcelona\", \"num_threads\": 1}]}\n{\"stage\": \"imports\"}\n{\"stage\": \"numpy_solve\"}\n{\"stage\": \"scipy_solve\"}\n{\"stage\": \"numpy_inverse\"}\n{\"stage\": \"numpy_fft\"}\n{\"stage\": \"pandas\"}\n{\"stage\": \"sklearn_fit\"}\n{\"stage\": \"sklearn_prediction\"}\n",
+        "image_id": "sha256:0890bcc139c28ed191dc59529242f18e506814ebd42f3ebc5f28c467cd6cc2c9",
+        "controls": {
+          "python_startup": "passed",
+          "capped_smoke": "passed",
+          "upstream_cpu_rejection": "reproduced"
+        }
+      },
+      {
+        "target": "candidate-openblas-current",
+        "status": "compatible_smoke",
+        "cpu_model": "qemu64,vendor=GenuineIntel",
+        "scope": "Selected emulated CPU only; not physical hardware qualification",
+        "output": "{\"numpy\": \"2.4.6\", \"pandas\": \"3.1.1\", \"status\": \"passed\", \"blas_libraries\": [{\"internal_api\": \"openblas\", \"version\": \"0.3.30\", \"architecture\": \"Katmai\", \"num_threads\": 1}, {\"internal_api\": \"openblas\", \"version\": \"0.3.34\", \"architecture\": \"Prescott\", \"num_threads\": 1}]}\n{\"stage\": \"imports\"}\n{\"stage\": \"numpy_solve\"}\n{\"stage\": \"scipy_solve\"}\n{\"stage\": \"numpy_inverse\"}\n{\"stage\": \"numpy_fft\"}\n{\"stage\": \"pandas\"}\n{\"stage\": \"sklearn_fit\"}\n{\"stage\": \"sklearn_prediction\"}\n",
+        "image_id": "sha256:0890bcc139c28ed191dc59529242f18e506814ebd42f3ebc5f28c467cd6cc2c9",
+        "controls": {
+          "python_startup": "passed",
+          "capped_smoke": "passed",
+          "upstream_cpu_rejection": "reproduced"
+        }
+      },
+      {
+        "target": "candidate-openblas-current",
+        "status": "compatible_smoke",
+        "cpu_model": "qemu64,+3dnow,+3dnowext",
+        "scope": "Selected emulated CPU only; not physical hardware qualification",
+        "output": "{\"numpy\": \"2.4.6\", \"pandas\": \"3.1.1\", \"status\": \"passed\", \"blas_libraries\": [{\"internal_api\": \"openblas\", \"version\": \"0.3.30\", \"architecture\": \"Katmai\", \"num_threads\": 1}, {\"internal_api\": \"openblas\", \"version\": \"0.3.34\", \"architecture\": \"Barcelona\", \"num_threads\": 1}]}\n{\"stage\": \"imports\"}\n{\"stage\": \"numpy_solve\"}\n{\"stage\": \"scipy_solve\"}\n{\"stage\": \"numpy_inverse\"}\n{\"stage\": \"numpy_fft\"}\n{\"stage\": \"pandas\"}\n{\"stage\": \"sklearn_fit\"}\n{\"stage\": \"sklearn_prediction\"}\n",
+        "image_id": "sha256:0890bcc139c28ed191dc59529242f18e506814ebd42f3ebc5f28c467cd6cc2c9",
+        "controls": {
+          "python_startup": "passed",
+          "capped_smoke": "passed",
+          "upstream_cpu_rejection": "reproduced"
+        }
+      }
+    ],
+    "native": {
+      "recorded_at": "2026-11-17T22:51:11.674246+00:00",
+      "scope": "Native evaluation; 2 CPUs/2 GiB; not physical legacy hardware or production qualification",
+      "candidate_target": "candidate-openblas-current",
+      "results": {
+        "capped": {
+          "architecture": "x86_64",
+          "python": "3.11.18",
+          "versions": {
+            "numpy": "2.3.5",
+            "pandas": "3.1.1",
+            "scipy": "1.17.1",
+            "scikit-learn": "1.8.0"
+          },
+          "numpy_config": {
+            "Compilers": {
+              "c": {
+                "name": "gcc",
+                "linker": "ld.bfd",
+                "version": "14.2.1",
+                "commands": "cc"
+              },
+              "cython": {
+                "name": "cython",
+                "linker": "cython",
+                "version": "3.2.1",
+                "commands": "cython"
+              },
+              "c++": {
+                "name": "gcc",
+                "linker": "ld.bfd",
+                "version": "14.2.1",
+                "commands": "c++"
+              }
+            },
+            "Machine Information": {
+              "host": {
+                "cpu": "x86_64",
+                "family": "x86_64",
+                "endian": "little",
+                "system": "linux"
+              },
+              "build": {
+                "cpu": "x86_64",
+                "family": "x86_64",
+                "endian": "little",
+                "system": "linux"
+              }
+            },
+            "Build Dependencies": {
+              "blas": {
+                "name": "scipy-openblas",
+                "found": true,
+                "version": "0.3.30",
+                "detection method": "pkgconfig",
+                "include directory": "/opt/_internal/cpython-3.11.14/lib/python3.11/site-packages/scipy_openblas64/include",
+                "lib directory": "/opt/_internal/cpython-3.11.14/lib/python3.11/site-packages/scipy_openblas64/lib",
+                "openblas configuration": "OpenBLAS 0.3.30  USE64BITINT DYNAMIC_ARCH NO_AFFINITY Haswell MAX_THREADS=64",
+                "pc file directory": "/project/.openblas"
+              },
+              "lapack": {
+                "name": "scipy-openblas",
+                "found": true,
+                "version": "0.3.30",
+                "detection method": "pkgconfig",
+                "include directory": "/opt/_internal/cpython-3.11.14/lib/python3.11/site-packages/scipy_openblas64/include",
+                "lib directory": "/opt/_internal/cpython-3.11.14/lib/python3.11/site-packages/scipy_openblas64/lib",
+                "openblas configuration": "OpenBLAS 0.3.30  USE64BITINT DYNAMIC_ARCH NO_AFFINITY Haswell MAX_THREADS=64",
+                "pc file directory": "/project/.openblas"
+              }
+            },
+            "Python Information": {
+              "path": "/tmp/build-env-szi1b15j/bin/python",
+              "version": "3.11"
+            },
+            "SIMD Extensions": {
+              "baseline": [
+                "SSE",
+                "SSE2",
+                "SSE3"
+              ],
+              "found": [
+                "SSSE3",
+                "SSE41",
+                "POPCNT",
+                "SSE42",
+                "AVX",
+                "F16C",
+                "FMA3",
+                "AVX2"
+              ],
+              "not found": [
+                "AVX512F",
+                "AVX512CD",
+                "AVX512_KNL",
+                "AVX512_KNM",
+                "AVX512_SKX",
+                "AVX512_CLX",
+                "AVX512_CNL",
+                "AVX512_ICL",
+                "AVX512_SPR"
+              ]
+            }
+          },
+          "timings": {
+            "matrix_multiply_256": {
+              "median_seconds": 0.0003168470999980855,
+              "samples_seconds": [
+                0.00032074480000119363,
+                0.00031055260001267015,
+                0.0003168470999980855,
+                0.00033409770001071595,
+                0.0003106526999999915
+              ]
+            },
+            "linear_solve_80": {
+              "median_seconds": 0.00001631439999982831,
+              "samples_seconds": [
+                0.000018792299988490414,
+                0.000018150500000047032,
+                0.00001604980000138312,
+                0.00001631439999982831,
+                0.000015832999997655862
+              ]
+            },
+            "fft_8192": {
+              "median_seconds": 0.00004240569999183208,
+              "samples_seconds": [
+                0.00004425419999734004,
+                0.00004240569999183208,
+                0.000043290500002513,
+                0.00004197490000024118,
+                0.000042136100000789155
+              ]
+            },
+            "pandas_groupby_2000": {
+              "median_seconds": 0.00011163879999003257,
+              "samples_seconds": [
+                0.00016273389999241772,
+                0.00011526010000579845,
+                0.00010799050000969146,
+                0.00011025359999621287,
+                0.00011163879999003257
+              ]
+            },
+            "sklearn_fit_512x8": {
+              "median_seconds": 0.00015933209999730025,
+              "samples_seconds": [
+                0.0001808234000009179,
+                0.00020095769998533796,
+                0.000158174000011968,
+                0.00015933209999730025,
+                0.00015243469999859371
+              ]
+            }
+          },
+          "image_id": "sha256:15b7e006a5fe77c43a727671f560ba490fa186c6068600b7cf858f59b28853b0"
+        },
+        "candidate-openblas-current": {
+          "architecture": "x86_64",
+          "python": "3.11.18",
+          "versions": {
+            "numpy": "2.4.6",
+            "pandas": "3.1.1",
+            "scipy": "1.17.1",
+            "scikit-learn": "1.8.0"
+          },
+          "numpy_config": {
+            "Compilers": {
+              "c": {
+                "name": "gcc",
+                "linker": "ld.bfd",
+                "version": "14.2.0",
+                "commands": "cc"
+              },
+              "cython": {
+                "name": "cython",
+                "linker": "cython",
+                "version": "3.3.1",
+                "commands": "cython"
+              },
+              "c++": {
+                "name": "gcc",
+                "linker": "ld.bfd",
+                "version": "14.2.0",
+                "commands": "c++"
+              }
+            },
+            "Machine Information": {
+              "host": {
+                "cpu": "x86_64",
+                "family": "x86_64",
+                "endian": "little",
+                "system": "linux"
+              },
+              "build": {
+                "cpu": "x86_64",
+                "family": "x86_64",
+                "endian": "little",
+                "system": "linux"
+              }
+            },
+            "Build Dependencies": {
+              "blas": {
+                "name": "openblas",
+                "found": true,
+                "version": "0.3.34",
+                "detection method": "pkgconfig",
+                "include directory": "/opt/openblas/include",
+                "lib directory": "/opt/openblas/lib",
+                "openblas configuration": "USE_64BITINT= DYNAMIC_ARCH=1 DYNAMIC_OLDER= NO_CBLAS= NO_LAPACK= NO_LAPACKE= NO_AFFINITY=1 USE_OPENMP= HASWELL MAX_THREADS=64",
+                "pc file directory": "/opt/openblas/lib/pkgconfig"
+              },
+              "lapack": {
+                "name": "openblas",
+                "found": true,
+                "version": "0.3.34",
+                "detection method": "pkgconfig",
+                "include directory": "/opt/openblas/include",
+                "lib directory": "/opt/openblas/lib",
+                "openblas configuration": "USE_64BITINT= DYNAMIC_ARCH=1 DYNAMIC_OLDER= NO_CBLAS= NO_LAPACK= NO_LAPACKE= NO_AFFINITY=1 USE_OPENMP= HASWELL MAX_THREADS=64",
+                "pc file directory": "/opt/openblas/lib/pkgconfig"
+              }
+            },
+            "Python Information": {
+              "path": "/usr/local/bin/python",
+              "version": "3.11"
+            },
+            "SIMD Extensions": {
+              "found": [
+                "X86_V2",
+                "X86_V3"
+              ],
+              "not found": [
+                "X86_V4",
+                "AVX512_ICL",
+                "AVX512_SPR"
+              ]
+            }
+          },
+          "timings": {
+            "matrix_multiply_256": {
+              "median_seconds": 0.0003152971000190519,
+              "samples_seconds": [
+                0.0003152971000190519,
+                0.0003154505999873436,
+                0.0003100594999978057,
+                0.0003265842000018893,
+                0.0003128679999917949
+              ]
+            },
+            "linear_solve_80": {
+              "median_seconds": 0.00001583820001087588,
+              "samples_seconds": [
+                0.000018253899997944246,
+                0.00001583820001087588,
+                0.00001569450000715733,
+                0.000017109400005210773,
+                0.000015455699985977846
+              ]
+            },
+            "fft_8192": {
+              "median_seconds": 0.000042245899999215907,
+              "samples_seconds": [
+                0.00004290619999665068,
+                0.000042059299994434694,
+                0.000042245899999215907,
+                0.00004336780000357976,
+                0.000041572800000722054
+              ]
+            },
+            "pandas_groupby_2000": {
+              "median_seconds": 0.00011562209999738116,
+              "samples_seconds": [
+                0.00017088439999497497,
+                0.00012280250000458183,
+                0.00011562209999738116,
+                0.00011208920000171929,
+                0.00010566899998138979
+              ]
+            },
+            "sklearn_fit_512x8": {
+              "median_seconds": 0.00015475110001261783,
+              "samples_seconds": [
+                0.00033122229999662525,
+                0.00017853209999429964,
+                0.00015475110001261783,
+                0.00014715109998633124,
+                0.0001485493000018323
+              ]
+            }
+          },
+          "image_id": "sha256:0890bcc139c28ed191dc59529242f18e506814ebd42f3ebc5f28c467cd6cc2c9"
+        }
+      },
+      "candidate_over_capped_ratio": {
+        "matrix_multiply_256": 0.9951080506053457,
+        "linear_solve_80": 0.9708110632963859,
+        "fft_8192": 0.996231638844614,
+        "pandas_groupby_2000": 1.0356802474382045,
+        "sklearn_fit_512x8": 0.9712487315188839
+      }
+    },
+    "audit": {
+      "image": "sha256:0890bcc139c28ed191dc59529242f18e506814ebd42f3ebc5f28c467cd6cc2c9",
+      "scanned_at": "2026-11-17T22:50:20.606380+00:00",
+      "grype_cache": {
+        "kind": "volume",
+        "location": "ew-security-grype-cache"
+      },
+      "python_findings": [],
+      "blocked_image_findings": [],
+      "total_scanner_matches": 252,
+      "kev_source": "https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json",
+      "kev_released": "2026-11-17T17:53:15.5664Z",
+      "kev_sha256": "40a9e09d460cd005a5d416df60f4cda52f599ac9a5529372619771ec188d0a5b",
+      "scope": "No Python advisories, KEVs or available Debian fixes; other matches remain for review"
+    }
+  },
+  "dhi_ci": {
+    "run": 44192794291,
+    "head_sha": "305ed402b2fab009940573c6cea1f281f49bd824",
+    "url": "https://github.com/murre87/energywizard/actions/runs/44192794291",
+    "jobs": [
+      {
+        "name": "signatures",
+        "id": 134426299526,
+        "status": "completed",
+        "conclusion": "success",
+        "steps": []
+      },
+      {
+        "name": "runtime (ubuntu-24.04-arm, arm64)",
+        "id": 134427634851,
+        "status": "completed",
+        "conclusion": "success",
+        "steps": []
+      },
+      {
+        "name": "runtime (ubuntu-24.04, amd64)",
+        "id": 134427634881,
+        "status": "completed",
+        "conclusion": "success",
+        "steps": []
+      }
+    ],
+    "artifacts": [
+      {
+        "run": 44192794291,
+        "id": 14378321532,
+        "name": "dhi-runtime-arm64",
+        "size": 1032902,
+        "digest": "sha256:cea820e149879540cb25059974ef285480f9b1d59d4bffb41c44ed8028d5b6ca"
+      },
+      {
+        "run": 44192794291,
+        "id": 14378281590,
+        "name": "dhi-runtime-amd64",
+        "size": 1032589,
+        "digest": "sha256:102e921570c4dd24a1d53bf952811f5f42c6ec53e5d880379826bc6d311d8d9a"
+      },
+      {
+        "run": 44192794291,
+        "id": 14377826990,
+        "name": "dhi-signatures",
+        "size": 114429,
+        "digest": "sha256:7ad3ba8c977ab29e2cc816328ae942b91e78a11d1a54a8286600073090f76706"
+      }
+    ],
+    "signed_vex": {
+      "checked_at": "2026-11-17T22:45:46.363077+00:00",
+      "key_url": "https://registry.scout.docker.com/keyring/dhi/latest.pub",
+      "key_sha256": "1d02bbccf149283ae6288d96264dcad3fb23ee1911d90324a48eab28e4cb8a5f",
+      "results": [
+        {
+          "base": "builder",
+          "reference": "dhi.io/python:3.11-debian13-dev@sha256:a4ccb5b75d709d9a23b2576cec305412f9852ccb9a461859a4e2c109ac8587f3",
+          "platform": "linux/amd64",
+          "manifest_digest": "sha256:eb65861c613110da6ef5a7f1e9985d9349003ae04f7a2b71769012bcbb404e5a",
+          "verification": "docker-key-only-public-log-entry-missing",
+          "vex_sha256": "0185716091c52152aa851054df115d7c3b001b94223264d03d540e1e7f6add68",
+          "statuses": {
+            "not_affected": 947,
+            "under_investigation": 16
+          },
+          "unresolved": [
+            "CVE-2024-2236",
+            "CVE-2025-12781",
+            "CVE-2026-18508",
+            "CVE-2026-3446",
+            "CVE-2026-54411",
+            "CVE-2026-54411",
+            "CVE-2026-54411",
+            "CVE-2026-54411",
+            "CVE-2026-54411",
+            "CVE-2026-54411",
+            "CVE-2026-54411",
+            "CVE-2026-54411",
+            "CVE-2026-54411",
+            "CVE-2026-54411",
+            "CVE-2026-54411",
+            "CVE-2026-54411"
+          ]
+        },
+        {
+          "base": "builder",
+          "reference": "dhi.io/python:3.11-debian13-dev@sha256:a4ccb5b75d709d9a23b2576cec305412f9852ccb9a461859a4e2c109ac8587f3",
+          "platform": "linux/arm64",
+          "manifest_digest": "sha256:def48eb90cc51e139a6b8f7b2f3e352602fb3ac7e7a02454f786d90725f75a6f",
+          "verification": "docker-key-only-public-log-entry-missing",
+          "vex_sha256": "1c699b1d04b01b6d2288545e59bde0c9ca2bf7dfa3f25aca2c2259328ea7f2e0",
+          "statuses": {
+            "not_affected": 947,
+            "under_investigation": 16
+          },
+          "unresolved": [
+            "CVE-2024-2236",
+            "CVE-2025-12781",
+            "CVE-2026-18508",
+            "CVE-2026-3446",
+            "CVE-2026-54411",
+            "CVE-2026-54411",
+            "CVE-2026-54411",
+            "CVE-2026-54411",
+            "CVE-2026-54411",
+            "CVE-2026-54411",
+            "CVE-2026-54411",
+            "CVE-2026-54411",
+            "CVE-2026-54411",
+            "CVE-2026-54411",
+            "CVE-2026-54411",
+            "CVE-2026-54411"
+          ]
+        },
+        {
+          "base": "runtime",
+          "reference": "dhi.io/python:3.11-debian13@sha256:1bb857892e25f7df5c34a6bd5f8695a450e85c8ab8511c02f98ad9282943435e",
+          "platform": "linux/amd64",
+          "manifest_digest": "sha256:b09f7c3e5be003ad27b5749b3dd0138e9c1bb22c41c10a302c708092575f22cc",
+          "verification": "docker-key-only-public-log-entry-missing",
+          "vex_sha256": "33f3a8fcb6422d47199f6088c0319906fc6e324c4081b99708a59da12d92c0d9",
+          "statuses": {
+            "not_affected": 192,
+            "under_investigation": 2
+          },
+          "unresolved": [
+            "CVE-2025-12781",
+            "CVE-2026-3446"
+          ]
+        },
+        {
+          "base": "runtime",
+          "reference": "dhi.io/python:3.11-debian13@sha256:1bb857892e25f7df5c34a6bd5f8695a450e85c8ab8511c02f98ad9282943435e",
+          "platform": "linux/arm64",
+          "manifest_digest": "sha256:7b961d13820ffb234f15944bcf9ebbfd6f07dbdd433981343ae72893deb4da39",
+          "verification": "docker-key-only-public-log-entry-missing",
+          "vex_sha256": "51b5e08180187b90d100cb59ba478b22f234ca56a8338da441e31897bf155151",
+          "statuses": {
+            "not_affected": 192,
+            "under_investigation": 2
+          },
+          "unresolved": [
+            "CVE-2025-12781",
+            "CVE-2026-3446"
+          ]
+        }
+      ]
+    },
+    "platforms": [
+      {
+        "runtime": {
+          "checked_at": "2026-11-17T22:47:16.454284+00:00",
+          "scope": "Isolated startup and synthetic root-owned volumes; no device control",
+          "results": [
+            {
+              "component": "smartbox",
+              "platform": "linux/amd64",
+              "image_id": "sha256:471dac82738ed99b337bf54223ce43a59b90741954c6952c852a56d7b557a5ed",
+              "readiness": "installation-wait",
+              "root_owned_volume": "passed",
+              "status": "passed"
+            },
+            {
+              "component": "webdashboard",
+              "platform": "linux/amd64",
+              "image_id": "sha256:53d56cae9d0f9b388bc6f29f049eb1f1850e0c71ab1c6b0f86f32677892cb241",
+              "readiness": "/api/ping",
+              "root_owned_volume": "passed",
+              "status": "passed"
+            },
+            {
+              "component": "ewapp",
+              "platform": "linux/amd64",
+              "image_id": "sha256:69de0444ced3135669f62772ed006525140dc14dcfcc72e3024658702f8ce10b",
+              "readiness": "/api/ping",
+              "root_owned_volume": "passed",
+              "status": "passed"
+            },
+            {
+              "component": "telemetry-collector",
+              "platform": "linux/amd64",
+              "image_id": "sha256:c700de5c1c47720a18d98fc538af1b6f1b94f2c1fb4a5273ed9f6fe08a059a9f",
+              "readiness": "/api/stats",
+              "root_owned_volume": "passed",
+              "status": "passed"
+            }
+          ]
+        },
+        "audit": {
+          "checked_at": "2026-11-17T22:48:29.539663+00:00",
+          "results": [
+            {
+              "component": "ewapp",
+              "platform": "linux/amd64",
+              "image_id": "sha256:69de0444ced3135669f62772ed006525140dc14dcfcc72e3024658702f8ce10b",
+              "status": "passed",
+              "audit_exit_code": 0,
+              "matching_summary": true,
+              "total_scanner_matches": 192
+            },
+            {
+              "component": "smartbox",
+              "platform": "linux/amd64",
+              "image_id": "sha256:471dac82738ed99b337bf54223ce43a59b90741954c6952c852a56d7b557a5ed",
+              "status": "passed",
+              "audit_exit_code": 0,
+              "matching_summary": true,
+              "total_scanner_matches": 192
+            },
+            {
+              "component": "telemetry-collector",
+              "platform": "linux/amd64",
+              "image_id": "sha256:c700de5c1c47720a18d98fc538af1b6f1b94f2c1fb4a5273ed9f6fe08a059a9f",
+              "status": "passed",
+              "audit_exit_code": 0,
+              "matching_summary": true,
+              "total_scanner_matches": 192
+            },
+            {
+              "component": "webdashboard",
+              "platform": "linux/amd64",
+              "image_id": "sha256:53d56cae9d0f9b388bc6f29f049eb1f1850e0c71ab1c6b0f86f32677892cb241",
+              "status": "passed",
+              "audit_exit_code": 0,
+              "matching_summary": true,
+              "total_scanner_matches": 192
+            }
+          ],
+          "scope": "Installed Python, raw image findings and current KEV policy; no CVE-free or VEX exemption claim"
+        }
+      },
+      {
+        "runtime": {
+          "checked_at": "2026-11-17T22:47:33.694685+00:00",
+          "scope": "Isolated startup and synthetic root-owned volumes; no device control",
+          "results": [
+            {
+              "component": "smartbox",
+              "platform": "linux/arm64",
+              "image_id": "sha256:9d3f4ce55bbd2c3b81e09aebeaa71d38492c15e1f0881e47fe45d5e331e772cc",
+              "readiness": "installation-wait",
+              "root_owned_volume": "passed",
+              "status": "passed"
+            },
+            {
+              "component": "webdashboard",
+              "platform": "linux/arm64",
+              "image_id": "sha256:24cb5c3be7a3bbabed40828337438538c58181d5512c8441ad68cbf32f2562c5",
+              "readiness": "/api/ping",
+              "root_owned_volume": "passed",
+              "status": "passed"
+            },
+            {
+              "component": "ewapp",
+              "platform": "linux/arm64",
+              "image_id": "sha256:7aa72bbe6fd36705793d3f5432e091ede8d6be7190adfed599f861052d696fc1",
+              "readiness": "/api/ping",
+              "root_owned_volume": "passed",
+              "status": "passed"
+            },
+            {
+              "component": "telemetry-collector",
+              "platform": "linux/arm64",
+              "image_id": "sha256:f9ed214a6eaf85b8858ec7951ca20e516bd7d53cf997b3b0b9c969b48ec6c265",
+              "readiness": "/api/stats",
+              "root_owned_volume": "passed",
+              "status": "passed"
+            }
+          ]
+        },
+        "audit": {
+          "checked_at": "2026-11-17T22:49:51.353337+00:00",
+          "results": [
+            {
+              "component": "ewapp",
+              "platform": "linux/arm64",
+              "image_id": "sha256:7aa72bbe6fd36705793d3f5432e091ede8d6be7190adfed599f861052d696fc1",
+              "status": "passed",
+              "audit_exit_code": 0,
+              "matching_summary": true,
+              "total_scanner_matches": 192
+            },
+            {
+              "component": "smartbox",
+              "platform": "linux/arm64",
+              "image_id": "sha256:9d3f4ce55bbd2c3b81e09aebeaa71d38492c15e1f0881e47fe45d5e331e772cc",
+              "status": "passed",
+              "audit_exit_code": 0,
+              "matching_summary": true,
+              "total_scanner_matches": 192
+            },
+            {
+              "component": "telemetry-collector",
+              "platform": "linux/arm64",
+              "image_id": "sha256:f9ed214a6eaf85b8858ec7951ca20e516bd7d53cf997b3b0b9c969b48ec6c265",
+              "status": "passed",
+              "audit_exit_code": 0,
+              "matching_summary": true,
+              "total_scanner_matches": 192
+            },
+            {
+              "component": "webdashboard",
+              "platform": "linux/arm64",
+              "image_id": "sha256:24cb5c3be7a3bbabed40828337438538c58181d5512c8441ad68cbf32f2562c5",
+              "status": "passed",
+              "audit_exit_code": 0,
+              "matching_summary": true,
+              "total_scanner_matches": 192
+            }
+          ],
+          "scope": "Installed Python, raw image findings and current KEV policy; no CVE-free or VEX exemption claim"
+        }
+      }
+    ]
+  },
+  "openblas_source_query": {
+    "checked_at": "2026-11-17T23:00:46.298Z",
+    "repository": "https://github.com/OpenMathLib/OpenBLAS",
+    "tag": "v0.3.34",
+    "commit": "e0166008be8e466242aa76b2ff75ce3f0fbf574a",
+    "advisories": [],
+    "scope": "OSV commit query only; source-installed library is not a Debian-managed package and image scanning is not a complete source-library security assessment."
+  },
+  "numpy_ci": {
+    "run": 44192794372,
+    "url": "https://github.com/murre87/energywizard/actions/runs/44192794372",
+    "head_sha": "305ed402b2fab009940573c6cea1f281f49bd824",
+    "jobs": [
+      {
+        "name": "legacy-cpu (candidate-openblas)",
+        "id": 134426299852,
+        "status": "completed",
+        "conclusion": "success",
+        "steps": []
+      },
+      {
+        "name": "legacy-cpu (candidate-openblas-current)",
+        "id": 134426300192,
+        "status": "completed",
+        "conclusion": "success",
+        "steps": []
+      },
+      {
+        "name": "legacy-cpu (candidate)",
+        "id": 134426300234,
+        "status": "completed",
+        "conclusion": "success",
+        "steps": []
+      },
+      {
+        "name": "native-stack (candidate, ubuntu-24.04)",
+        "id": 134426300346,
+        "status": "completed",
+        "conclusion": "success",
+        "steps": []
+      },
+      {
+        "name": "native-stack (candidate-openblas-current, ubuntu-24.04)",
+        "id": 134426300384,
+        "status": "completed",
+        "conclusion": "success",
+        "steps": []
+      },
+      {
+        "name": "native-stack (candidate-openblas, ubuntu-24.04)",
+        "id": 134426300408,
+        "status": "completed",
+        "conclusion": "success",
+        "steps": []
+      },
+      {
+        "name": "native-stack (candidate-openblas-current, ubuntu-24.04-arm)",
+        "id": 134426300461,
+        "status": "completed",
+        "conclusion": "success",
+        "steps": []
+      },
+      {
+        "name": "native-stack (candidate-openblas, ubuntu-24.04-arm)",
+        "id": 134426300477,
+        "status": "completed",
+        "conclusion": "success",
+        "steps": []
+      },
+      {
+        "name": "native-stack (candidate, ubuntu-24.04-arm)",
+        "id": 134426300609,
+        "status": "completed",
+        "conclusion": "success",
+        "steps": []
+      }
+    ],
+    "artifacts": [
+      {
+        "run": 44192794372,
+        "id": 14379555844,
+        "name": "numpy-legacy-candidate-openblas-current",
+        "size": 1907,
+        "digest": "sha256:4f639237f9b1447aac37f4295d0fd5af7d338abb34beece9bcdbf17357eb3ea5"
+      },
+      {
+        "run": 44192794372,
+        "id": 14379551390,
+        "name": "numpy-native-candidate-openblas-current-amd64",
+        "size": 2129,
+        "digest": "sha256:b70d394d5ab5a71d2bb2e32526cbf827facf25041d9f1fe5abf2482d2daeb943"
+      },
+      {
+        "run": 44192794372,
+        "id": 14378777519,
+        "name": "numpy-candidate-openblas-current-arm64",
+        "size": 292653,
+        "digest": "sha256:16305431222f7d644182a7988e2225635e73218a50cdffdbfedca23928b3add5"
+      },
+      {
+        "run": 44192794372,
+        "id": 14377894943,
+        "name": "numpy-candidate-openblas-current-amd64",
+        "size": 292841,
+        "digest": "sha256:09e54a4eb8e47114fd995a17f56dd2d8b07ef29b740023bb41af65b1ceb55423"
+      },
+      {
+        "run": 44192794372,
+        "id": 14377819792,
+        "name": "numpy-native-candidate-openblas-current-arm64",
+        "size": 2074,
+        "digest": "sha256:c8d9f49413eff431b76cb76ea8b42980f894407d49fc795d80a453d5881b16ee"
+      }
+    ],
+    "legacy": [
+      {
+        "target": "candidate-openblas-current",
+        "status": "compatible_smoke",
+        "cpu_model": "qemu64",
+        "scope": "Selected emulated CPU only; not physical hardware qualification",
+        "output": "{\"numpy\": \"2.4.6\", \"pandas\": \"3.1.1\", \"status\": \"passed\", \"blas_libraries\": [{\"internal_api\": \"openblas\", \"version\": \"0.3.34\", \"architecture\": \"Barcelona\", \"num_threads\": 1}, {\"internal_api\": \"openblas\", \"version\": \"0.3.30\", \"architecture\": \"Katmai\", \"num_threads\": 1}]}\n{\"stage\": \"imports\"}\n{\"stage\": \"numpy_solve\"}\n{\"stage\": \"scipy_solve\"}\n{\"stage\": \"numpy_inverse\"}\n{\"stage\": \"numpy_fft\"}\n{\"stage\": \"pandas\"}\n{\"stage\": \"sklearn_fit\"}\n{\"stage\": \"sklearn_prediction\"}\n",
+        "image_id": "sha256:8c629a2f22a6db5539db6cd7babfbeaf9260bb5b17a49683494d0fd51a2dc098",
+        "controls": {
+          "python_startup": "passed",
+          "capped_smoke": "passed",
+          "upstream_cpu_rejection": "reproduced"
+        }
+      },
+      {
+        "target": "candidate-openblas-current",
+        "status": "compatible_smoke",
+        "cpu_model": "qemu64,vendor=GenuineIntel",
+        "scope": "Selected emulated CPU only; not physical hardware qualification",
+        "output": "{\"numpy\": \"2.4.6\", \"pandas\": \"3.1.1\", \"status\": \"passed\", \"blas_libraries\": [{\"internal_api\": \"openblas\", \"version\": \"0.3.34\", \"architecture\": \"Prescott\", \"num_threads\": 1}, {\"internal_api\": \"openblas\", \"version\": \"0.3.30\", \"architecture\": \"Katmai\", \"num_threads\": 1}]}\n{\"stage\": \"imports\"}\n{\"stage\": \"numpy_solve\"}\n{\"stage\": \"scipy_solve\"}\n{\"stage\": \"numpy_inverse\"}\n{\"stage\": \"numpy_fft\"}\n{\"stage\": \"pandas\"}\n{\"stage\": \"sklearn_fit\"}\n{\"stage\": \"sklearn_prediction\"}\n",
+        "image_id": "sha256:aca3fb028564206cc1f248504cb09035c2176ed0c2e833ce34feab3c8a698fe8",
+        "controls": {
+          "python_startup": "passed",
+          "capped_smoke": "passed",
+          "upstream_cpu_rejection": "reproduced"
+        }
+      },
+      {
+        "target": "candidate-openblas-current",
+        "status": "compatible_smoke",
+        "cpu_model": "qemu64,+3dnow,+3dnowext",
+        "scope": "Selected emulated CPU only; not physical hardware qualification",
+        "output": "{\"numpy\": \"2.4.6\", \"pandas\": \"3.1.1\", \"status\": \"passed\", \"blas_libraries\": [{\"internal_api\": \"openblas\", \"version\": \"0.3.30\", \"architecture\": \"Katmai\", \"num_threads\": 1}, {\"internal_api\": \"openblas\", \"version\": \"0.3.34\", \"architecture\": \"Barcelona\", \"num_threads\": 1}]}\n{\"stage\": \"imports\"}\n{\"stage\": \"numpy_solve\"}\n{\"stage\": \"scipy_solve\"}\n{\"stage\": \"numpy_inverse\"}\n{\"stage\": \"numpy_fft\"}\n{\"stage\": \"pandas\"}\n{\"stage\": \"sklearn_fit\"}\n{\"stage\": \"sklearn_prediction\"}\n",
+        "image_id": "sha256:dd0c7ca34adbca1dc64536fa570c368893d0c8b9260d8335160131bf8e14c6b6",
+        "controls": {
+          "python_startup": "passed",
+          "capped_smoke": "passed",
+          "upstream_cpu_rejection": "reproduced"
+        }
+      }
+    ],
+    "native": [
+      {
+        "architecture": "amd64",
+        "native": {
+          "recorded_at": "2026-11-17T23:09:58.084931+00:00",
+          "scope": "Native evaluation; 2 CPUs/2 GiB; not physical legacy hardware or production qualification",
+          "candidate_target": "candidate-openblas-current",
+          "results": {
+            "capped": {
+              "architecture": "x86_64",
+              "python": "3.11.18",
+              "versions": {
+                "numpy": "2.3.5",
+                "pandas": "3.1.1",
+                "scipy": "1.17.1",
+                "scikit-learn": "1.8.0"
+              },
+              "numpy_config": {
+                "Compilers": {
+                  "c": {
+                    "name": "gcc",
+                    "linker": "ld.bfd",
+                    "version": "14.2.1",
+                    "commands": "cc"
+                  },
+                  "cython": {
+                    "name": "cython",
+                    "linker": "cython",
+                    "version": "3.2.1",
+                    "commands": "cython"
+                  },
+                  "c++": {
+                    "name": "gcc",
+                    "linker": "ld.bfd",
+                    "version": "14.2.1",
+                    "commands": "c++"
+                  }
+                },
+                "Machine Information": {
+                  "host": {
+                    "cpu": "x86_64",
+                    "family": "x86_64",
+                    "endian": "little",
+                    "system": "linux"
+                  },
+                  "build": {
+                    "cpu": "x86_64",
+                    "family": "x86_64",
+                    "endian": "little",
+                    "system": "linux"
+                  }
+                },
+                "Build Dependencies": {
+                  "blas": {
+                    "name": "scipy-openblas",
+                    "found": true,
+                    "version": "0.3.30",
+                    "detection method": "pkgconfig",
+                    "include directory": "/opt/_internal/cpython-3.11.14/lib/python3.11/site-packages/scipy_openblas64/include",
+                    "lib directory": "/opt/_internal/cpython-3.11.14/lib/python3.11/site-packages/scipy_openblas64/lib",
+                    "openblas configuration": "OpenBLAS 0.3.30  USE64BITINT DYNAMIC_ARCH NO_AFFINITY Haswell MAX_THREADS=64",
+                    "pc file directory": "/project/.openblas"
+                  },
+                  "lapack": {
+                    "name": "scipy-openblas",
+                    "found": true,
+                    "version": "0.3.30",
+                    "detection method": "pkgconfig",
+                    "include directory": "/opt/_internal/cpython-3.11.14/lib/python3.11/site-packages/scipy_openblas64/include",
+                    "lib directory": "/opt/_internal/cpython-3.11.14/lib/python3.11/site-packages/scipy_openblas64/lib",
+                    "openblas configuration": "OpenBLAS 0.3.30  USE64BITINT DYNAMIC_ARCH NO_AFFINITY Haswell MAX_THREADS=64",
+                    "pc file directory": "/project/.openblas"
+                  }
+                },
+                "Python Information": {
+                  "path": "/tmp/build-env-szi1b15j/bin/python",
+                  "version": "3.11"
+                },
+                "SIMD Extensions": {
+                  "baseline": [
+                    "SSE",
+                    "SSE2",
+                    "SSE3"
+                  ],
+                  "found": [
+                    "SSSE3",
+                    "SSE41",
+                    "POPCNT",
+                    "SSE42",
+                    "AVX",
+                    "F16C",
+                    "FMA3",
+                    "AVX2"
+                  ],
+                  "not found": [
+                    "AVX512F",
+                    "AVX512CD",
+                    "AVX512_KNL",
+                    "AVX512_KNM",
+                    "AVX512_SKX",
+                    "AVX512_CLX",
+                    "AVX512_CNL",
+                    "AVX512_ICL",
+                    "AVX512_SPR"
+                  ]
+                }
+              },
+              "timings": {
+                "matrix_multiply_256": {
+                  "median_seconds": 0.0005194372999994812,
+                  "samples_seconds": [
+                    0.0005257882000009317,
+                    0.0005149017999997341,
+                    0.0005413822999997819,
+                    0.0005194372999994812,
+                    0.0005150039999989531
+                  ]
+                },
+                "linear_solve_80": {
+                  "median_seconds": 0.00003990759999936699,
+                  "samples_seconds": [
+                    0.000041967500000339444,
+                    0.00003806819999994104,
+                    0.000040129999999294344,
+                    0.00003794389999995928,
+                    0.00003990759999936699
+                  ]
+                },
+                "fft_8192": {
+                  "median_seconds": 0.00010743179999934682,
+                  "samples_seconds": [
+                    0.00011146740000071987,
+                    0.00010743179999934682,
+                    0.00010699210000097992,
+                    0.00010671550000012076,
+                    0.00010788780000012821
+                  ]
+                },
+                "pandas_groupby_2000": {
+                  "median_seconds": 0.00031043850000003206,
+                  "samples_seconds": [
+                    0.0003770862000010311,
+                    0.00031343210000045474,
+                    0.00030330519999921535,
+                    0.00031043850000003206,
+                    0.00030469480000050453
+                  ]
+                },
+                "sklearn_fit_512x8": {
+                  "median_seconds": 0.00044788959999948476,
+                  "samples_seconds": [
+                    0.00048325770000019476,
+                    0.00044788959999948476,
+                    0.00044852679999962675,
+                    0.00043473000000062714,
+                    0.0004273781999998505
+                  ]
+                }
+              },
+              "image_id": "sha256:98249672c4b4ba7351ae584cf09697a99ea4a5db4fd75d565d870fda04533d2f"
+            },
+            "candidate-openblas-current": {
+              "architecture": "x86_64",
+              "python": "3.11.18",
+              "versions": {
+                "numpy": "2.4.6",
+                "pandas": "3.1.1",
+                "scipy": "1.17.1",
+                "scikit-learn": "1.8.0"
+              },
+              "numpy_config": {
+                "Compilers": {
+                  "c": {
+                    "name": "gcc",
+                    "linker": "ld.bfd",
+                    "version": "14.2.0",
+                    "commands": "cc"
+                  },
+                  "cython": {
+                    "name": "cython",
+                    "linker": "cython",
+                    "version": "3.3.1",
+                    "commands": "cython"
+                  },
+                  "c++": {
+                    "name": "gcc",
+                    "linker": "ld.bfd",
+                    "version": "14.2.0",
+                    "commands": "c++"
+                  }
+                },
+                "Machine Information": {
+                  "host": {
+                    "cpu": "x86_64",
+                    "family": "x86_64",
+                    "endian": "little",
+                    "system": "linux"
+                  },
+                  "build": {
+                    "cpu": "x86_64",
+                    "family": "x86_64",
+                    "endian": "little",
+                    "system": "linux"
+                  }
+                },
+                "Build Dependencies": {
+                  "blas": {
+                    "name": "openblas",
+                    "found": true,
+                    "version": "0.3.34",
+                    "detection method": "pkgconfig",
+                    "include directory": "/opt/openblas/include",
+                    "lib directory": "/opt/openblas/lib",
+                    "openblas configuration": "USE_64BITINT= DYNAMIC_ARCH=1 DYNAMIC_OLDER= NO_CBLAS= NO_LAPACK= NO_LAPACKE= NO_AFFINITY=1 USE_OPENMP= ZEN MAX_THREADS=64",
+                    "pc file directory": "/opt/openblas/lib/pkgconfig"
+                  },
+                  "lapack": {
+                    "name": "openblas",
+                    "found": true,
+                    "version": "0.3.34",
+                    "detection method": "pkgconfig",
+                    "include directory": "/opt/openblas/include",
+                    "lib directory": "/opt/openblas/lib",
+                    "openblas configuration": "USE_64BITINT= DYNAMIC_ARCH=1 DYNAMIC_OLDER= NO_CBLAS= NO_LAPACK= NO_LAPACKE= NO_AFFINITY=1 USE_OPENMP= ZEN MAX_THREADS=64",
+                    "pc file directory": "/opt/openblas/lib/pkgconfig"
+                  }
+                },
+                "Python Information": {
+                  "path": "/usr/local/bin/python",
+                  "version": "3.11"
+                },
+                "SIMD Extensions": {
+                  "found": [
+                    "X86_V2",
+                    "X86_V3"
+                  ],
+                  "not found": [
+                    "X86_V4",
+                    "AVX512_ICL",
+                    "AVX512_SPR"
+                  ]
+                }
+              },
+              "timings": {
+                "matrix_multiply_256": {
+                  "median_seconds": 0.0005221785000003365,
+                  "samples_seconds": [
+                    0.0005391042000155721,
+                    0.0005187650999914694,
+                    0.0005221785000003365,
+                    0.0005156002000148874,
+                    0.0005269845000157147
+                  ]
+                },
+                "linear_solve_80": {
+                  "median_seconds": 0.000037672600001315004,
+                  "samples_seconds": [
+                    0.00004326999999193504,
+                    0.000037672600001315004,
+                    0.00003926659999251569,
+                    0.00003759740000077727,
+                    0.00003736310000022058
+                  ]
+                },
+                "fft_8192": {
+                  "median_seconds": 0.00010507690001304582,
+                  "samples_seconds": [
+                    0.00010623200000736688,
+                    0.00010414020000553137,
+                    0.00010359410000546632,
+                    0.00010507690001304582,
+                    0.00010513700001411053
+                  ]
+                },
+                "pandas_groupby_2000": {
+                  "median_seconds": 0.00030682799999794954,
+                  "samples_seconds": [
+                    0.00039016309999624356,
+                    0.0003243366999868158,
+                    0.00030647930000213817,
+                    0.00030682799999794954,
+                    0.00030256900001859324
+                  ]
+                },
+                "sklearn_fit_512x8": {
+                  "median_seconds": 0.0004349660999878324,
+                  "samples_seconds": [
+                    0.0004732066999849849,
+                    0.0004406056999869179,
+                    0.0004349660999878324,
+                    0.0004328519999944547,
+                    0.0004345071999978245
+                  ]
+                }
+              },
+              "image_id": "sha256:b848fa1e3d54168fd5e2ecb8fcc006820c97c8dd67a81f28a15a53d0efa58a84"
+            }
+          },
+          "candidate_over_capped_ratio": {
+            "matrix_multiply_256": 1.00527724905558,
+            "linear_solve_80": 0.9439956299530055,
+            "fft_8192": 0.9780800471897956,
+            "pandas_groupby_2000": 0.9883696770790925,
+            "sklearn_fit_512x8": 0.9711457912582315
+          }
+        },
+        "audit": {
+          "image": "ew-numpy-native-candidate-openblas-current",
+          "scanned_at": "2026-11-17T23:10:36.814033+00:00",
+          "grype_cache": {
+            "kind": "directory",
+            "location": "/home/runner/work/_temp/grype-downloads"
+          },
+          "python_findings": [],
+          "blocked_image_findings": [],
+          "total_scanner_matches": 252,
+          "kev_source": "https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json",
+          "kev_released": "2026-11-17T17:53:15.5664Z",
+          "kev_sha256": "40a9e09d460cd005a5d416df60f4cda52f599ac9a5529372619771ec188d0a5b",
+          "scope": "No Python advisories, KEVs or available Debian fixes; other matches remain for review"
+        },
+        "scanned_image_id": "sha256:b848fa1e3d54168fd5e2ecb8fcc006820c97c8dd67a81f28a15a53d0efa58a84",
+        "scanner_db": {
+          "status": {
+            "schemaVersion": "v6.1.10",
+            "from": "https://grype.anchore.io/databases/v6/vulnerability-db_v6.1.10_2026-11-17T00:22:24Z_1794896458.tar.zst?checksum=sha256%3A3f0cbdbc9d40fb69eaeacec1869b27a8c74f1894108804ace8b7468513e2df07",
+            "built": "2026-11-17T06:20:58Z",
+            "path": "/.cache/grype/db/6/vulnerability.db",
+            "valid": true
+          },
+          "providers": {
+            "alma": {
+              "captured": "2026-11-17T00:22:53Z",
+              "input": "xxh64:19c0ec9b8e82f66a"
+            },
+            "alpine": {
+              "captured": "2026-11-17T00:22:30Z",
+              "input": "xxh64:fa987f9392d28fb3"
+            },
+            "amazon": {
+              "captured": "2026-11-17T00:23:05Z",
+              "input": "xxh64:7504f7c74a9c361d"
+            },
+            "arch": {
+              "captured": "2026-11-17T00:22:24Z",
+              "input": "xxh64:d2577d0ce5ffb172"
+            },
+            "bitnami": {
+              "captured": "2026-11-17T00:22:29Z",
+              "input": "xxh64:c732250cc2011e83"
+            },
+            "chainguard": {
+              "captured": "2026-11-17T00:23:29Z",
+              "input": "xxh64:7cb9477b6a50b2e9"
+            },
+            "chainguard-libraries": {
+              "captured": "2026-11-17T00:22:35Z",
+              "input": "xxh64:5d096d7cce578b12"
+            },
+            "debian": {
+              "captured": "2026-11-17T00:23:26Z",
+              "input": "xxh64:c6a2230483ad9fdc"
+            },
+            "dhi": {
+              "captured": "2026-11-17T00:22:47Z",
+              "input": "xxh64:8fc49640234eaa72"
+            },
+            "echo": {
+              "captured": "2026-11-17T00:22:53Z",
+              "input": "xxh64:a3e2e025951b7594"
+            },
+            "eol": {
+              "captured": "2026-11-17T00:22:34Z",
+              "input": "xxh64:9272c69742a4ae10"
+            },
+            "epss": {
+              "captured": "2026-11-17T00:22:37Z",
+              "input": "xxh64:9d628fe7247000c3"
+            },
+            "fedora": {
+              "captured": "2026-11-17T00:24:14Z",
+              "input": "xxh64:db3008dbf1d69a87"
+            },
+            "github": {
+              "captured": "2026-11-17T00:22:53Z",
+              "input": "xxh64:f751a10108e14e08"
+            },
+            "govulndb": {
+              "captured": "2026-11-17T00:22:34Z",
+              "input": "xxh64:3196a429310da9e4"
+            },
+            "hummingbird": {
+              "captured": "2026-11-17T00:24:38Z",
+              "input": "xxh64:a0e26b96324ff59a"
+            },
+            "kev": {
+              "captured": "2026-11-17T00:22:27Z",
+              "input": "xxh64:4568728f33b4c2af"
+            },
+            "mariner": {
+              "captured": "2026-11-17T00:22:29Z",
+              "input": "xxh64:00f342be7a313fbc"
+            },
+            "minimos": {
+              "captured": "2026-11-17T00:22:34Z",
+              "input": "xxh64:63429d277e62af8e"
+            },
+            "nvd": {
+              "captured": "2026-11-17T00:23:42Z",
+              "input": "xxh64:4a51752f6e4ef385"
+            },
+            "oracle": {
+              "captured": "2026-11-17T00:22:26Z",
+              "input": "xxh64:3ae32942f2da894e"
+            },
+            "photon": {
+              "captured": "2026-11-17T00:22:35Z",
+              "input": "xxh64:973abed9db5baccb"
+            },
+            "rhel": {
+              "captured": "2026-11-17T01:49:22Z",
+              "input": "xxh64:dc3ed2a669377a28"
+            },
+            "secureos": {
+              "captured": "2026-11-17T00:23:37Z",
+              "input": "xxh64:045fed684fb2646f"
+            },
+            "sles": {
+              "captured": "2026-11-17T00:25:02Z",
+              "input": "xxh64:ef6348f8bda1727f"
+            },
+            "ubuntu": {
+              "captured": "2026-11-17T00:23:29Z",
+              "input": "xxh64:7a8a7271f5590bf2"
+            },
+            "wolfi": {
+              "captured": "2026-11-17T00:22:50Z",
+              "input": "xxh64:ee98272bfeac5d14"
+            }
+          }
+        },
+        "raw_report_sha256": "a526bb2bae2e90bf087bc0b8713b5c7590b959217cc50896fee6a906b82ad83d"
+      },
+      {
+        "architecture": "arm64",
+        "native": {
+          "recorded_at": "2026-11-17T23:03:32.672054+00:00",
+          "scope": "Native evaluation; 2 CPUs/2 GiB; not physical legacy hardware or production qualification",
+          "candidate_target": "candidate-openblas-current",
+          "results": {
+            "capped": {
+              "architecture": "aarch64",
+              "python": "3.11.18",
+              "versions": {
+                "numpy": "2.3.5",
+                "pandas": "3.1.1",
+                "scipy": "1.17.1",
+                "scikit-learn": "1.8.0"
+              },
+              "numpy_config": {
+                "Compilers": {
+                  "c": {
+                    "name": "gcc",
+                    "linker": "ld.bfd",
+                    "version": "14.2.1",
+                    "commands": "cc"
+                  },
+                  "cython": {
+                    "name": "cython",
+                    "linker": "cython",
+                    "version": "3.2.1",
+                    "commands": "cython"
+                  },
+                  "c++": {
+                    "name": "gcc",
+                    "linker": "ld.bfd",
+                    "version": "14.2.1",
+                    "commands": "c++"
+                  }
+                },
+                "Machine Information": {
+                  "host": {
+                    "cpu": "aarch64",
+                    "family": "aarch64",
+                    "endian": "little",
+                    "system": "linux"
+                  },
+                  "build": {
+                    "cpu": "aarch64",
+                    "family": "aarch64",
+                    "endian": "little",
+                    "system": "linux"
+                  }
+                },
+                "Build Dependencies": {
+                  "blas": {
+                    "name": "scipy-openblas",
+                    "found": true,
+                    "version": "0.3.30",
+                    "detection method": "pkgconfig",
+                    "include directory": "/opt/_internal/cpython-3.11.14/lib/python3.11/site-packages/scipy_openblas64/include",
+                    "lib directory": "/opt/_internal/cpython-3.11.14/lib/python3.11/site-packages/scipy_openblas64/lib",
+                    "openblas configuration": "OpenBLAS 0.3.30  USE64BITINT DYNAMIC_ARCH NO_AFFINITY neoversev2 MAX_THREADS=64",
+                    "pc file directory": "/project/.openblas"
+                  },
+                  "lapack": {
+                    "name": "scipy-openblas",
+                    "found": true,
+                    "version": "0.3.30",
+                    "detection method": "pkgconfig",
+                    "include directory": "/opt/_internal/cpython-3.11.14/lib/python3.11/site-packages/scipy_openblas64/include",
+                    "lib directory": "/opt/_internal/cpython-3.11.14/lib/python3.11/site-packages/scipy_openblas64/lib",
+                    "openblas configuration": "OpenBLAS 0.3.30  USE64BITINT DYNAMIC_ARCH NO_AFFINITY neoversev2 MAX_THREADS=64",
+                    "pc file directory": "/project/.openblas"
+                  }
+                },
+                "Python Information": {
+                  "path": "/tmp/build-env-fmpmeczn/bin/python",
+                  "version": "3.11"
+                },
+                "SIMD Extensions": {
+                  "baseline": [
+                    "NEON",
+                    "NEON_FP16",
+                    "NEON_VFPV4",
+                    "ASIMD"
+                  ],
+                  "found": [
+                    "ASIMDHP",
+                    "ASIMDFHM",
+                    "SVE"
+                  ]
+                }
+              },
+              "timings": {
+                "matrix_multiply_256": {
+                  "median_seconds": 0.0008834306000011338,
+                  "samples_seconds": [
+                    0.0008883445999998685,
+                    0.0008834306000011338,
+                    0.0008850096000003304,
+                    0.0008800234999995383,
+                    0.0008761133999996673
+                  ]
+                },
+                "linear_solve_80": {
+                  "median_seconds": 0.00004219499999891241,
+                  "samples_seconds": [
+                    0.00004747389999977258,
+                    0.00004174539999866056,
+                    0.00004140710000086756,
+                    0.00004303009999944152,
+                    0.00004219499999891241
+                  ]
+                },
+                "fft_8192": {
+                  "median_seconds": 0.000099001899999962,
+                  "samples_seconds": [
+                    0.00010107779999941613,
+                    0.00010038260000015953,
+                    0.000099001899999962,
+                    0.0000985307999997076,
+                    0.00009684839999977158
+                  ]
+                },
+                "pandas_groupby_2000": {
+                  "median_seconds": 0.0002890694000001304,
+                  "samples_seconds": [
+                    0.0003681038000010517,
+                    0.0002917156999998838,
+                    0.0002890694000001304,
+                    0.00028201709999962075,
+                    0.00027903080000015736
+                  ]
+                },
+                "sklearn_fit_512x8": {
+                  "median_seconds": 0.0003700901000001977,
+                  "samples_seconds": [
+                    0.0004062982999997189,
+                    0.0003746962000008125,
+                    0.0003671901999993565,
+                    0.0003700901000001977,
+                    0.0003628384999998957
+                  ]
+                }
+              },
+              "image_id": "sha256:e2678d70a424cfd461e4a58ccdb6fd052f0105fc68dc86b027136753495e96cf"
+            },
+            "candidate-openblas-current": {
+              "architecture": "aarch64",
+              "python": "3.11.18",
+              "versions": {
+                "numpy": "2.4.6",
+                "pandas": "3.1.1",
+                "scipy": "1.17.1",
+                "scikit-learn": "1.8.0"
+              },
+              "numpy_config": {
+                "Compilers": {
+                  "c": {
+                    "name": "gcc",
+                    "linker": "ld.bfd",
+                    "version": "14.2.0",
+                    "commands": "cc"
+                  },
+                  "cython": {
+                    "name": "cython",
+                    "linker": "cython",
+                    "version": "3.3.1",
+                    "commands": "cython"
+                  },
+                  "c++": {
+                    "name": "gcc",
+                    "linker": "ld.bfd",
+                    "version": "14.2.0",
+                    "commands": "c++"
+                  }
+                },
+                "Machine Information": {
+                  "host": {
+                    "cpu": "aarch64",
+                    "family": "aarch64",
+                    "endian": "little",
+                    "system": "linux"
+                  },
+                  "build": {
+                    "cpu": "aarch64",
+                    "family": "aarch64",
+                    "endian": "little",
+                    "system": "linux"
+                  }
+                },
+                "Build Dependencies": {
+                  "blas": {
+                    "name": "openblas",
+                    "found": true,
+                    "version": "0.3.34",
+                    "detection method": "pkgconfig",
+                    "include directory": "/opt/openblas/include",
+                    "lib directory": "/opt/openblas/lib",
+                    "openblas configuration": "USE_64BITINT= DYNAMIC_ARCH=1 DYNAMIC_OLDER= NO_CBLAS= NO_LAPACK= NO_LAPACKE= NO_AFFINITY=1 USE_OPENMP= NEOVERSEN2 MAX_THREADS=64",
+                    "pc file directory": "/opt/openblas/lib/pkgconfig"
+                  },
+                  "lapack": {
+                    "name": "openblas",
+                    "found": true,
+                    "version": "0.3.34",
+                    "detection method": "pkgconfig",
+                    "include directory": "/opt/openblas/include",
+                    "lib directory": "/opt/openblas/lib",
+                    "openblas configuration": "USE_64BITINT= DYNAMIC_ARCH=1 DYNAMIC_OLDER= NO_CBLAS= NO_LAPACK= NO_LAPACKE= NO_AFFINITY=1 USE_OPENMP= NEOVERSEN2 MAX_THREADS=64",
+                    "pc file directory": "/opt/openblas/lib/pkgconfig"
+                  }
+                },
+                "Python Information": {
+                  "path": "/usr/local/bin/python",
+                  "version": "3.11"
+                },
+                "SIMD Extensions": {
+                  "found": [
+                    "NEON",
+                    "NEON_FP16",
+                    "NEON_VFPV4",
+                    "ASIMD",
+                    "ASIMDHP",
+                    "ASIMDDP",
+                    "ASIMDFHM",
+                    "SVE"
+                  ]
+                }
+              },
+              "timings": {
+                "matrix_multiply_256": {
+                  "median_seconds": 0.0008840909999889845,
+                  "samples_seconds": [
+                    0.0009025858000086373,
+                    0.0008824005999940709,
+                    0.0008781848999888098,
+                    0.0008842941000011706,
+                    0.0008840909999889845
+                  ]
+                },
+                "linear_solve_80": {
+                  "median_seconds": 0.00004368930001419358,
+                  "samples_seconds": [
+                    0.00004835140000523097,
+                    0.000042391900001348405,
+                    0.00004384450000998186,
+                    0.000042218199996568726,
+                    0.00004368930001419358
+                  ]
+                },
+                "fft_8192": {
+                  "median_seconds": 0.00009934199999861448,
+                  "samples_seconds": [
+                    0.00010172659999625466,
+                    0.0000985932000048706,
+                    0.00009792040000320413,
+                    0.00009950989999651938,
+                    0.00009934199999861448
+                  ]
+                },
+                "pandas_groupby_2000": {
+                  "median_seconds": 0.00030788690000918,
+                  "samples_seconds": [
+                    0.00038885629999185767,
+                    0.0003120122000154879,
+                    0.00030788690000918,
+                    0.0003018432000089888,
+                    0.0003022008000016285
+                  ]
+                },
+                "sklearn_fit_512x8": {
+                  "median_seconds": 0.00037465079999492444,
+                  "samples_seconds": [
+                    0.00041351479999320875,
+                    0.00038026800000352524,
+                    0.00037465079999492444,
+                    0.00037020940001184497,
+                    0.00037204210000254536
+                  ]
+                }
+              },
+              "image_id": "sha256:1bcbf38c754e7de4a79d2c5cf59148f722dde05c8b78ed0889df7ea8f21f25a4"
+            }
+          },
+          "candidate_over_capped_ratio": {
+            "matrix_multiply_256": 1.000747540313693,
+            "linear_solve_80": 1.035414148958874,
+            "fft_8192": 1.0034352875919816,
+            "pandas_groupby_2000": 1.0650968245308605,
+            "sklearn_fit_512x8": 1.0123232153324941
+          }
+        },
+        "audit": {
+          "image": "ew-numpy-native-candidate-openblas-current",
+          "scanned_at": "2026-11-17T23:04:12.627979+00:00",
+          "grype_cache": {
+            "kind": "directory",
+            "location": "/home/runner/work/_temp/grype-downloads"
+          },
+          "python_findings": [],
+          "blocked_image_findings": [],
+          "total_scanner_matches": 252,
+          "kev_source": "https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json",
+          "kev_released": "2026-11-17T17:53:15.5664Z",
+          "kev_sha256": "40a9e09d460cd005a5d416df60f4cda52f599ac9a5529372619771ec188d0a5b",
+          "scope": "No Python advisories, KEVs or available Debian fixes; other matches remain for review"
+        },
+        "scanned_image_id": "sha256:1bcbf38c754e7de4a79d2c5cf59148f722dde05c8b78ed0889df7ea8f21f25a4",
+        "scanner_db": {
+          "status": {
+            "schemaVersion": "v6.1.10",
+            "from": "https://grype.anchore.io/databases/v6/vulnerability-db_v6.1.10_2026-11-17T00:22:24Z_1794896458.tar.zst?checksum=sha256%3A3f0cbdbc9d40fb69eaeacec1869b27a8c74f1894108804ace8b7468513e2df07",
+            "built": "2026-11-17T06:20:58Z",
+            "path": "/.cache/grype/db/6/vulnerability.db",
+            "valid": true
+          },
+          "providers": {
+            "alma": {
+              "captured": "2026-11-17T00:22:53Z",
+              "input": "xxh64:19c0ec9b8e82f66a"
+            },
+            "alpine": {
+              "captured": "2026-11-17T00:22:30Z",
+              "input": "xxh64:fa987f9392d28fb3"
+            },
+            "amazon": {
+              "captured": "2026-11-17T00:23:05Z",
+              "input": "xxh64:7504f7c74a9c361d"
+            },
+            "arch": {
+              "captured": "2026-11-17T00:22:24Z",
+              "input": "xxh64:d2577d0ce5ffb172"
+            },
+            "bitnami": {
+              "captured": "2026-11-17T00:22:29Z",
+              "input": "xxh64:c732250cc2011e83"
+            },
+            "chainguard": {
+              "captured": "2026-11-17T00:23:29Z",
+              "input": "xxh64:7cb9477b6a50b2e9"
+            },
+            "chainguard-libraries": {
+              "captured": "2026-11-17T00:22:35Z",
+              "input": "xxh64:5d096d7cce578b12"
+            },
+            "debian": {
+              "captured": "2026-11-17T00:23:26Z",
+              "input": "xxh64:c6a2230483ad9fdc"
+            },
+            "dhi": {
+              "captured": "2026-11-17T00:22:47Z",
+              "input": "xxh64:8fc49640234eaa72"
+            },
+            "echo": {
+              "captured": "2026-11-17T00:22:53Z",
+              "input": "xxh64:a3e2e025951b7594"
+            },
+            "eol": {
+              "captured": "2026-11-17T00:22:34Z",
+              "input": "xxh64:9272c69742a4ae10"
+            },
+            "epss": {
+              "captured": "2026-11-17T00:22:37Z",
+              "input": "xxh64:9d628fe7247000c3"
+            },
+            "fedora": {
+              "captured": "2026-11-17T00:24:14Z",
+              "input": "xxh64:db3008dbf1d69a87"
+            },
+            "github": {
+              "captured": "2026-11-17T00:22:53Z",
+              "input": "xxh64:f751a10108e14e08"
+            },
+            "govulndb": {
+              "captured": "2026-11-17T00:22:34Z",
+              "input": "xxh64:3196a429310da9e4"
+            },
+            "hummingbird": {
+              "captured": "2026-11-17T00:24:38Z",
+              "input": "xxh64:a0e26b96324ff59a"
+            },
+            "kev": {
+              "captured": "2026-11-17T00:22:27Z",
+              "input": "xxh64:4568728f33b4c2af"
+            },
+            "mariner": {
+              "captured": "2026-11-17T00:22:29Z",
+              "input": "xxh64:00f342be7a313fbc"
+            },
+            "minimos": {
+              "captured": "2026-11-17T00:22:34Z",
+              "input": "xxh64:63429d277e62af8e"
+            },
+            "nvd": {
+              "captured": "2026-11-17T00:23:42Z",
+              "input": "xxh64:4a51752f6e4ef385"
+            },
+            "oracle": {
+              "captured": "2026-11-17T00:22:26Z",
+              "input": "xxh64:3ae32942f2da894e"
+            },
+            "photon": {
+              "captured": "2026-11-17T00:22:35Z",
+              "input": "xxh64:973abed9db5baccb"
+            },
+            "rhel": {
+              "captured": "2026-11-17T01:49:22Z",
+              "input": "xxh64:dc3ed2a669377a28"
+            },
+            "secureos": {
+              "captured": "2026-11-17T00:23:37Z",
+              "input": "xxh64:045fed684fb2646f"
+            },
+            "sles": {
+              "captured": "2026-11-17T00:25:02Z",
+              "input": "xxh64:ef6348f8bda1727f"
+            },
+            "ubuntu": {
+              "captured": "2026-11-17T00:23:29Z",
+              "input": "xxh64:7a8a7271f5590bf2"
+            },
+            "wolfi": {
+              "captured": "2026-11-17T00:22:50Z",
+              "input": "xxh64:ee98272bfeac5d14"
+            }
+          }
+        },
+        "raw_report_sha256": "e206c4e8ad7054b9bc49cb09e5668faa50e355bf3f81fb1bec5448c3340587f2"
+      }
+    ]
+  },
+  "standard_ci": [
+    {
+      "run": 44192794429,
+      "name": "tester",
+      "jobs": [
+        {
+          "name": "route",
+          "id": 134426301337,
+          "status": "completed",
+          "conclusion": "success",
+          "steps": []
+        },
+        {
+          "name": "ui-runtime",
+          "id": 134426401533,
+          "status": "completed",
+          "conclusion": "success",
+          "steps": []
+        },
+        {
+          "name": "pytest",
+          "id": 134426401571,
+          "status": "completed",
+          "conclusion": "success",
+          "steps": []
+        },
+        {
+          "name": "ha-tillagg",
+          "id": 134426401607,
+          "status": "completed",
+          "conclusion": "success",
+          "steps": []
+        },
+        {
+          "name": "security / images (addon-amd64, ha-addon/smartbox, linux/amd64)",
+          "id": 134426401846,
+          "status": "completed",
+          "conclusion": "success",
+          "steps": []
+        },
+        {
+          "name": "security / images (addon-arm64, ha-addon/smartbox, linux/arm64)",
+          "id": 134426401954,
+          "status": "completed",
+          "conclusion": "success",
+          "steps": []
+        },
+        {
+          "name": "security / images (smartbox, smartbox, linux/amd64)",
+          "id": 134426401986,
+          "status": "completed",
+          "conclusion": "success",
+          "steps": []
+        },
+        {
+          "name": "security / images (telemetry, telemetry-collector, linux/amd64)",
+          "id": 134426401996,
+          "status": "completed",
+          "conclusion": "success",
+          "steps": []
+        },
+        {
+          "name": "security / images (webdashboard, webdashboard, linux/amd64)",
+          "id": 134426402039,
+          "status": "completed",
+          "conclusion": "success",
+          "steps": []
+        },
+        {
+          "name": "security / images (ewapp, ewapp, linux/amd64)",
+          "id": 134426402091,
+          "status": "completed",
+          "conclusion": "success",
+          "steps": []
+        }
+      ]
+    },
+    {
+      "run": 44192727082,
+      "name": "tester",
+      "jobs": [
+        {
+          "name": "route",
+          "id": 134426064944,
+          "status": "completed",
+          "conclusion": "success",
+          "steps": []
+        },
+        {
+          "name": "ui-runtime",
+          "id": 134426172826,
+          "status": "completed",
+          "conclusion": "success",
+          "steps": []
+        },
+        {
+          "name": "pytest",
+          "id": 134426172839,
+          "status": "completed",
+          "conclusion": "success",
+          "steps": []
+        },
+        {
+          "name": "ha-tillagg",
+          "id": 134426172968,
+          "status": "completed",
+          "conclusion": "success",
+          "steps": []
+        },
+        {
+          "name": "security / images (smartbox, smartbox, linux/amd64)",
+          "id": 134426173019,
+          "status": "completed",
+          "conclusion": "success",
+          "steps": []
+        },
+        {
+          "name": "security / images (webdashboard, webdashboard, linux/amd64)",
+          "id": 134426173021,
+          "status": "completed",
+          "conclusion": "success",
+          "steps": []
+        },
+        {
+          "name": "security / images (addon-amd64, ha-addon/smartbox, linux/amd64)",
+          "id": 134426173023,
+          "status": "completed",
+          "conclusion": "success",
+          "steps": []
+        },
+        {
+          "name": "security / images (telemetry, telemetry-collector, linux/amd64)",
+          "id": 134426173037,
+          "status": "completed",
+          "conclusion": "success",
+          "steps": []
+        },
+        {
+          "name": "security / images (addon-arm64, ha-addon/smartbox, linux/arm64)",
+          "id": 134426173076,
+          "status": "completed",
+          "conclusion": "success",
+          "steps": []
+        },
+        {
+          "name": "security / images (ewapp, ewapp, linux/amd64)",
+          "id": 134426173146,
+          "status": "completed",
+          "conclusion": "success",
+          "steps": []
+        }
+      ]
+    }
+  ]
+}
