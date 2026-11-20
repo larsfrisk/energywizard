@@ -184,3 +184,22 @@ def test_engine_never_writes_external_control_or_other_risky_registers():
     src = (Path(pump.__file__)).read_text(encoding="utf-8")
     written = {int(m) for m in re.findall(r"_write_holding\((\d+)", src)}
     assert written <= {13, 14, 15, 16, 17, 18, 19, 20}, written       # inte 23 (External control, oförutsägbar)
+
+
+# --- 4. H66:ans egen effektsumma (register 38) ---
+
+def test_h66_power_sum_is_used_when_watts_are_set(monkeypatch):
+    import energy_balance
+    monkeypatch.setattr(pump, "_get_client", lambda: _client(_regs(i25=1, i38=2800)))
+    d = pump.read_sensors()
+    assert d["compressor_power_w"] == 2800.0
+    assert energy_balance.pump_el_w(d, lambda fwd: 9999.0) == 2800.0       # H66:ans siffra går före kurvan
+
+
+def test_no_watts_set_keeps_the_forward_temp_estimate(monkeypatch):
+    """Riktig H66 före inställning: alla statusvariabler 0 W, register 38 = 0."""
+    import energy_balance
+    monkeypatch.setattr(pump, "_get_client", lambda: _client(_regs(i25=1, i38=0)))
+    d = pump.read_sensors()
+    assert d["compressor_power_w"] is None
+    assert energy_balance.pump_el_w(d, lambda fwd: 2655.0) == 2655.0

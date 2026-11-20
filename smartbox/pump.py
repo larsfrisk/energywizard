@@ -231,6 +231,9 @@ def _read_sensors_once():
             "aux_runtime_2_h":      reg[36],        # 36: Aux runtime 2
             "warm_water_runtime_h": reg[37],        # 37: Warm water runtime
             "power_consumption_w":  reg[38],        # 38: Power consumption
+            # H66:ans egen summa av de watt man angett per statusvariabel (kompressor, tillsats, pumpar). 0 = inga watt
+            # inställda: då är det inget mätvärde, och motorn använder sin uppskattning ur framledningen (#466).
+            "compressor_power_w":   float(reg[38]) if reg[38] > 0 else None,
             "accumulated_consumption_kwh": reg[39] / 10.0, # 39: Accumulated consumption
         }
 
