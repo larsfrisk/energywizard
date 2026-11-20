@@ -1084,6 +1084,13 @@ def discover_house(entities: list[dict] | None = None) -> dict:
                     battery["note"] = preset["note"]
                 if preset.get("keepalive_s"):
                     battery["generic_suggestion"]["keepalive_s"] = preset["keepalive_s"]
+        # #395: Growatt utan Time 1 Mode har inga lägen i Home Assistant. Skuggreceptet loggar bara.
+        if not (battery.get("generic_suggestion") or {}).get("modes") and re.search(r"growatt", _candidate(head), re.I):
+            battery["shadow_recipe"] = "growatt_hybrid"
+            extra = ("Growatt utan lägen i Home Assistant: ett skuggrecept (ärende 395) kan logga vilket registerläge "
+                     "EnergyWizard skulle valt. Inga register skrivs, och styrningen lämnas i samarbete tills en "
+                     "installation verifierat den.")
+            battery["note"] = (str(battery.get("note") or "") + " " + extra).strip()
         # En hybridväxelriktare utan inkopplat batteri (t.ex. Growatt/Solax med bara solceller) visar ofta
         # batterisensorer som står på 0 % och 0 W. Det är inget batteri att föreslå (samma fel som srcfl/ftw#1669).
         def _num(x):

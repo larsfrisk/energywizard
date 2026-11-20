@@ -2327,6 +2327,8 @@ def _build_house_config_yaml(sel: dict) -> str:
             lines += ["  # modes:              # krävs för 'styr' - exakt de alternativ batteriets select visar i HA",
                       "  #   auto: \"Maximize self-consumption\"",
                       "  #   hold: \"...\"", "  #   idle: \"...\"", "  #   charge: \"...\"", "  #   discharge: \"...\""]
+            if battery.get("shadow_recipe") == "growatt_hybrid":
+                lines.append("  shadow_recipe: growatt_hybrid   # #395 Growatt hybrid, bara en loggrad. Skriver inga register.")
         lines.append("  entities:")
         battery_entities = (battery.get("entities") or gs.get("entities") or {}).copy()
         if battery.get("soc_entity"):

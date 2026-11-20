@@ -1,5 +1,13 @@
 # Ändringar
 
+## 1.2.120 (2026-11-20)
+- **Growatt hybrid loggar ett skuggrecept utan att skriva register (#395).** När Home Assistant kan läsa
+  batteriet men inte har lägen (ingen Time 1 Mode) kan samarbetsläget tala om vilket registerpar receptet använder:
+  självförbrukning är 1102 = 0 och 1092 = 0, håll är 1102 = 1 och 1092 = 0, och full konfigurerad nätladdning är
+  1102 = 1 och 1092 = 1. En delad effekt, urladdning och vila tigs, eftersom receptet inte kan uttrycka dem.
+  Inga register skrivs, och den engångsinställning receptet kräver görs inte. Styrläge använder inte receptet.
+  Growatt som redan har Time 1 Mode styrs som förut.
+
 ## 1.2.119 (2026-11-20)
 - **HeishaMon nollställer inte kurvförskjutningen i onödan (#491).** FTW-drivrutinen skrev 0 °C till
   `Z1_Heat_Request_Temp` vid varje vakthund och omstart, även när Home Assistant styrde förskjutningen.
