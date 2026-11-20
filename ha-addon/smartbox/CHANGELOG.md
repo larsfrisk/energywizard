@@ -1,5 +1,9 @@
 # Ändringar
 
+## 1.2.141 (2026-11-20)
+- **Större "Just nu"-graf i mobilappen**: flödet fyller nu kortets hela bredd (smalare rityta, större rutor och text) och använder mer av höjden på Hem.
+- **Installationer på mobil**: raderna i husens detaljer flödar inte längre ut över kortets kant, och felgruppens namn bryts på ord i stället för ett tecken per rad (raden får radbrytning, Logg-knappen hamnar under vid smal skärm).
+
 ## 1.2.140 (2026-11-20)
 - **Rökprov av webbens API i testerna** (`tests/smoke_api.py`): varje GET-väg anropas med inloggning mot en riktig databas, och ett 500 stoppar releasen. Ekonomi-felet (#562) hade fångats här. Provet hittade tre fel till:
   - Obehöriga anrop till Loggutdragen i Installationer (`/api/installs/support`) gav 500 i stället för 403 (`HTTPException` saknades i importen).

@@ -36,7 +36,7 @@
     if (!d || !d.nodes) return "";
     const c = !!opts.compact;
     // Geometri: appen (smal, läsbar text i mobilen) eller webben (bred)
-    const G = c ? { W: 360, row: 42, minH: 160, LW: 116, LH: 50, RW: 116, RH: 36, hub: 38, fs: { lab: 12, big: 17, st: 10.5, rlab: 11, rbig: 13, rst: 10, unit: 11, hub: 12.5 }, maxRight: 5 }
+    const G = c ? { W: 300, row: 44, minH: 170, LW: 106, LH: 54, RW: 106, RH: 38, hub: 37, fs: { lab: 12.5, big: 19, st: 11, rlab: 12, rbig: 15, rst: 10.5, unit: 11.5, hub: 13 }, maxRight: 5 }
                 : { W: 960, row: 76, minH: 330, LW: 190, LH: 72, RW: 190, RH: 62, hub: 64, fs: { lab: 14, big: 22, st: 13, rlab: 14, rbig: 16, rst: 12.5, unit: 13, hub: 15 }, maxRight: 8 };
     const nodes = d.nodes.filter((n) => n.key !== "hus"), house = d.nodes.find((n) => n.key === "hus");
     const left = nodes.filter((n) => ["source", "grid", "battery"].includes(n.role)), right = nodes.filter((n) => n.role === "load").slice(0, G.maxRight);
@@ -64,14 +64,14 @@
         ? ` textLength="${w - 2 * p - 38}" lengthAdjust="spacingAndGlyphs"` : "";
       cards += `<g data-flow-key="card-${esc(n.key)}" ${at} transform="translate(${n.x},${(n.y - n.h / 2).toFixed(1)})" style="cursor:pointer">
         <rect width="${w}" height="${n.h}" rx="${c ? 12 : 16}" fill="var(--card2, var(--card))" stroke="${n.active ? col : "var(--line)"}" stroke-width="${n.active ? 1.6 : 1}"/>`
-        + (isL ? `<text x="${p}" y="${c ? 19 : 26}" font-size="${G.fs.lab}" fill="${col}" font-weight="700">${opts.icons === false ? "" : esc(n.icon) + " "}${esc(n.label)}</text>
-        <text x="${p}" y="${c ? 41 : 55}" font-size="${G.fs.big}" font-weight="800" fill="var(--txt)">${kw(n.w)}</text>
-        <text x="${w - p + 2}" y="${c ? 19 : 55}" font-size="${G.fs.st}" fill="var(--mut)" text-anchor="end">${st}</text>
-        ${soc ? `<text x="${w - p + 2}" y="${c ? 41 : 26}" font-size="${G.fs.st}" fill="var(--txt)" text-anchor="end">${esc(soc[1])}</text>` : ""}`
-        : `<text x="${p - 1}" y="${c ? 15 : 24}" font-size="${G.fs.rlab}" fill="${n.active ? col : "var(--mut)"}" font-weight="700"${labelFit}>${esc(label)}</text>
-        ${soc ? `<text x="${w - p + 3}" y="${c ? 15 : 24}" font-size="${G.fs.rst}" fill="var(--txt)" text-anchor="end">${esc(soc[1])}</text>` : ""}
-        <text x="${p - 1}" y="${c ? 30 : 47}" font-size="${G.fs.rbig}" font-weight="700" fill="var(--txt)">${big}</text>
-        <text x="${w - p + 3}" y="${c ? 30 : 47}" font-size="${G.fs.rst}" fill="var(--mut)" text-anchor="end">${st}</text>`) + `</g>`;
+        + (isL ? `<text x="${p}" y="${c ? 22 : 26}" font-size="${G.fs.lab}" fill="${col}" font-weight="700">${opts.icons === false ? "" : esc(n.icon) + " "}${esc(n.label)}</text>
+        <text x="${p}" y="${c ? 47 : 55}" font-size="${G.fs.big}" font-weight="800" fill="var(--txt)">${kw(n.w)}</text>
+        <text x="${w - p + 2}" y="${c ? 22 : 55}" font-size="${G.fs.st}" fill="var(--mut)" text-anchor="end">${st}</text>
+        ${soc ? `<text x="${w - p + 2}" y="${c ? 47 : 26}" font-size="${G.fs.st}" fill="var(--txt)" text-anchor="end">${esc(soc[1])}</text>` : ""}`
+        : `<text x="${p - 1}" y="${c ? 18 : 24}" font-size="${G.fs.rlab}" fill="${n.active ? col : "var(--mut)"}" font-weight="700"${labelFit}>${esc(label)}</text>
+        ${soc ? `<text x="${w - p + 3}" y="${c ? 18 : 24}" font-size="${G.fs.rst}" fill="var(--txt)" text-anchor="end">${esc(soc[1])}</text>` : ""}
+        <text x="${p - 1}" y="${c ? 37 : 47}" font-size="${G.fs.rbig}" font-weight="700" fill="var(--txt)">${big}</text>
+        <text x="${w - p + 3}" y="${c ? 37 : 47}" font-size="${G.fs.rst}" fill="var(--mut)" text-anchor="end">${st}</text>`) + `</g>`;
     });
     const hk = house && house.w != null ? f1(house.w / 1000) : "–", s = G.hub * 2;
     const hubSvg = `<g data-flow-key="hub" ${opts.hubAttrs || ""} style="cursor:pointer" transform="translate(${hub.x - G.hub},${hub.y - G.hub})"><rect width="${s}" height="${s}" rx="${c ? 18 : 26}" fill="var(--card2, var(--card))" stroke="var(--acc)" stroke-width="${c ? 1.6 : 2}"/>
