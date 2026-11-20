@@ -9,10 +9,7 @@ DB_USER = os.environ.get("POSTGRES_USER")
 DB_PASS = os.environ.get("POSTGRES_PASSWORD")
 DB_NAME = os.environ.get("POSTGRES_DB")
 
-from psycopg_pool import ConnectionPool, PoolTimeout
-
-# Full disk, slut på minne, för många anslutningar: ett nytt försök hjälper inte (#457).
-_RESOURCE_SQLSTATE = frozenset({"53100", "53200", "53300"})
+from psycopg_pool import ConnectionPool
 
 _pool = None
 def get_db_pool():
@@ -120,18 +117,6 @@ def init_settings_db():
     except Exception as e:
         print(f"❌ Kunde inte initiera inställnings-databasen: {e}")
 
-def _connection_dropped(exc: BaseException) -> bool:
-    """Postgres stängde anslutningen under frågan (#457). Pool-timeout och resursfel räknas inte:
-    de ska loggas direkt, inte vänta en gång till."""
-    if isinstance(exc, PoolTimeout):
-        return False
-    if isinstance(exc, psycopg.InterfaceError):
-        return True
-    if not isinstance(exc, psycopg.OperationalError):
-        return False
-    return getattr(exc, "sqlstate", None) not in _RESOURCE_SQLSTATE
-
-
 def get_settings():
     """Hämtar de aktuella inställningarna från databasen."""
     # Failsafe: Om databasen strular, använd dessa standardvärden
@@ -174,70 +159,63 @@ def get_settings():
         "notify_mower_manual_toggle": True,
         "notify_mower_weather_toggle": True,
     }
-    dropped = None
-    for attempt in (1, 2):
-        try:
-            with get_db() as conn:
-                with conn.cursor() as cur:
-                    cur.execute("""
-                        SELECT *
-                        FROM system_settings WHERE id = 1
-                    """)
-                    row = cur.fetchone()
-                    db_settings = {}
-                    if row:
-                        colnames = [desc[0] for desc in cur.description]
-                        db_settings = dict(zip(colnames, row))
+    try:
+        with get_db() as conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    SELECT *
+                    FROM system_settings WHERE id = 1
+                """)
+                row = cur.fetchone()
+                db_settings = {}
+                if row:
+                    colnames = [desc[0] for desc in cur.description]
+                    db_settings = dict(zip(colnames, row))
 
-                    # Använd värden från databasen, men fall tillbaka på defaults om en nyckel saknas
-                    result = defaults.copy()
-                    if db_settings:
-                        for k, v in db_settings.items():
-                            if v is not None:
-                                result[k] = v
+                # Använd värden från databasen, men fall tillbaka på defaults om en nyckel saknas
+                result = defaults.copy()
+                if db_settings:
+                    for k, v in db_settings.items():
+                        if v is not None:
+                            result[k] = v
+                
+                # Vissa värden behöver typomvandlas för main.py
+                result["cheap_hours_count"] = int(result["cheap_hours_count"])
+                result["temp_cheap"]        = float(result["temp_cheap"])
+                result["temp_expensive"]    = float(result["temp_expensive"])
+                result["indoor_max"]        = float(result["indoor_max"])
+                result["indoor_min"]        = float(result["indoor_min"])
+                result["power_limit_kw"]    = float(result["power_limit_kw"])
+                result["power_limit_kw_bas"]= float(result["power_limit_kw_bas"]) if result.get("power_limit_kw_bas") is not None else 0.0
+                result["power_limit_kw_hog"]= float(result["power_limit_kw_hog"]) if result.get("power_limit_kw_hog") is not None else 0.0
+                result["fuse_size_a"]       = float(result["fuse_size_a"]) if result.get("fuse_size_a") is not None else 25.0
+                
+                result["spa_target_temp"]   = float(result["spa_target_temp"]) if result.get("spa_target_temp") is not None else None
+                result["spa_max_temp"]      = float(result["spa_max_temp"]) if result.get("spa_max_temp") is not None else 40.0
+                result["spa_normal_temp"]   = float(result["spa_normal_temp"]) if result.get("spa_normal_temp") is not None else 34.0
+                result["spa_low_temp"]      = float(result["spa_low_temp"]) if result.get("spa_low_temp") is not None else 15.0
+                result["water_target_normal"]= float(result["water_target_normal"]) if result.get("water_target_normal") is not None else 50.0
+                result["legionella_temp"]   = float(result["legionella_temp"]) if result.get("legionella_temp") is not None else 60.0
+                result["ev_nissan_prio"]    = int(result.get("ev_nissan_prio", 2))
+                result["ev_tesla_prio"]     = int(result.get("ev_tesla_prio", 1))
+                result["away_mode_enabled"] = bool(result.get("away_mode_enabled", False))
+                result["away_return_date"]  = result.get("away_return_date")
+                result["away_lights_on_return"] = result.get("away_lights_on_return", "")
+                result["peak_shaving_enabled"] = bool(result.get("peak_shaving_enabled", True))
+                result["gemini_api_key"] = db_settings.get("gemini_api_key", "")
+                result["roi_hardware_cost"] = float(db_settings.get("roi_hardware_cost", 0.0)) if db_settings.get("roi_hardware_cost") is not None else 0.0
+                result["mower_mowing_threshold_w"] = float(db_settings.get("mower_mowing_threshold_w", 3.2))
+                result["mower_charging_threshold_w"] = float(db_settings.get("mower_charging_threshold_w", 10.0))
+                result["notify_mower_start"] = bool(db_settings.get("notify_mower_start", True))
+                result["notify_mower_charging"] = bool(db_settings.get("notify_mower_charging", True))
+                result["notify_mower_idle"] = bool(db_settings.get("notify_mower_idle", True))
+                result["notify_mower_manual_toggle"] = bool(db_settings.get("notify_mower_manual_toggle", True))
+                result["notify_mower_weather_toggle"] = bool(db_settings.get("notify_mower_weather_toggle", True))
+                
+                return result
+    except Exception as e:
+        print(f"❌ Fel vid läsning av inställningar: {e}")
 
-                    # Vissa värden behöver typomvandlas för main.py
-                    result["cheap_hours_count"] = int(result["cheap_hours_count"])
-                    result["temp_cheap"]        = float(result["temp_cheap"])
-                    result["temp_expensive"]    = float(result["temp_expensive"])
-                    result["indoor_max"]        = float(result["indoor_max"])
-                    result["indoor_min"]        = float(result["indoor_min"])
-                    result["power_limit_kw"]    = float(result["power_limit_kw"])
-                    result["power_limit_kw_bas"]= float(result["power_limit_kw_bas"]) if result.get("power_limit_kw_bas") is not None else 0.0
-                    result["power_limit_kw_hog"]= float(result["power_limit_kw_hog"]) if result.get("power_limit_kw_hog") is not None else 0.0
-                    result["fuse_size_a"]       = float(result["fuse_size_a"]) if result.get("fuse_size_a") is not None else 25.0
-
-                    result["spa_target_temp"]   = float(result["spa_target_temp"]) if result.get("spa_target_temp") is not None else None
-                    result["spa_max_temp"]      = float(result["spa_max_temp"]) if result.get("spa_max_temp") is not None else 40.0
-                    result["spa_normal_temp"]   = float(result["spa_normal_temp"]) if result.get("spa_normal_temp") is not None else 34.0
-                    result["spa_low_temp"]      = float(result["spa_low_temp"]) if result.get("spa_low_temp") is not None else 15.0
-                    result["water_target_normal"]= float(result["water_target_normal"]) if result.get("water_target_normal") is not None else 50.0
-                    result["legionella_temp"]   = float(result["legionella_temp"]) if result.get("legionella_temp") is not None else 60.0
-                    result["ev_nissan_prio"]    = int(result.get("ev_nissan_prio", 2))
-                    result["ev_tesla_prio"]     = int(result.get("ev_tesla_prio", 1))
-                    result["away_mode_enabled"] = bool(result.get("away_mode_enabled", False))
-                    result["away_return_date"]  = result.get("away_return_date")
-                    result["away_lights_on_return"] = result.get("away_lights_on_return", "")
-                    result["peak_shaving_enabled"] = bool(result.get("peak_shaving_enabled", True))
-                    result["gemini_api_key"] = db_settings.get("gemini_api_key", "")
-                    result["roi_hardware_cost"] = float(db_settings.get("roi_hardware_cost", 0.0)) if db_settings.get("roi_hardware_cost") is not None else 0.0
-                    result["mower_mowing_threshold_w"] = float(db_settings.get("mower_mowing_threshold_w", 3.2))
-                    result["mower_charging_threshold_w"] = float(db_settings.get("mower_charging_threshold_w", 10.0))
-                    result["notify_mower_start"] = bool(db_settings.get("notify_mower_start", True))
-                    result["notify_mower_charging"] = bool(db_settings.get("notify_mower_charging", True))
-                    result["notify_mower_idle"] = bool(db_settings.get("notify_mower_idle", True))
-                    result["notify_mower_manual_toggle"] = bool(db_settings.get("notify_mower_manual_toggle", True))
-                    result["notify_mower_weather_toggle"] = bool(db_settings.get("notify_mower_weather_toggle", True))
-
-                    if dropped is not None:
-                        print(f"⚠️ Inställningarna lästes om: anslutningen till databasen bröts ({dropped})")
-                    return result
-        except Exception as e:
-            if attempt == 1 and _connection_dropped(e):
-                dropped = e
-                continue
-            print(f"❌ Fel vid läsning av inställningar: {e}")
-            return defaults
     return defaults
 
 def set_fuse_size_from_house_config(house_cfg: dict) -> None:
