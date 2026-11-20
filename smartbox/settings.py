@@ -9,7 +9,7 @@ DB_USER = os.environ.get("POSTGRES_USER")
 DB_PASS = os.environ.get("POSTGRES_PASSWORD")
 DB_NAME = os.environ.get("POSTGRES_DB")
 
-from psycopg_pool import ConnectionPool
+from psycopg_pool import ConnectionPool, PoolTimeout
 
 _pool = None
 def get_db_pool():
@@ -19,10 +19,34 @@ def get_db_pool():
     return _pool
 
 @contextmanager
-def get_db():
+def get_db(timeout=None):
     p = get_db_pool()
-    with p.connection() as conn:
+    with p.connection(timeout=timeout) as conn:
         yield conn
+
+
+# Senast lyckade läsningen. En avbruten anslutning ska inte byta till fabriksvärden mitt i ett varv (#457).
+_last_settings = None
+_SETTINGS_RETRY_S = 2
+
+
+def _connection_dropped(exc) -> bool:
+    """Postgres stängde en anslutning poolen redan lämnat ut (#457: "consuming input failed: server closed the
+    connection unexpectedly"). PoolTimeout är också OperationalError, men då finns ingen anslutning att prova om,
+    och ett nytt försök skulle bara vänta poolens timeout en gång till."""
+    if isinstance(exc, PoolTimeout):
+        return False
+    if not isinstance(exc, (psycopg.OperationalError, psycopg.InterfaceError)):
+        return False
+    msg = str(exc).lower()
+    return (
+        "server closed the connection" in msg
+        or "consuming input failed" in msg
+        or "connection is closed" in msg
+        or "connection already closed" in msg
+        or "ssl connection has been closed" in msg
+        or getattr(exc, "sqlstate", None) in {"08003", "08006", "57P01"}
+    )
 
 def is_high_load_time(dt):
     """Effekttariffens höglasttid, ur inställningarna (#180, se nordpool.high_load_window). Var hårdkodad till
@@ -114,8 +138,14 @@ def init_settings_db():
     except Exception as e:
         print(f"❌ Kunde inte initiera inställnings-databasen: {e}")
 
-def get_settings():
-    """Hämtar de aktuella inställningarna från databasen."""
+def get_settings(_retry=True):
+    """Hämtar de aktuella inställningarna från databasen.
+
+    En anslutning som Postgres redan stängt (#457) provas en gång till, med kort väntan. Misslyckas även det
+    behålls senast lästa värden i stället för fabriksvärdena: annars kan ett varv styra med 25 A säkring och
+    effekttaket på trots att huset ställt in något annat. Fabriksvärdena används bara när ingen läsning ännu
+    lyckats. Andra fel (SQL, typomvandling) loggas som förut och ger fabriksvärden."""
+    global _last_settings
     # Failsafe: Om databasen strular, använd dessa standardvärden
     defaults = {
         "cheap_hours_count":  8,
@@ -157,7 +187,7 @@ def get_settings():
         "notify_mower_weather_toggle": True,
     }
     try:
-        with get_db() as conn:
+        with get_db(timeout=None if _retry else _SETTINGS_RETRY_S) as conn:
             with conn.cursor() as cur:
                 cur.execute("""
                     SELECT *
@@ -209,8 +239,14 @@ def get_settings():
                 result["notify_mower_manual_toggle"] = bool(db_settings.get("notify_mower_manual_toggle", True))
                 result["notify_mower_weather_toggle"] = bool(db_settings.get("notify_mower_weather_toggle", True))
                 
+                _last_settings = dict(result)
                 return result
     except Exception as e:
+        if _retry and _connection_dropped(e):
+            return get_settings(_retry=False)
+        if not _retry and _last_settings is not None:
+            print(f"⚠️ Fel vid läsning av inställningar, behåller senast lästa: {e}")
+            return dict(_last_settings)
         print(f"❌ Fel vid läsning av inställningar: {e}")
 
     return defaults
