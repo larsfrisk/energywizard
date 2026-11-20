@@ -188,6 +188,7 @@ def money_periods(rows, today):
     def tot(rs):
         s = {k: round(sum(r[k] for r in rs), 2) for k in ("bought_kwh", "cost", "sold_kwh", "income", "net")}
         s["avg_paid"] = round(s["cost"] / s["bought_kwh"], 3) if s["bought_kwh"] > 0.05 else None
+        s["avg_sold"] = round(s["income"] / s["sold_kwh"], 3) if s["sold_kwh"] > 0.05 else None
         s["days"] = len(rs)
         return s
     rows = sorted(rows or [], key=lambda r: r["day"])

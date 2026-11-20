@@ -78,6 +78,8 @@ def test_pengar_per_period():
     assert p["week"]["cost"] == 75 and p["week"]["days"] == 2
     assert p["month"]["income"] == 7 and p["month"]["days"] == 2
     assert money_periods([], "2026-11-03")["today"]["avg_paid"] is None
+    assert p["today"]["avg_sold"] == 1.5 and p["week"]["avg_sold"] == 1.0
+    assert money_periods([], "2026-11-03")["today"]["avg_sold"] is None
 
 
 def test_jamfort_med_vanlig_hushallsprofil_och_moms():

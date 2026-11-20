@@ -886,11 +886,12 @@ async function renderEkonomi() {
     };
     const paidTile = (icon, name, buy, spot) => statTile(`${icon} ${name}`, fmtKrOre(buy != null ? buy : spot) + "/kWh", paidSub(buy, spot));
     const avgPaid = m.avg_paid == null ? "" : ` · <span>snittpris inklusive avgifter</span> <span data-noi18n>${m.avg_paid.toFixed(2).replace(".", ",")} ${sym}/kWh</span>`;
+    const avgSold = m.avg_sold == null ? "" : ` · <span>snittpris</span> <span data-noi18n>${m.avg_sold.toFixed(2).replace(".", ",")} ${sym}/kWh</span>`;
     return `
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px">${chip("today", "Idag")}${chip("week", "7 dagar")}${chip("month", "Månad")}</div>
     <div class="grid" style="margin-bottom:16px">
       ${statTile("🧾 Köpt el", money(m.cost), `${fmt(m.bought_kwh, 1, " kWh")}${avgPaid}`)}
-      ${statTile("☀️ Såld el", money(m.income), fmt(m.sold_kwh, 1, " kWh"))}
+      ${statTile("☀️ Såld el", money(m.income), `${fmt(m.sold_kwh, 1, " kWh")}${avgSold}`)}
       ${statTile("💰 Netto", money(m.net), "köpt minus sålt")}
       ${statTile("🎯 Sparat genom tajmning", t.saved_kr != null ? (t.saved_kr >= 0 ? "+" : "") + money(t.saved_kr) : "–", t.pct != null ? `${t.pct.toFixed(0)} % billigare än dygnets snitt` : "")}
     </div>
