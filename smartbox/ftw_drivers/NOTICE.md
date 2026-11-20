@@ -23,7 +23,7 @@ påstod att Sourceful gett sitt OK. Det var en övertolkning av ett vänligt sva
 | `ferroamp.lua` | 2026-11-13 | EnergyWizard #343: source-dated per-ESO SOC telemetry and explicit scheduled-maintenance charge context above the normal 95% dispatch margin. Default dispatch and BMS protection remain unchanged. | |
 | `deye-svk.lua` | 2026-11-09 | Skydd mot nil-SoC vid misslyckad poll i energiheadroom-beräkningen (samma skydd som i `50-125k-svk*.lua`). Av lazgeo, #215. Skickad till källan: [srcfl/device-drivers#224](https://github.com/srcfl/device-drivers/pull/224). | `101713e` |
 | `deye-svk.lua` | 2026-11-12 | `read_rated_w` och `detect_hv` indexerar inte en nil-tabell när Modbus svarar `(nil, fel)` utan att kasta. Det gav `LuaError` i `driver_poll` varje varv tills märkeffekten var känd (#297). | |
-| `heishamon.lua` | 2026-11-20 | Upstreams 0.8.1 (srcfl/device-drivers#235) med en ändring: valfri `control: false` gör drivrutinen helt läsande (inga kommandon, `DRIVER.controls` tom), så att Home Assistant behåller kurvförskjutningen (#491). Inte skickad till källan än. | |
+| `heishamon.lua` | 2026-11-20 | Upstreams 0.8.1 (srcfl/device-drivers#235) med en ändring: valfri `control: false` gör drivrutinen helt läsande (inga kommandon, `DRIVER.controls` tom), så att Home Assistant behåller kurvförskjutningen (#491). Skickad till källan som utkast, ej provad på hårdvara: [srcfl/device-drivers#238](https://github.com/srcfl/device-drivers/pull/238). | |
 
 Drivrutinerna körs av `smartbox/lua_host.py` och används via `smartbox/drivers/ftw_device.py` (`driver: ftw` för
 batteri och solceller i house_config.yaml). Styrning (laddning, urladdning, exportbegränsning) är avstängd för alla
