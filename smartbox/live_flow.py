@@ -37,7 +37,24 @@ def latest_pump_w(conn, minutes=10):
         return None
 
 
-def nodes(row, decision_items=None, cars=None, has_spa=None, pump_w=None):
+def manual_charge_cars(conn) -> set:
+    """Bilar som laddas på ett manuellt kommando ("Ladda nu" = fast ampere i overrides, {bil}_force_amps > 0). Appen och
+    webben märker dem "ladda nu" i flödet: en bil som laddar dyrt utan märkning ser ut som ett misstag."""
+    try:
+        from sqlalchemy import text
+        out = set()
+        for dev, mode in conn.execute(text("SELECT device, mode FROM overrides WHERE device LIKE '%\\_force\\_amps'")):
+            try:
+                if float(mode) > 0:
+                    out.add(str(dev)[:-len("_force_amps")])
+            except (TypeError, ValueError):
+                pass
+        return out
+    except Exception:
+        return set()
+
+
+def nodes(row, decision_items=None, cars=None, has_spa=None, pump_w=None, manual_cars=None):
     """cars = [(id, namn, effektkolumn)] och has_spa ur installationen (issue #122: andra såg Emils Tesla, Nissan och
     spabad). Utan dem (äldre anrop): som förut."""
     """row = senaste sensor_log-raden som dict. Returnerar {'nodes': [...], 'why': {nyckel: text}}."""
@@ -104,6 +121,8 @@ def nodes(row, decision_items=None, cars=None, has_spa=None, pump_w=None):
         kw = (kw or 0.0) / 1000.0 if (kw or 0) > 100 else (kw or 0.0)       # vissa rader loggade W
         add(f"ev_{car}", car_name, "🚗", kw * 1000.0, kw > 0.05,
             (f"Laddar {kw:.1f} kW" if kw > 0.05 else "Laddar inte") + (f" · {soc:.0f} %" if soc is not None else ""), "elbil")
+        if kw > 0.05 and car in (manual_cars or ()):
+            out[-1]["manual"] = True                    # servern märker bara en bil som faktiskt laddar (appen även när den väntar)
 
     why = {}
     for it in decision_items or []:
