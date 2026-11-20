@@ -2197,8 +2197,9 @@ while True:
                 })
             
             gpm_actions = gpm_engine.evaluate(gpm_state)
-            for _eh_line in electric_heat.plan((house_cfg or {}).get("electric_heat"), gpm_actions.get("pump_mode")):
-                gpm_actions["log"].append(_eh_line)   # #431: bara en rad, ingen skrivning till elementet
+            for _eh_line in electric_heat.plan((house_cfg or {}).get("electric_heat"), gpm_actions.get("pump_mode"),
+                                              homeassistant.get_power_w):
+                gpm_actions["log"].append(_eh_line)   # #431: börvärde och uppmätt effekt, ingen skrivning till elementet
             _hw_manual = (all_overrides.get("hotwater", "auto") != "auto"
                           or all_overrides.get("pump_smart_mode", "auto") == "manual")
             _hw_hygiene = bool(days_since_leg >= leg_max_days or (days_since_leg >= leg_max_days - 2
@@ -2934,11 +2935,17 @@ while True:
                     _solar_persist["laddar"] = _laddar_txt
                 # #192: egna laster (loads: i installationen) räknas som förklarad last och loggas var för sig
                 _extra = []
+                _used_power = set()
                 for _ld in house_config.custom_loads(house_cfg):
                     _vals = [homeassistant.get_power_w(_e) for _e in _ld["entities"]]
                     _vals = [v for v in _vals if isinstance(v, (int, float)) and math.isfinite(v)]
                     if _vals:
                         _extra.append({"name": _ld["name"], "w": round(max(0.0, sum(_vals)))})
+                    _used_power.update(_ld["entities"])
+                # #431: elementens egen effekt är förklarad last. En givare som redan ligger under loads räknas en gång.
+                _extra.extend(electric_heat.measured(
+                    (house_cfg or {}).get("electric_heat"),
+                    lambda _e, _used=_used_power: None if _e in _used else homeassistant.get_power_w(_e)))
                 _known_w = _ev_w + _pump_w + _spa_w + sum(x["w"] for x in _extra)
                 # Robust total: aldrig mindre än de uppmätta lasterna (skyddar mot glitchande
                 # pv-sensor som annars kan göra house_consumption_w falskt negativ → 0).

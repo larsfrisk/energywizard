@@ -1,5 +1,10 @@
 # Ändringar
 
+## 1.2.120 (2026-11-20)
+- **Elvärmens effekt förklaras (#431).** När `electric_heat` är på kan varje element ha `power_w`, en sensor eller en lista.
+  Den uppmätta effekten syns i beslutet och räknas i lastnedbrytningen, så elementet inte blir oförklarad last.
+  En givare som redan ligger under `loads` räknas bara en gång. Ingenting skrivs till elementen.
+
 ## 1.2.119 (2026-11-20)
 - **Elvärme räknas i skugga (#431, #221).** Adax, golvvärme och andra element med egen termostat kan listas under
   `electric_heat`. När värmepumpen är i billigt läge visas elementets tak, och i dyrt läge dess golv, i besluten.
