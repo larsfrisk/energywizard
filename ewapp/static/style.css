@@ -323,7 +323,8 @@ html[data-glass] .card.qt, html[data-glass] .card.cr { border-color:rgba(255,255
 .page.t5 .flowcard svg { max-height:19dvh; }
 .page.t4 .pccard .ewsk svg { max-height:16vh; } .page.t5 .pccard .ewsk svg { max-height:11vh; }
 .page.t5 .pccard .ewpc { max-width:min(190px,50vw,17dvh); }
-.page.t5 .flowcard ~ .plannow { display:none; }   /* stor text: flödet visar redan vad som händer, Plan-fliken varför */
+.page.t5 .flowcard ~ .plannow .pnrow2:nth-child(n+2) { display:none; } .page.t4 .plannow .pnrow2:nth-child(n+3) { display:none; }   /* stor text: planrutan krymper till en beslutsrad i stället för att försvinna - försvann den hela lämnade den 150-270 px tomt längst ner (2026-11-20) */
+.page.t4 .plannow .pnrow > span:nth-child(2), .page.t4 .plannow .pnrow2 > span:last-child, .page.t5 .plannow .pnrow > span:nth-child(2), .page.t5 .plannow .pnrow2 > span:last-child { display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
 /* Utan planklockan på framsidan (2026-11-08) får "Just nu" mer plats */
 .flowcard svg { max-height:40dvh; }
 

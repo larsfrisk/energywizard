@@ -1,5 +1,9 @@
 # Ändringar
 
+## 1.2.133 (2026-11-20)
+- **Appens Hem-flik: inget stort tomrum längst ner vid stor text.** När texten är stor eller skärmen liten döljer appen detaljer steg för steg tills allt får plats. Sista steget dolde hela rutan "vad görs nu", som sedan
+  rumsåterkopplingen har långa beslutstexter och blivit hög, och det lämnade 150-270 px tomt under knapparna. Nu krymper rutan till en beslutsrad på högst två rader i stället för att försvinna. Mätt i en emulerad
+  telefon mot den riktiga appen: tomrummet vid 115 % text gick från 274 px till 126 px (och planrutan syns).
 ## 1.2.132 (2026-11-20)
 - **HeishaMon: samma drivrutin som upstream (0.8.1) plus `control: false`.** Upstream (srcfl/device-drivers#235) rättade samma fel som vi (vakthunden nollställde kurvförskjutningen) två dygn före oss. Vi har bytt
   vår egen rättning mot deras fil och behåller bara ett tillägg: `control: false` gör drivrutinen helt läsande (#491). `NOTICE.md` är rättad.
