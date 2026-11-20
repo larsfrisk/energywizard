@@ -1,4 +1,7 @@
-"""Explicit nonessential plug price policy. No discovery enrollment or learning."""
+"""Explicit nonessential plug price policy. No discovery enrollment.
+
+A configured power sensor can report standby. That reading never switches the plug.
+"""
 from datetime import datetime
 import math
 import re
@@ -6,6 +9,21 @@ import re
 
 def finite(value):
     return isinstance(value,(int,float)) and not isinstance(value,bool) and math.isfinite(value)
+
+
+def watts(snapshot):
+    """Power sensor state in watts. kW is converted. Other units and words are unknown."""
+    if not isinstance(snapshot,dict):return None
+    raw=snapshot.get('state')
+    if isinstance(raw,bool):return None
+    try:value=float(raw)
+    except (TypeError,ValueError):return None
+    if not math.isfinite(value) or value<0:return None
+    attributes=snapshot.get('attributes')
+    unit=str(attributes.get('unit_of_measurement') or 'W').strip() if isinstance(attributes,dict) else 'W'
+    if unit=='W':return value
+    if unit=='kW':return value*1000
+    return None
 
 
 def policy_price(spot,strategy,at,transform):
@@ -16,7 +34,7 @@ def policy_price(spot,strategy,at,transform):
 
 class Controller:
     def __init__(self,config):
-        self.devices=[];self.state={}
+        self.devices=[];self.state={};self.standby={}
         if not isinstance(config,dict) or config.get('enabled') is not True:return
         devices=config.get('devices',[])
         if not isinstance(devices,list) or len(devices)>32:raise ValueError('At most 32 smart plugs supported')
@@ -31,8 +49,18 @@ class Controller:
                     or entity in seen or not all(finite(v) for v in (high,low,on,off))
                     or low>=high or not 5<=on<=1440 or not 5<=off<=1440):
                 raise ValueError('Invalid smart plug thresholds, dwell or switch')
+            sensor=item.get('power')
+            standby_w=item.get('standby_below_w',5);standby_m=item.get('standby_minutes',30)
+            if sensor is not None or 'standby_below_w' in item or 'standby_minutes' in item:
+                if (not isinstance(sensor,str) or not re.fullmatch(r'sensor\.[a-z0-9_]+',sensor)
+                        or not finite(standby_w) or not finite(standby_m)
+                        or not 0<standby_w<=100 or not 5<=standby_m<=1440):
+                    raise ValueError('Invalid smart plug power sensor or standby limits')
+            else:
+                sensor=None
             seen.add(entity)
-            self.devices.append(dict(entity=entity,high=high,low=low,on_s=on*60,off_s=off*60))
+            self.devices.append(dict(entity=entity,high=high,low=low,on_s=on*60,off_s=off*60,
+                                     power=sensor,standby_w=standby_w,standby_s=standby_m*60))
 
     @staticmethod
     def identity(snapshot):
@@ -48,12 +76,39 @@ class Controller:
         except ValueError:return None
         return snapshot['state'],context,changed
 
-    def tick(self,price,now,read,write,shadow=False):
+    def _note_standby(self,now,read,power,record):
+        """Report an on plug that stays at or below its watt limit. Never writes."""
+        if power is None or not finite(now):return
+        for device in self.devices:
+            sensor=device.get('power')
+            if not sensor:continue
+            entity=device['entity']
+            try:
+                identity=self.identity(read(entity))
+                reading=power(sensor)
+            except Exception:
+                identity,reading=None,None
+            low=bool(identity and identity[0]=='on' and finite(reading) and reading<=device['standby_w'])
+            prev=self.standby.get(entity)
+            if not low:
+                self.standby.pop(entity,None)
+                continue
+            since=prev['since'] if prev and now>=prev['since'] else now
+            noted=bool(prev and prev.get('noted') and prev['since']==since)
+            if not noted and now-since>=device['standby_s'] and record:
+                try:record(entity,f'standby about {reading:.0f} W')
+                except Exception:noted=False
+                else:noted=True
+            self.standby[entity]={'since':since,'noted':noted}
+
+    def tick(self,price,now,read,write,shadow=False,power=None,record=None):
         """read is a fresh HA GET; write returns the changed state, never an ACK.
 
         Missing evidence, manual changes and ambiguous writes suspend that device
         until restart. Ownership is never restored from disk or inferred from off.
+        Standby is a log line only, including while shadow mode blocks writes.
         """
+        self._note_standby(now,read,power,record)
         if shadow:
             self.state.clear()
             return
@@ -108,8 +163,17 @@ def run(controller,price,now):
         changed=response.json()
         if not isinstance(changed,list):return None
         return next((s for s in changed if isinstance(s,dict) and s.get('entity_id')==entity),None)
+    def read_power(entity):
+        response=ha.requests.get(f'{ha._BASE}/states/{entity}',headers=ha._HEADERS,timeout=5,verify=ha._VERIFY)
+        response.raise_for_status()
+        snapshot=response.json()
+        return watts(snapshot) if isinstance(snapshot,dict) and snapshot.get('entity_id')==entity else None
+    def record(entity,detail):
+        print(f'Smart plug {entity}: {detail}')
+    powered=any(device.get('power') for device in controller.devices)
     before={entity:dict(state) for entity,state in controller.state.items()}
-    controller.tick(price,now,read,write,shadow=shadow.active())
+    controller.tick(price,now,read,write,shadow=shadow.active(),
+                    power=read_power if powered else None,record=record if powered else None)
     for entity,state in controller.state.items():
         if state.get('paused') and not before.get(entity,{}).get('paused'):
             print(f'Smart plug {entity}: suspended until restart; state or command ownership is uncertain')

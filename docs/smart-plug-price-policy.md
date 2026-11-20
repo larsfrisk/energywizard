@@ -18,6 +18,9 @@ smart_plugs:
       restore_below: 1.0
       min_on_minutes: 15
       min_off_minutes: 15
+      # power: sensor.nonessential_display_power  # optional, unit W or kW
+      # standby_below_w: 5                        # report while on at or below this
+      # standby_minutes: 30                       # how long that has to last
 ```
 
 Thresholds use the configured contract's complete import-price calculation, in
@@ -49,7 +52,15 @@ that HA does not expose as a state/context change cannot be detected; observatio
 and a service call are not atomic. This needs installation qualification before
 enabling, and is not a hardware safety controller. Shadow mode sends no plug calls.
 
-This is a price-policy milestone, not the complete #217 feature. It does not learn
-standby power, infer occupancy, handle room/vacation policies, calculate savings,
-coordinate fuse/phase restoration budgets, or provide setup/status dashboard
-controls. No runtime device has been tested or enrolled by this change.
+Optional `power` reports standby and does not change the relay. The sensor must be
+`sensor.<name>` with unit W or kW. While the switch stays on at or below
+`standby_below_w` (default 5 W) for `standby_minutes` (default 30, range 5–1440),
+one log line names the plug and the watts. A missing, negative or non-power reading
+restarts that wait and is not treated as zero. Rising above the limit starts a new
+wait. The report is not a command: price control is unchanged, and shadow mode
+still sends no plug calls.
+
+This is a price-policy milestone, not the complete #217 feature. It does not switch
+off standby by itself, infer occupancy, handle room/vacation policies, calculate
+savings, coordinate fuse/phase restoration budgets, or provide setup/status
+dashboard controls. No runtime device has been tested or enrolled by this change.
