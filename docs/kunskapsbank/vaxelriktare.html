@@ -46,7 +46,9 @@
         <td>ja, register WMaxLimPct/WMaxLim_Ena</td><td>overifierat, registren omdiskuterade</td></tr>
     <tr><td>Ferroamp EnergyHub</td><td>lokal Modbus TCP, <code>ferroamp_modbus</code></td>
         <td>ja, nätets exportgräns i W med återläsning; batteriets laddning/urladdning separat</td><td>overifierat, kräver aktivt val i YAML</td></tr>
-    <tr><td>Övriga (Solis, GoodWe, Deye m.fl.)</td><td>märkets HA-integration</td>
+    <tr><td>Deye, Sunsynk, Sigenergy, Solinteg, Pixii</td><td>direkt i nätverket när Home Assistant kan läsa men inte styra batteriet</td>
+        <td>av. Inte provad på riktig hårdvara</td><td>guiden föreslår drivrutinen, styrningen är av</td></tr>
+    <tr><td>Övriga (Solis, GoodWe m.fl.)</td><td>märkets HA-integration</td>
         <td>om den har en gräns i % eller W</td><td>prova entitetsväljaren</td></tr>
   </table>
 
@@ -116,6 +118,12 @@
   <h3>Flera växelriktare eller MPPT-moduler</h3>
   <p>Med den generiska soldrivrutinen kan solproduktionen summeras från flera givare (<code>sum_inverters: true</code>),
   till exempel en per MPPT-modul på en Fronius GEN24. Guiden föreslår det själv när den hittar flera moduler.</p>
+
+  <h3>Deye, Sigenergy, Solinteg och Pixii</h3>
+  <p>När Home Assistant kan läsa de här märkena men inte styra batteriet föreslår guiden en direkt
+  läsning i nätverket. Deye, Sunsynk, Sigenergy och Solinteg kan också läsa solproduktionen.
+  Pixii läser bara batteriet. Styrningen är av, och drivrutinerna är inte provade på riktig
+  hårdvara. Börja i skuggläge. Samma sak står under <a href="husbatteri.html">husbatteriet</a>.</p>
 
   <h3>GoodWe</h3>
   <p>GoodWe styrs via lägena Eco Charge/Discharge i GoodWe-integrationen. Det finns kända fel i integrationen för
