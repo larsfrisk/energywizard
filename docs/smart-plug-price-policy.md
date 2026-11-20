@@ -9,6 +9,9 @@ Keep existing Home Assistant automations from controlling the same enrolled plug
 ```yaml
 smart_plugs:
   enabled: false # change to true only after reviewing each device
+  # home: person.someone                 # on/home means someone is home
+  # away_minutes: 15
+  # vacation: input_boolean.vacation     # on means vacation
   devices:
     - switch: switch.nonessential_display
       enabled: true
@@ -18,6 +21,8 @@ smart_plugs:
       restore_below: 1.0
       min_on_minutes: 15
       min_off_minutes: 15
+      # occupied: binary_sensor.office   # on/home means the room is in use
+      # unoccupied_minutes: 15
 ```
 
 Thresholds use the configured contract's complete import-price calculation, in
@@ -49,7 +54,19 @@ that HA does not expose as a state/context change cannot be detected; observatio
 and a service call are not atomic. This needs installation qualification before
 enabling, and is not a hardware safety controller. Shadow mode sends no plug calls.
 
-This is a price-policy milestone, not the complete #217 feature. It does not learn
-standby power, infer occupancy, handle room/vacation policies, calculate savings,
-coordinate fuse/phase restoration budgets, or provide setup/status dashboard
-controls. No runtime device has been tested or enrolled by this change.
+Optional `occupied`, `home` and `vacation` only add a log line. They do not
+switch the relay. `occupied` is per plug (`binary_sensor`, `input_boolean`,
+`device_tracker` or `person`). `on` or `home` means someone is there. `off` or
+`not_home` starts `unoccupied_minutes` (default 15, range 5–1440). `home` is
+the same signal for the whole house, with `away_minutes`. `vacation` is a
+`binary_sensor` or `input_boolean` that is `on` during vacation and logs once
+while it stays on. Unknown, unavailable or a missing reading is not empty and
+is not vacation. The note is repeated only after the signal returns and the
+wait passes again. The timers are process-local and restart clears them.
+Invalid occupancy settings disable the notes and leave the price policy
+running. Shadow mode still sends no plug calls.
+
+This is a price-policy milestone, not the complete #217 feature. It does not
+learn standby power, switch off for an empty room, away or vacation, calculate
+savings, coordinate fuse/phase restoration budgets, or provide setup/status
+dashboard controls. No runtime device has been tested or enrolled by this change.
