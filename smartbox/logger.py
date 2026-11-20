@@ -32,7 +32,10 @@ def get_db_pool():
         # allocate extra pools whose worker threads/connections would be orphaned.
         with _pool_lock:
             if _pool is None:
-                _pool = ConnectionPool(f"host={DB_HOST} user={DB_USER} password={DB_PASS} dbname={DB_NAME}", min_size=1, max_size=20)
+                # #457: samma kontroll som settings-poolen, så en död anslutning inte används till loggen.
+                _pool = ConnectionPool(
+                    f"host={DB_HOST} user={DB_USER} password={DB_PASS} dbname={DB_NAME}",
+                    min_size=1, max_size=20, open=True, check=ConnectionPool.check_connection)
     return _pool
 
 @contextmanager

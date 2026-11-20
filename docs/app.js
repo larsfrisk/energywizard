@@ -116,4 +116,23 @@ function render(d) {
     </div>` : ""}`;
 }
 
+const EQUIP_URL = new URL("data/utrustning.json", document.currentScript.src);
+const EQUIP_CATS = {
+  sv: [["heatpump", "🌡️ Värmepump"], ["battery", "🔋 Husbatteri"], ["solar", "☀️ Solceller"], ["meter", "⚡ Elmätare"], ["car", "🚗 Elbil"], ["charger", "🔌 Laddbox"], ["spa", "🛁 Spabad"]],
+  en: [["heatpump", "🌡️ Heat pump"], ["battery", "🔋 Home battery"], ["solar", "☀️ Solar"], ["meter", "⚡ Energy meter"], ["car", "🚗 EV"], ["charger", "🔌 EV charger"], ["spa", "🛁 Hot tub"]],
+}[LANG];
+async function loadEquipment() {
+  const el = document.getElementById("equip");
+  if (!el) return;
+  try {
+    const d = await (await fetch(EQUIP_URL, { cache: "no-store" })).json();
+    const note = document.getElementById("equipnote");
+    if (note && d.installations) note.insertAdjacentText("afterbegin", LANG === "en" ? `${d.installations} active installations (updated ${d.updated}). ` : `${d.installations} aktiva installationer (uppdaterad ${d.updated}). `);
+    el.innerHTML = `<div class="grid">${EQUIP_CATS.map(([k, label]) => {
+      const items = (d.equipment || {})[k] || [];
+      return `<div class="card"><h3>${label}</h3><div class="chips">${items.map((x) => `<span class="chip">${x.name}<em>${x.n}</em></span>`).join("") || "–"}</div></div>`;
+    }).join("")}</div>`;
+  } catch (e) { el.innerHTML = ""; }
+}
 loadStats();
+loadEquipment();

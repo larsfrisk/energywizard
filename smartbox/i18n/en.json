@@ -3025,5 +3025,8 @@
  "Rumsåterkoppling sätter börvärdet till # °C": "Room feedback sets the setpoint to # °C",
  "Värmepump: Rumsåterkoppling sätter börvärdet till # °C": "Heat pump: Room feedback sets the setpoint to # °C",
  "Rumsåterkoppling i skugga skulle sätta # °C, nu # °C": "Room feedback in shadow mode would set # °C, now # °C",
- "Värmepump: Rumsåterkoppling i skugga skulle sätta # °C, nu # °C": "Heat pump: Room feedback in shadow mode would set # °C, now # °C"
+ "Värmepump: Rumsåterkoppling i skugga skulle sätta # °C, nu # °C": "Heat pump: Room feedback in shadow mode would set # °C, now # °C",
+ "inklusive avgifter": "incl. fees",
+ "spotpris": "spot price",
+ "snittpris inklusive avgifter": "average price incl. fees"
 }

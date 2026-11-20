@@ -4,11 +4,21 @@
 - **Elvärme räknas i skugga (#431, #221).** Adax, golvvärme och andra element med egen termostat kan listas under
   `electric_heat`. När värmepumpen är i billigt läge visas elementets tak, och i dyrt läge dess golv, i besluten.
   Ingenting skrivs till elementen. Startguiden lägger listan avstängd i den nedladdade konfigurationen.
+- **HeishaMon nollställer inte kurvförskjutningen i onödan (#491).** FTW-drivrutinen skrev 0 °C till
+  `Z1_Heat_Request_Temp` vid varje vakthund och omstart, även när Home Assistant styrde förskjutningen.
+  Nu skrivs det neutrala värdet bara efter att drivrutinen själv har ändrat förskjutningen. `control: false`
+  gör den helt läsande: mätvärdena kommer in, men inget offset kommenderas.
 
 ## 1.2.118 (2026-11-20)
+- **Ekonomisidans högsta pris går att jämföra med det man betalat (#510).** Snittet under Köpt el räknas
+  inklusive moms, nätavgift och skatt, medan Högst idag bara var spotpriset. Snittet kunde därför ligga över
+  dagens högsta. Lägst, snitt och högst visar nu vad elen kostar att köpa, och spotpriset står under när det
+  skiljer sig. Dygnet är installationens tidszon, samma som för köpt el.
 - **Märkesnamn med å, ä, ö, š m.fl. blev fel i telemetrin** ("Škoda" blev "Åkoda"). HA:s svar lästes som latin-1 i stället för
   UTF-8. Rättat, och telemetrisidan visar redan inkomna "Åkoda" som Škoda. Kia, Volvo, Volkswagen, Mercedes och Huawei med
   olika stavningar samlas också under ett märke.
+- **Webbsidan:** ny sektion "Utrustning som stöds och som körs" (stöd i tre nivåer och märken ur telemetrin), och "Nytt" visar de
+  senaste veckornas funktioner. Listan över märken uppdateras av `scripts/export_public_equipment.py`.
 - Telemetrisidan döljer poster som inte är utrustning av kategorin (t.ex. rökvarnare, gräsklippare och surfplattor som valts som elbil i
   startguiden) och visar hur många som dolts.
 

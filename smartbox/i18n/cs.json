@@ -3025,5 +3025,8 @@
  "Rumsåterkoppling sätter börvärdet till # °C": "Zpětná vazba z místností nastavuje teplotu na # °C",
  "Värmepump: Rumsåterkoppling sätter börvärdet till # °C": "Tepelné čerpadlo: Zpětná vazba z místností nastavuje teplotu na # °C",
  "Rumsåterkoppling i skugga skulle sätta # °C, nu # °C": "Zpětná vazba ve stínovém režimu by nastavila # °C, teď # °C",
- "Värmepump: Rumsåterkoppling i skugga skulle sätta # °C, nu # °C": "Tepelné čerpadlo: Zpětná vazba ve stínovém režimu by nastavila # °C, teď # °C"
+ "Värmepump: Rumsåterkoppling i skugga skulle sätta # °C, nu # °C": "Tepelné čerpadlo: Zpětná vazba ve stínovém režimu by nastavila # °C, teď # °C",
+ "inklusive avgifter": "včetně poplatků",
+ "spotpris": "spotová cena",
+ "snittpris inklusive avgifter": "průměrná cena včetně poplatků"
 }

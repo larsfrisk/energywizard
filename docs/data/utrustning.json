@@ -1,0 +1,340 @@
+{
+ "updated": "2026-11-20",
+ "installations": 98,
+ "equipment": {
+  "heatpump": [
+   {
+    "name": "NIBE",
+    "n": 17
+   },
+   {
+    "name": "Thermia",
+    "n": 9
+   },
+   {
+    "name": "Mitsubishi Electric",
+    "n": 3
+   },
+   {
+    "name": "Daikin",
+    "n": 1
+   },
+   {
+    "name": "IVT",
+    "n": 1
+   },
+   {
+    "name": "Sensibo",
+    "n": 1
+   }
+  ],
+  "spa": [
+   {
+    "name": "Gecko",
+    "n": 4
+   },
+   {
+    "name": "Balboa",
+    "n": 1
+   },
+   {
+    "name": "Bestway",
+    "n": 1
+   }
+  ],
+  "solar": [
+   {
+    "name": "SolarEdge",
+    "n": 5
+   },
+   {
+    "name": "GoodWe",
+    "n": 4
+   },
+   {
+    "name": "Fronius",
+    "n": 3
+   },
+   {
+    "name": "Huawei",
+    "n": 3
+   },
+   {
+    "name": "Sungrow",
+    "n": 3
+   },
+   {
+    "name": "Ferroamp",
+    "n": 2
+   },
+   {
+    "name": "Growatt",
+    "n": 2
+   },
+   {
+    "name": "SolaX",
+    "n": 2
+   },
+   {
+    "name": "FoxESS",
+    "n": 1
+   },
+   {
+    "name": "Hypontech",
+    "n": 1
+   },
+   {
+    "name": "SAJ",
+    "n": 1
+   },
+   {
+    "name": "Solis",
+    "n": 1
+   },
+   {
+    "name": "Victron",
+    "n": 1
+   },
+   {
+    "name": "Zonneplan",
+    "n": 1
+   }
+  ],
+  "battery": [
+   {
+    "name": "Sungrow",
+    "n": 4
+   },
+   {
+    "name": "Solis",
+    "n": 3
+   },
+   {
+    "name": "Sonnen",
+    "n": 3
+   },
+   {
+    "name": "Victron",
+    "n": 3
+   },
+   {
+    "name": "Fronius",
+    "n": 2
+   },
+   {
+    "name": "Growatt",
+    "n": 2
+   },
+   {
+    "name": "SolaX",
+    "n": 2
+   },
+   {
+    "name": "AlphaESS",
+    "n": 1
+   },
+   {
+    "name": "Deye",
+    "n": 1
+   },
+   {
+    "name": "Ferroamp",
+    "n": 1
+   },
+   {
+    "name": "GivEnergy",
+    "n": 1
+   },
+   {
+    "name": "Huawei",
+    "n": 1
+   },
+   {
+    "name": "Sigenergy",
+    "n": 1
+   },
+   {
+    "name": "Sofar",
+    "n": 1
+   },
+   {
+    "name": "SolarEdge",
+    "n": 1
+   },
+   {
+    "name": "Solinteg",
+    "n": 1
+   }
+  ],
+  "charger": [
+   {
+    "name": "Easee",
+    "n": 16
+   },
+   {
+    "name": "Zaptec",
+    "n": 4
+   },
+   {
+    "name": "Wallbox",
+    "n": 3
+   },
+   {
+    "name": "Charge Amps",
+    "n": 2
+   },
+   {
+    "name": "Garo",
+    "n": 1
+   },
+   {
+    "name": "StarCharge",
+    "n": 1
+   },
+   {
+    "name": "cFos",
+    "n": 1
+   },
+   {
+    "name": "go-e",
+    "n": 1
+   }
+  ],
+  "car": [
+   {
+    "name": "Tesla",
+    "n": 13
+   },
+   {
+    "name": "Volvo",
+    "n": 9
+   },
+   {
+    "name": "Volkswagen",
+    "n": 7
+   },
+   {
+    "name": "Škoda",
+    "n": 6
+   },
+   {
+    "name": "Kia",
+    "n": 3
+   },
+   {
+    "name": "Nissan",
+    "n": 3
+   },
+   {
+    "name": "Audi",
+    "n": 2
+   },
+   {
+    "name": "Mercedes-Benz",
+    "n": 2
+   },
+   {
+    "name": "BMW",
+    "n": 1
+   },
+   {
+    "name": "BYD",
+    "n": 1
+   },
+   {
+    "name": "Cupra",
+    "n": 1
+   },
+   {
+    "name": "MG",
+    "n": 1
+   },
+   {
+    "name": "Mazda",
+    "n": 1
+   },
+   {
+    "name": "Polestar",
+    "n": 1
+   },
+   {
+    "name": "Renault",
+    "n": 1
+   },
+   {
+    "name": "Vauxhall",
+    "n": 1
+   },
+   {
+    "name": "Zeekr",
+    "n": 1
+   }
+  ],
+  "meter": [
+   {
+    "name": "Tibber",
+    "n": 22
+   },
+   {
+    "name": "HomeWizard",
+    "n": 7
+   },
+   {
+    "name": "Sonnen",
+    "n": 3
+   },
+   {
+    "name": "Victron",
+    "n": 3
+   },
+   {
+    "name": "Fronius",
+    "n": 2
+   },
+   {
+    "name": "IAMMETER",
+    "n": 2
+   },
+   {
+    "name": "Remne",
+    "n": 2
+   },
+   {
+    "name": "AlphaESS",
+    "n": 1
+   },
+   {
+    "name": "Emporia",
+    "n": 1
+   },
+   {
+    "name": "GivEnergy",
+    "n": 1
+   },
+   {
+    "name": "Growatt",
+    "n": 1
+   },
+   {
+    "name": "P1reader",
+    "n": 1
+   },
+   {
+    "name": "Perific",
+    "n": 1
+   },
+   {
+    "name": "Solis",
+    "n": 1
+   },
+   {
+    "name": "Sungrow",
+    "n": 1
+   },
+   {
+    "name": "Zonneplan",
+    "n": 1
+   }
+  ]
+ }
+}

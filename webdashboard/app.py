@@ -1502,29 +1502,31 @@ async def api_solar():
 
 @app.get("/api/economy")
 async def api_economy():
-    """Ekonomi-sidan: dagens pris (min/medel/max) och en uppskattad kostnad hittills
-    idag (ackumulerad förbrukning × dagens snittpris) - en grov uppskattning, inte en
-    exakt timme-för-timme-kostnad, och tydligt märkt som sådan i gränssnittet."""
+    """Ekonomi-sidan: vad elen kostar att köpa idag (min/medel/max, inkl. avgifter) och
+    kostnaden hittills, räknad minut för minut. Spotpriset följer med så det går att
+    skilja från det man faktiskt betalar (#510)."""
     with ENGINE.connect() as c:
         row = _latest_row(c)
         if row is None:
             return {"ok": False, "error": "Ingen data i sensor_log än"}
-        today_prices = c.execute(text(
-            "SELECT sek_per_kwh FROM elpriser WHERE time_start::date = CURRENT_DATE"
-        )).fetchall()
+        today_prices = c.execute(text(local_sql(
+            "SELECT time_start, sek_per_kwh FROM elpriser "
+            "WHERE time_start >= date_trunc('day', now() AT TIME ZONE __EW_TIMEZONE__) AT TIME ZONE __EW_TIMEZONE__ "
+            "AND time_start < date_trunc('day', now() AT TIME ZONE __EW_TIMEZONE__) AT TIME ZONE __EW_TIMEZONE__ "
+            "+ interval '1 day'"))).fetchall()
         price_24h = _price_24h(c)
         import savings
         import nordpool
         from datetime import datetime
-        import zoneinfo
-        today = datetime.now(zoneinfo.ZoneInfo("Europe/Stockholm")).date().isoformat()
+        today = datetime.now(local_sql.installation_timezone()).date().isoformat()
         money = savings.money_rows(c, days=40)
         timing = savings.daily_rows(c, days=40)
-    prices = [float(r[0]) for r in today_prices if r[0] is not None]
-    avg_price = sum(prices) / len(prices) if prices else None
-    # Förut: accumulated_consumption_kwh × snittpris - fältet är alltid 0, så kortet visade 0,00 kr.
-    return {"ok": True, "price": _n(row.get("price")), "price_min": min(prices) if prices else None,
-            "price_avg": avg_price, "price_max": max(prices) if prices else None, "price_24h": price_24h,
+    span = savings.price_span(today_prices)
+    spot, buy = span["spot"], span["buy"]
+    return {"ok": True, "price": _n(row.get("price")), "price_min": spot["min"],
+            "price_avg": spot["avg"], "price_max": spot["max"],
+            "price_buy_min": buy["min"], "price_buy_avg": buy["avg"], "price_buy_max": buy["max"],
+            "price_24h": price_24h,
             "symbol": nordpool.cost_settings()["symbol"], "money_days": money[-31:],
             "money": savings.money_periods(money, today), "timing": savings.summarize_periods(timing, today)}
 

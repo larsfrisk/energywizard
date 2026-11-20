@@ -77,6 +77,27 @@
     <h2>Nytt i november 2026</h2>
     <div class="grid">
       <div class="card">
+        <h3>🌡️ Huset följer rumsgivarna</h3>
+        <div class="note">Valfritt läge (Av / Skugga / På): en modell lärd på husets egen logg väljer lägsta börvärde som håller de två
+          kallaste rummen över golvet fram till nästa billiga period. Skuggläget loggar bara vad den skulle göra, så du kan
+          jämföra innan du slår på det.</div>
+      </div>
+      <div class="card">
+        <h3>💧 ML-styrt varmvatten</h3>
+        <div class="note">Pumpen väntar på dyra timmar när ingen tappning väntas och fyller tanken på de billigaste kvartarna före
+          nästa troliga tappning. Legionellaskydd, felskydd, minuspris och solöverskott går alltid före. Av / Skugga / På.</div>
+      </div>
+      <div class="card">
+        <h3>🚗 Laddregler per bil</h3>
+        <div class="note">Mål utan klar-tid, bara sol, maxpris och solmål per bil. En varning kommer direkt när bilen inte hinner till sitt
+          mål, med hur långt den väntas komma.</div>
+      </div>
+      <div class="card">
+        <h3>☀️ Ordning för solöverskott</h3>
+        <div class="note">Husbatteri, elbil, spabad, varmvatten och huset i den ordning du vill. En last längre ned startar först när ingen
+          ovanför vill ha överskottet.</div>
+      </div>
+      <div class="card">
         <h3>🛁 Badtider för spabadet</h3>
         <div class="note">Välj när ni brukar bada. Utanför badtiderna får badet svalna till eco-golvet och värms upp i tid,
           på de billigaste timmarna. Kört mot 60 dygns historik: helgbad sparade 25–34 % av badets el, och badet var
@@ -105,8 +126,9 @@
       </div>
       <div class="card">
         <h3>🌡️ Fler värmepumpar</h3>
-        <div class="note">Utöver Thermia och alla med en <code>climate</code>-entitet: NIBE S-serien lokalt,
-          NIBE/Bosch/Atlantic/Daikin via myUplink och Panasonic Aquarea via HeishaMon.
+        <div class="note">Utöver Thermia (Husdata och ThermIQ) och alla med en <code>climate</code>-entitet: NIBE via
+          Home Assistant (nibegw eller integrationen), NIBE S-serien lokalt, NIBE/Bosch/Atlantic/Daikin via myUplink
+          och Panasonic Aquarea via HeishaMon.
           <a href="kunskapsbank/styra-varmepump-efter-elpris.html">Vilka som stöds</a>.</div>
       </div>
       <div class="card">
@@ -115,6 +137,42 @@
           startguiden. Vill du ha ditt eget språk? Översättningarna är vanliga textfiler på GitHub.</div>
       </div>
     </div>
+  </section>
+
+  <section id="utrustning">
+    <h2>Utrustning som stöds och som körs</h2>
+    <p class="note">Allt går via enhetens egen Home Assistant-integration eller ett lokalt API, aldrig via egen protokollkod mot
+      okända register. Tre nivåer, så att du vet vad du kan lita på:</p>
+    <div class="legend"><span>✅ <b>Körs i skarp drift</b> hos någon</span><span><b>Styr</b>: byggt mot integrationens källkod, väntar på en betatestare</span><span><b>Läser</b>: visar och planerar, styr inte</span></div>
+    <div class="grid">
+      <div class="card"><h3>🌡️ Värmepump</h3><div class="tier">
+        <b>✅ Styr</b><span>Thermia via Husdata · alla med en <code>climate</code>-entitet i HA</span>
+        <b>Styr</b><span>NIBE S-serien (lokalt) · NIBE, Bosch, Atlantic, Daikin via myUplink · Panasonic Aquarea via HeishaMon · Thermia via ThermIQ · NIBE via nibegw</span></div></div>
+      <div class="card"><h3>🔋 Husbatteri</h3><div class="tier">
+        <b>Styr</b><span>Solax Gen4–6 · Growatt · FoxESS · Solis · Fronius Gen24 · HomeWizard Plug-In Battery</span>
+        <b>Läser</b><span>Felicity · SolarEdge · GivEnergy · Huawei Luna · Sonnen · Victron · Ferroamp · Sungrow, Deye, Sigenergy, Solinteg m.fl. via FTW-drivrutiner</span></div>
+        <div class="note" style="margin-top:8px"><b>Batteriet bakom växelriktaren</b> (Pylontech, BYD, Dyness …) styrs via växelriktaren eller integrationen,
+          inte via batterimärket. Har du Pylontech på en Solis, Victron eller Deye ser du alltså växelriktarens rad här.
+          <a href="kunskapsbank/husbatteri.html">Hela tabellen</a>.</div></div>
+      <div class="card"><h3>☀️ Solceller</h3><div class="tier">
+        <b>✅ Läser</b><span>SolarEdge</span>
+        <b>Läser</b><span>Huawei SUN2000 · Growatt · Sungrow · Fronius · generisk exportgräns (Solis, Solplanet, Sigenergy m.fl.)</span></div></div>
+      <div class="card"><h3>⚡ Elmätare</h3><div class="tier">
+        <b>✅ Läser</b><span>Tibber Pulse · HomeWizard P1 · P1/HAN-mätare med effekt i HA</span></div></div>
+      <div class="card"><h3>🚗 Elbil</h3><div class="tier">
+        <b>✅ Styr</b><span>Tesla · Nissan</span>
+        <b>Styr</b><span>valfri bil med entiteter i HA (Volvo, VW, Škoda, Kia …)</span></div></div>
+      <div class="card"><h3>🔌 Laddbox</h3><div class="tier">
+        <b>✅ Styr</b><span>Easee</span>
+        <b>Styr</b><span>OCPP (Charge Amps, cFos, FoxESS …) · generisk <code>switch</code>/<code>number</code></span></div></div>
+      <div class="card"><h3>🛁 Spabad</h3><div class="tier">
+        <b>✅ Styr</b><span>Gecko</span>
+        <b>Styr</b><span>Balboa · Shelly-relä</span></div></div>
+    </div>
+    <h3 style="margin-top:28px">Vad som faktiskt körs</h3>
+    <p class="note" id="equipnote">Märken hos installationerna, ur den anonyma telemetrin (bara tillverkare och antal, aldrig modell eller vem).
+      Märket kommer från Home Assistants enhetsregister: det visar vad som finns i husen, inte att allt styrs.</p>
+    <div id="equip"></div>
   </section>
 
   <section>
