@@ -72,6 +72,10 @@ def init_settings_db():
                         indoor_min NUMERIC
                     )
                 """)
+                # Solprofilen (learning.get_solar_profile) sparas här. Kolumnerna skapas vid start: förut lades de till första gången profilen
+                # lästes, och då väntade ett webbanrop med en öppen anslutning på sitt eget ALTER TABLE och hängde (ny installation).
+                cur.execute("ALTER TABLE system_settings ADD COLUMN IF NOT EXISTS solar_profile BYTEA, "
+                            "ADD COLUMN IF NOT EXISTS solar_profile_time TIMESTAMPTZ")
                 # Lägg in standardvärdena (id=1) om tabellen precis skapades
                 cur.execute("""
                     INSERT INTO system_settings (id, cheap_hours_count, temp_cheap, temp_expensive, indoor_max, indoor_min)

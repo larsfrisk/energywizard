@@ -188,8 +188,9 @@ def test_loggutdrag_i_flottvyn_hamtas_med_egen_nyckel_och_kraver_behorighet(monk
     assert seen["params"]["module"] == "database" and seen["params"]["error_type"] == "DatabaseUnavailable"
     # fel namn och ogiltig nyckel nekas / avvisas utan att samlaren anropas
     mod.AUTH.session = lambda request: ("family", "elin")
-    with pytest.raises(Exception):
+    with pytest.raises(mod.HTTPException) as nekad:                # inte NameError: obehöriga ska få 403
         asyncio.run(mod.installs_support(MagicMock(), key="database: DatabaseUnavailable"))
+    assert nekad.value.status_code == 403
     mod.AUTH.session = lambda request: ("family", "lazgeo")
     seen.clear()
     assert asyncio.run(mod.installs_support(MagicMock(), key="utan-kolon"))["ok"] is False and not seen

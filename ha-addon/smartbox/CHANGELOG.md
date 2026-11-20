@@ -1,5 +1,11 @@
 # Ändringar
 
+## 1.2.140 (2026-11-20)
+- **Rökprov av webbens API i testerna** (`tests/smoke_api.py`): varje GET-väg anropas med inloggning mot en riktig databas, och ett 500 stoppar releasen. Ekonomi-felet (#562) hade fångats här. Provet hittade tre fel till:
+  - Obehöriga anrop till Loggutdragen i Installationer (`/api/installs/support`) gav 500 i stället för 403 (`HTTPException` saknades i importen).
+  - Elbil-sidan gav 500 på en ny installation tills motorn sparat sin första laddplan: tabellen `ev_plan_slots` skapas nu när motorn startar.
+  - Ett webbanrop till Plan kunde hänga för alltid på en ny installation, eftersom det väntade på sitt eget `ALTER TABLE system_settings`: kolumnerna för solprofilen skapas nu vid start.
+
 ## 1.2.139 (2026-11-20)
 - **Ekonomisidan gav "Internal server error" (#562).** Från 1.2.118 till och med 1.2.137 kraschade `/api/economy` för alla: raden som tar fram dagens datum anropade
   `local_sql.installation_timezone()`, men `local_sql` är en funktion, inte modulen. Rättat, med ett test som bygger hela svaret så att en sådan miss syns. Övriga 56 GET-vägar i webben svarar.

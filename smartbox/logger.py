@@ -48,6 +48,12 @@ def init_log_db():
     try:
         with get_db() as conn:
             with conn.cursor() as cur:
+                # Laddplanen: skapas här så att den finns innan webben och appen läser den (förut skapades den först när motorn
+                # sparade sin första plan, och Elbil-sidan gav "Internal server error" på en ny installation)
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS ev_plan_slots (
+                        car_id TEXT, t_slot TIMESTAMP, kw DOUBLE PRECISION, start_soc DOUBLE PRECISION, end_soc DOUBLE PRECISION,
+                        updated_at TIMESTAMPTZ DEFAULT NOW(), PRIMARY KEY (car_id, t_slot))""")
                 cur.execute("""
                     CREATE TABLE IF NOT EXISTS sensor_log (
                         timestamp            TIMESTAMP WITH TIME ZONE PRIMARY KEY,

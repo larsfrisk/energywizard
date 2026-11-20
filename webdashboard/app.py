@@ -23,7 +23,7 @@ import requests
 
 # Image updates must not import shared helpers from an older host checkout.
 sys.path.insert(0, "/opt/energywizard/smartbox" if os.path.isdir("/opt/energywizard/smartbox") else "/smartbox")
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import create_engine, text
