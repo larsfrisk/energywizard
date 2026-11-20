@@ -355,6 +355,7 @@ async function mountFlow(slotId) {
     const stamp = slot.querySelector(".flow-time");
     if (stamp.textContent !== (d.ts || "")) stamp.textContent = d.ts || "";
     if (window.EWLiveFlow) EWLiveFlow.update(slot.querySelector(".flow-graphic"), d, {
+      compact: (() => { try { return matchMedia("(max-width: 560px)").matches; } catch (e) { return false; } })(),   // smal skärm: kompakta rutor, annars blir texten för liten
       attrs: (n) => `class="fnode${n.active ? " on" : ""}" data-page="${n.page}"`,
       hubAttrs: 'class="fnode on" data-page="oversikt"',
     });

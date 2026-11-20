@@ -120,7 +120,8 @@ main > *:first-child { animation:fadeUp .3s ease both; }
 #toast.show { opacity:1; transform:translate(-50%,0); }
 .seg { display:inline-flex; gap:6px; border-radius:var(--r-sm); } .seg button { min-height:36px; border-radius:10px; border:1px solid var(--line); background:var(--card2); color:var(--txt); font-size:.84rem; font-weight:600; padding:0 12px; cursor:pointer; } .seg button.on { border-color:var(--acc); color:var(--acc); background:rgba(34,211,160,.12); }
 .seg button[disabled], .togglerow.dim, .row-disabled { opacity:.45; pointer-events:none; }
-.numfield { display:flex; align-items:center; gap:8px; }
+.numfield { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }          /* radbryts i stället för att klippas på smala skärmar */
+@media (max-width:480px) { .numfield input[type=number] { width:76px; } .numfield input.hhmm { width:5.6em; } }
 .numfield input[type=number] { width:88px; font-size:15px; padding:9px 10px; border-radius:var(--r-sm); border:1px solid var(--line); background:var(--card2); color:var(--txt); }
 .numfield input[type=time], .numfield input.hhmm { width:118px; font-size:15px; padding:9px 10px; border-radius:var(--r-sm); border:1px solid var(--line); background:var(--card2); color:var(--txt); }
 .numfield input[type=range] { flex:1; accent-color:var(--acc); }

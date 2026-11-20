@@ -1,5 +1,9 @@
 # Ändringar
 
+## 1.2.135 (2026-11-20)
+- **Webben på telefon:** genomgång av alla 14 sidor på 390 px. Fält med flera värden på samma rad (`Billigt … Dyrt … Spara`, `Börvärde lägst … högst`) klipptes i högerkanten och bryts nu till ny rad.
+  Flödesbilden "Just nu" på Översikten blev så liten att texten inte gick att läsa; den använder nu det kompakta läget på smala skärmar (som mobilappen).
+
 ## 1.2.134 (2026-11-20)
 - **Appens "Just nu" visar "ladda nu" när du själv startat laddningen.** En bil som laddade på kommandot "Ladda nu" visade bara "laddar", medan sidhuvudet sa "Dyrt just nu" och planen ville pausa. Det såg ut som att
   systemet laddade dyrt av misstag. Nu står det "ladda nu" på bilens ruta så länge laddningen är manuell.
