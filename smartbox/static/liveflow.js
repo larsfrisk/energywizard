@@ -36,7 +36,7 @@
     if (!d || !d.nodes) return "";
     const c = !!opts.compact;
     // Geometri: appen (smal, läsbar text i mobilen) eller webben (bred)
-    const G = c ? { W: 336, row: 53, minH: 200, LW: 116, LH: 56, RW: 116, RH: 42, hub: 36, fs: { lab: 11, big: 16.5, st: 9.5, rlab: 10.5, rbig: 13, rst: 9, unit: 10, hub: 11.5 }, maxRight: 5 }
+    const G = c ? { W: 336, row: 57, minH: 210, LW: 108, LH: 58, RW: 108, RH: 44, hub: 32, fs: { lab: 11, big: 16.5, st: 9.5, rlab: 10.5, rbig: 13, rst: 9, unit: 10, hub: 11.5 }, maxRight: 5 }
                 : { W: 960, row: 76, minH: 330, LW: 190, LH: 72, RW: 190, RH: 62, hub: 64, fs: { lab: 14, big: 22, st: 13, rlab: 14, rbig: 16, rst: 12.5, unit: 13, hub: 15 }, maxRight: 8 };
     const nodes = d.nodes.filter((n) => n.key !== "hus"), house = d.nodes.find((n) => n.key === "hus");
     const left = nodes.filter((n) => ["source", "grid", "battery"].includes(n.role)), right = nodes.filter((n) => n.role === "load").slice(0, G.maxRight);

@@ -603,12 +603,28 @@ function overflows(pg) {
   const r = pg.getBoundingClientRect(); if (pg.scrollHeight > pg.clientHeight + 1) return true;
   return [...pg.children].some((k) => k.getBoundingClientRect().bottom > r.bottom + 1 || k.scrollHeight > k.clientHeight + 1) || [...pg.querySelectorAll(".card")].some((k) => k.scrollHeight > k.clientHeight + 1);
 }
+// "Just nu"-grafen får växa till sin naturliga storlek så länge sidan ryms: stegen t1-t5 är grova och lämnade tomt
+// utrymme under (och bredvid, eftersom grafen skalas efter höjden) på högre skärmar.
+function growFlow(pg) {
+  const sv = pg.querySelector(".flowcard svg"); if (!sv || pg.classList.contains("tscroll") || pg.classList.contains("t5")) return;
+  try {
+    const vb = sv.viewBox.baseVal, nat = sv.clientWidth * vb.height / vb.width;
+    let h = sv.getBoundingClientRect().height;
+    while (h + 8 <= nat) {
+      sv.style.maxHeight = (h + 8) + "px";
+      if (overflows(pg)) { sv.style.maxHeight = h + "px"; break; }
+      h += 8;
+    }
+  } catch (e) {}
+}
 function fit() {                                           // krymper innehållet steg för steg tills inget sticker ut eller överlappar (stora typsnitt, små skärmar)
   const pg = document.querySelector(".page"); if (!pg) return;
+  const fsv = pg.querySelector(".flowcard svg"); if (fsv) fsv.style.maxHeight = "";
   const st = pg.scrollTop;                                 // omräkningen får inte nollställa scrollen
   pg.classList.remove("t1", "t2", "t3", "t4", "t5", "tscroll");   // t5 också: annars satt den kvar och dolde "Just nu"-raderna
   for (let l = 1; l <= 5 && overflows(pg); l++) pg.classList.add("t" + l);     // t5: hemskärmens extra steg för stor text
   if (overflows(pg)) pg.classList.add("tscroll");          // sista utvägen: scrolla hellre än att kort överlappar eller göms
+  growFlow(pg);
   if (st) pg.scrollTop = st;
 }
 window.addEventListener("resize", () => fit());

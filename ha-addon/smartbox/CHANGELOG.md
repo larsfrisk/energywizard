@@ -2,6 +2,10 @@
 
 ❤️ EnergyWizard är gratis och öppet. Om det sparar pengar hemma hos dig kan du hålla det så med en sponsring (runt 10 USD i månaden räcker långt): https://github.com/sponsors/murre87
 
+## 1.2.144 (2026-11-20)
+- **"Just nu"-grafen i appen växer till kortets hela bredd och använder lediga utrymmet under**: sidans krympsteg var för grova och lämnade tomt bredvid och längst ner på högre skärmar. Grafen får nu växa så länge sidan ryms.
+- **Mobilvy i webben**: större avstånd mellan huset och rutorna till höger (linjer och punkter täckte texten), högre rutor.
+
 ## 1.2.143 (2026-11-20)
 - **Lugnare och luftigare mobilvy**: "Just nu"-grafen har mindre text och mer luft mellan rutorna (ingen text klipps längre), och beslutsrubriken i webbens översikt är mindre på telefon med lite mer avstånd mellan korten.
 
