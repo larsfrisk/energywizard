@@ -114,7 +114,7 @@ def test_adapter_uses_fresh_get_and_changed_state_context(monkeypatch):
     assert c.state['switch.tv']['owned']
 
 
-def test_presence_cut_switches_off_and_is_not_restored_when_the_reason_clears():
+def test_presence_cut_stays_off_while_the_signal_still_applies():
     c=Controller(config());read=Mock(return_value=snapshot());write=Mock(return_value=snapshot('off','ew-off'))
     c.tick(.2,T,read,write,cut=('switch.tv',))
     c.tick(.2,T+299,read,write,cut=('switch.tv',));write.assert_not_called()
@@ -122,9 +122,54 @@ def test_presence_cut_switches_off_and_is_not_restored_when_the_reason_clears():
     write.assert_called_once_with('switch.tv',False)
     assert c.state['switch.tv']['reason']=='presence' and c.state['switch.tv']['owned'] is True
     read.return_value=snapshot('off','ew-off');write.reset_mock()
-    c.tick(.2,T+900,read,write,cut=())
-    c.tick(.2,T+1800,read,write,cut=())
+    c.tick(.2,T+900,read,write,cut=('switch.tv',))
+    c.tick(.2,T+1800,read,write,cut=('switch.tv',))
     write.assert_not_called()
+    assert c.state['switch.tv']['reason']=='presence'
+
+
+def test_presence_return_switches_the_plug_on_after_minimum_off():
+    c=Controller(config());read=Mock(return_value=snapshot());write=Mock(return_value=snapshot('off','ew-off'))
+    c.tick(1.5,T,read,write,cut=('switch.tv',));c.tick(1.5,T+300,read,write,cut=('switch.tv',))
+    read.return_value=snapshot('off','ew-off');write.reset_mock()
+    c.tick(1.5,T+599,read,write,cut=());write.assert_not_called()
+    write.return_value=snapshot('on','ew-on')
+    c.tick(1.5,T+600,read,write,cut=())
+    write.assert_called_once_with('switch.tv',True)
+    assert c.state['switch.tv']['owned'] is False and 'reason' not in c.state['switch.tv']
+
+
+def test_presence_return_waits_while_the_price_is_still_above_off():
+    c=Controller(config());read=Mock(return_value=snapshot());write=Mock(return_value=snapshot('off','ew-off'))
+    c.tick(3,T,read,write,cut=('switch.tv',));c.tick(3,T+300,read,write,cut=('switch.tv',))
+    read.return_value=snapshot('off','ew-off');write.reset_mock()
+    c.tick(3,T+900,read,write,cut=())
+    c.tick(2.1,T+901,read,write,cut=())
+    write.assert_not_called()
+    assert c.state['switch.tv']['reason']=='presence'
+    write.return_value=snapshot('on','ew-on')
+    c.tick(2,T+902,read,write,cut=())
+    write.assert_called_once_with('switch.tv',True)
+
+
+def test_missing_price_and_shadow_do_not_restore_a_presence_off():
+    c=Controller(config());read=Mock(return_value=snapshot());write=Mock(return_value=snapshot('off','ew-off'))
+    c.tick(.2,T,read,write,cut=('switch.tv',));c.tick(.2,T+300,read,write,cut=('switch.tv',))
+    read.return_value=snapshot('off','ew-off');write.reset_mock()
+    c.tick(None,T+900,read,write,cut=())
+    c.tick(.2,T+901,read,write,shadow=True,cut=())
+    write.assert_not_called()
+    assert c.state=={}
+
+
+def test_ambiguous_presence_restore_is_not_retried():
+    c=Controller(config());read=Mock(return_value=snapshot());write=Mock(return_value=snapshot('off','ew-off'))
+    c.tick(.2,T,read,write,cut=('switch.tv',));c.tick(.2,T+300,read,write,cut=('switch.tv',))
+    read.return_value=snapshot('off','ew-off');write.reset_mock();write.return_value=None
+    c.tick(.2,T+600,read,write,cut=())
+    c.tick(.2,T+1200,read,write,cut=())
+    write.assert_called_once_with('switch.tv',True)
+    assert c.state['switch.tv']['paused']
 
 
 def test_presence_cut_blocks_restoring_a_price_off_while_it_still_applies():

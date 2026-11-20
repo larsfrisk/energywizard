@@ -1,5 +1,12 @@
 # Ändringar
 
+## 1.2.121 (2026-11-20)
+- **Närvaro slår på en plugg igen när någon är tillbaka (#217).** En plugg som `presence_off`
+  stängde av slås på efter minsta av-tid när rummet, huset eller semestern inte längre vill ha den av,
+  så länge elpriset inte fortfarande ligger över av-gränsen. Är elen dyrare än så väntar den tills
+  priset sjunkit till gränsen, inte tills den billiga återgången. Saknat pris och skuggläge skriver inte.
+  En plugg som redan var av slås inte på.
+
 ## 1.2.120 (2026-11-20)
 - **Närvaro kan stänga av en plugg när det är valt (#217).** `presence_off: true` slår av en påslagen
   plugg när rummet varit tomt, huset borta eller semestern på, efter väntetiden och minsta på-tid.

@@ -54,7 +54,9 @@ class Controller:
         Missing evidence, manual changes and ambiguous writes suspend that device
         until restart. Ownership is never restored from disk or inferred from off.
         ``cut`` names plugs presence wants off. A missing price never writes.
-        A presence off is not turned back on when the price falls.
+        A presence off stays off while that signal still applies. Once it has
+        ended, the plug turns back on after the minimum-off dwell unless the
+        price is still above the off threshold.
         """
         if shadow:
             self.state.clear()
@@ -84,6 +86,10 @@ class Controller:
                 reason='presence'
             elif identity[0]=='on' and price>device['high'] and now-previous['since']>=device['on_s']:
                 turn_on=False
+            elif (identity[0]=='off' and previous['owned'] and previous.get('reason')=='presence'
+                  and entity not in cutting and price<=device['high']
+                  and now-previous['since']>=device['off_s']):
+                turn_on=True
             elif (identity[0]=='off' and previous['owned'] and previous.get('reason')!='presence'
                   and entity not in cutting and price<device['low']
                   and now-previous['since']>=device['off_s']):
