@@ -34,6 +34,10 @@ def latest_pump_w(conn, minutes=10):
                               "ORDER BY timestamp DESC LIMIT 1")).first()
         return float(r[0]) if r and r[0] is not None else None
     except Exception:
+        try:
+            conn.rollback()        # saknad tabell (äldre installation) får inte förgifta transaktionen för nästa fråga
+        except Exception:
+            pass
         return None
 
 
