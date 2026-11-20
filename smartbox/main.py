@@ -45,6 +45,7 @@ import house_config      # EnergyWizard Open: drivrutinsarkitektur (bil/laddare/
 import smart_plugs
 import spa_filter          # #447: filtercykeln vilar på dyr el, skugga tills control är true
 import plug_presence
+import electric_heat_control  # #431: prisstyrning av elvärme med egen termostat (zoner), skugga tills control är true
 import ev_handshake      # Generisk laddar-handskakning (vilken fysisk laddare hör till vilken bil)
 import decision_summary  # Vad görs nu och varför, per enhet (ur gpm.py:s logg)
 import solar_write_guard # Hur ofta exportgränsen får skrivas (flashminnet i växelriktaren)
@@ -166,6 +167,9 @@ try:
 except ValueError as e:
     print(f"Plug presence disabled: {e}")
     _plug_presence = plug_presence.Watch(None)
+_electric_heat = electric_heat_control.Controller(house_cfg.get("electric_heat"))
+if _electric_heat.zones:
+    print(f"Elvärme: {len(_electric_heat.zones)} zoner, styrning {'på' if _electric_heat.control else 'av (skugga)'}")
 car_drivers = house_config.build_car_drivers(house_cfg)
 charger_drivers = house_config.build_charger_drivers(house_cfg)
 physical_charger_drivers = house_config.build_physical_charger_drivers(house_cfg)
@@ -2967,6 +2971,19 @@ while True:
             except Exception as _spe:
                 print(f"spa_phase-logg hoppade över: {_spe}")
 
+            if _electric_heat.zones:
+                try:
+                    _eh_price = nordpool.planning_buy_price(current_price, now) if current_price is not None else None
+                    electric_heat_run = _electric_heat.tick(
+                        now, _eh_price, dynamic_limit, (strategy or {}).get("hysteresis", 0.10), avg_net,
+                        is_summer_now, away_mode_enabled, bool(strategy and strategy.get("price_fallback")),
+                        lambda entity: homeassistant._get_numeric_attribute(entity, "temperature"),
+                        homeassistant.set_climate_temperature, shadow.record, shadow.active())
+                    if electric_heat_run and _electric_heat.control and not shadow.active():
+                        print("Elvärme: " + "; ".join(electric_heat_run))
+                except Exception as _ehe:
+                    print(f"Elvärme hoppade över: {_ehe}")
+
             # ── LAST-NEDBRYTNING: förklara husets effekt med det vi FAKTISKT mäter ────────
             # total = elbil + värmepump + spa + OFÖRKLARAT (ugn/bastu/tvätt/…).
             try:
@@ -2985,10 +3002,13 @@ while True:
                     with _eng.begin() as _c:
                         _c.execute(_tx("INSERT INTO overrides (device, mode, updated_at) VALUES ('ev_charging_car', :m, NOW()) ON CONFLICT (device) DO UPDATE SET mode = EXCLUDED.mode, updated_at = NOW()"), {"m": _laddar_txt})
                     _solar_persist["laddar"] = _laddar_txt
-                # #192: egna laster (loads: i installationen) räknas som förklarad last och loggas var för sig
+                # #192: egna laster (loads: i installationen) räknas som förklarad last och loggas var för sig.
+                # Elvärmens effektgivare (#431) förklaras på samma sätt, om de inte redan ligger i loads.
                 _extra = []
                 _used_power = set()
-                for _ld in house_config.custom_loads(house_cfg):
+                for _ld in list(house_config.custom_loads(house_cfg)) + electric_heat_control.loads((house_cfg or {}).get("electric_heat")):
+                    if any(_e in _used_power for _e in _ld["entities"]):
+                        continue
                     _vals = [homeassistant.get_power_w(_e) for _e in _ld["entities"]]
                     _vals = [v for v in _vals if isinstance(v, (int, float)) and math.isfinite(v)]
                     if _vals:

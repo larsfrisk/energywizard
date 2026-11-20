@@ -1,5 +1,12 @@
 # Ändringar
 
+## 1.2.123 (2026-11-20)
+- **Prisstyrning av elvärme per zon (#431, #528).** Element, golvvärme och Adax med egen termostat kan listas som `zones` under
+  `electric_heat`: dyrt sätter lägsta börvärde, billigt och kraftigt solöverskott sätter högsta, ett schema går före priset och bortaläge sätter
+  lägsta. `control: false` (standard) skriver inget utan loggar börvärdet som skuggåtgärd; sätt `control: true` när det ser rätt ut.
+  Startguiden har en lista att kryssa i. Den avstängda `heaters`-listan med beslutsrader från 1.2.119 finns kvar, men guiden skriver
+  nu zonblocket.
+
 ## 1.2.122 (2026-11-20)
 - **Dyr el höjer inte börvärdet när rummen redan är över golvet (#517).** Rumsåterkopplingens prognos
   kunde beställa 23 °C medan de kallaste rummen låg på 21 °C och sparläget var 20,5 °C. Pumpen värmde

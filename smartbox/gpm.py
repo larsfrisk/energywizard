@@ -1130,7 +1130,19 @@ class GlobalPriorityManager:
             low2 = float(low2) if low2 is not None else indoor_temp
             ml_w, ml_hz = state.get('heat_ml_w'), state.get('heat_horizon') or (None, None)
             ml_sp = None
-            if low2 < fb_floor + 0.4:
+            # Golvvakten (2026-11-20, Emil): i dyra timmar höjs börvärdet inte om det snart blir billigt och de två kallaste
+            # rummen ännu ligger på eller över golvet. Då får huset glida (börvärde = golvet) och värmen tas igen på billig el.
+            # Under golvet, eller när billig el är långt borta, gäller golvvakten som förut. Inställning: heat_glide_hours (standard 3 h).
+            try:
+                glide_h = float(state.get('heat_glide_hours') if state.get('heat_glide_hours') is not None else 3.0)
+            except (TypeError, ValueError):
+                glide_h = 3.0
+            glide = (actions["pump_mode"] == "EXPENSIVE" and ml_hz[0] is not None and 0 <= float(ml_hz[0]) <= glide_h
+                     and low2 >= fb_floor)
+            if low2 < fb_floor + 0.4 and glide:
+                fb_sp = fb_floor
+                fb_why = f"Nära golvet men billig el om {float(ml_hz[0]):.1f} h, huset får glida, de två kallaste rummen {low2:.1f} °C"
+            elif low2 < fb_floor + 0.4:
                 fb_sp, fb_why = fb_floor + 1.0, f"Nära golvet, de två kallaste rummen {low2:.1f} °C"
             elif ml_w and ml_hz[0] is not None:
                 import heat_ml

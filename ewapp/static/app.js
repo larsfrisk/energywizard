@@ -1,3 +1,26 @@
+// Klockslag är alltid 24-timmars TT:MM (som i Sverige), oavsett språk och webbläsarens inställning. <input type="time">
+// visar AM/PM i en engelsk webbläsare och klipper texten på smala skärmar, så tider är vanliga textfält med klassen hhmm.
+function normTid(v) {
+  const d = String(v == null ? "" : v).replace(/\D/g, "");
+  if (!d) return "";
+  let h, m;
+  if (d.length <= 2) { h = +d; m = 0; } else if (d.length === 3) { h = +d[0]; m = +d.slice(1); } else { h = +d.slice(0, 2); m = +d.slice(2, 4); }
+  if (h > 23 || m > 59) return null;
+  return String(h).padStart(2, "0") + ":" + String(m).padStart(2, "0");
+}
+document.addEventListener("focusin", (e) => { const t = e.target; if (t.classList && t.classList.contains("hhmm")) t.dataset.prev = t.value; });
+document.addEventListener("input", (e) => {
+  const t = e.target; if (!t.classList || !t.classList.contains("hhmm")) return;
+  const d = t.value.replace(/\D/g, "").slice(0, 4);
+  t.value = d.length > 2 ? d.slice(0, 2) + ":" + d.slice(2) : d;
+});
+document.addEventListener("change", (e) => {
+  const t = e.target; if (!t.classList || !t.classList.contains("hhmm")) return;
+  const n = normTid(t.value);
+  if (n === null) { t.value = t.dataset.prev || ""; return; }                    // ogiltig tid: förra värdet behålls
+  if (n !== t.value) { t.value = n; }
+}, true);
+
 // EnergyWizard Mobil – fem flikar (Hem, Bil, Hus, Plan, Historik). Bil och Hus får plats utan scroll (fit() gömmer detaljer stegvis);
 // Hem, Plan och Historik får scrolla. Poll medan sidan syns.
 const $ = (s) => document.querySelector(s), app = $("#app");
@@ -227,7 +250,7 @@ function guestSheet(c) {
   sheet(`<h3>Gästbil på ${esc(c.name)}s laddbox</h3>
     <div class="note">För en bil som inte är din: ingen laddnivå behövs. Säg hur mycket den ska få, och om den ska vara klar till en viss tid laddas de billigaste timmarna fram till dess. Avslutas av sig själv när kabeln dras ur.</div>
     <div class="seg" style="margin-top:10px">${[5, 10, 20, 30, 50].map((k) => `<button data-gk="${k}" class="${(g ? g.kwh : 20) == k ? "on" : ""}">${k} kWh</button>`).join("")}</div>
-    <div class="setrow"><span>Klar till (valfritt)</span><input type="time" id="guntil" value="${g && g.until ? hhmm(g.until) : ""}"></div>
+    <div class="setrow"><span>Klar till (valfritt)</span><input class="hhmm" type="text" inputmode="numeric" maxlength="5" placeholder="TT:MM" autocomplete="off" id="guntil" value="${g && g.until ? hhmm(g.until) : ""}"></div>
     <div class="crow"><button class="mini" id="gstart">${g ? "Ändra" : "Starta"}</button>${g ? `<button class="mini" id="gstop">Avsluta gästläget</button>` : ""}<button class="mini" data-a="closesheet">Stäng</button></div>`);
   let kwh = g ? g.kwh : 20;
   document.querySelectorAll("[data-gk]").forEach((b) => b.onclick = () => { kwh = +b.dataset.gk; document.querySelectorAll("[data-gk]").forEach((x) => x.classList.toggle("on", x === b)); });
@@ -316,7 +339,7 @@ async function spaBathSheet() {                           // badtider (smartbox/
     <div class="note">Tider vi inte badar: då får badet svalna, och det värms på de billigaste timmarna så att det är varmt när tiden tar slut. Hur långt det sjunker räknas fram ur hur fort just ert bad svalnar och värms. Tiden får gå över midnatt, t.ex. 22:00–16:00.</div>
     <div class="note">Tider vi badar: utanför dem får badet svalna och värms upp i tid före nästa badtid. Inga påslagna dagar = badet hålls varmt som idag.</div>
     ${ws.map((w, i) => `<div class="setrow"><label style="display:flex;gap:8px;align-items:center;min-width:4.5em"><input type="checkbox" class="bon" data-i="${i}"${w.on ? " checked" : ""}>${days[i]}</label>
-      <span style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"><input type="time" class="bfrom" data-i="${i}" value="${w.from}" ${inp}>–<input type="time" class="bto" data-i="${i}" value="${w.to}" ${inp}><span class="note bnext" data-i="${i}"${w.to <= w.from ? "" : " hidden"}>→ nästa dag</span></span></div>`).join("")}
+      <span style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"><input type="text" inputmode="numeric" maxlength="5" placeholder="TT:MM" autocomplete="off" class="bfrom hhmm" data-i="${i}" value="${w.from}" ${inp}>–<input type="text" inputmode="numeric" maxlength="5" placeholder="TT:MM" autocomplete="off" class="bto hhmm" data-i="${i}" value="${w.to}" ${inp}><span class="note bnext" data-i="${i}"${w.to <= w.from ? "" : " hidden"}>→ nästa dag</span></span></div>`).join("")}
     <div class="note">Varje rad räknas från sin dag. Slutar tiden före starttiden gäller den till nästa dag: torsdag 22:00–15:00 = torsdag kväll till fredag 15:00.</div>
     <button class="big" id="bathsave">Spara</button><button class="mini" data-x="no">Avbryt</button>`);
   $("#bathsave").onclick = async () => {
@@ -622,10 +645,10 @@ function hotwaterSheet() {
 function tripSheet(key) {                              // Resplan: engångsmål idag/imorgon (trip_plan.py)
   const c = S.cars.find((x) => x.key === key); if (!c) return;
   const t = c.trip, at = t ? new Date(t.at) : null;
-  const cur = at ? `<div class="note">Nu: klar ${at.toLocaleString((window.I18N && I18N.lang) || "sv-SE", { weekday: "short", hour: "2-digit", minute: "2-digit" })} med ${t.soc} %.</div>` : "";
+  const cur = at ? `<div class="note">Nu: klar ${at.toLocaleString("sv-SE", { weekday: "short", hour: "2-digit", minute: "2-digit" })} med ${t.soc} %.</div>` : "";
   sheet(`<h3>Resplan för ${esc(c.name)}</h3><div class="note">Ett engångsmål: bilen laddas på de billigaste timmarna så att den är klar i tid. Veckoschemat ändras inte.</div>${cur}
     <div class="seg" id="tp-day" style="margin-top:8px"><button data-d="0">Idag</button><button data-d="1" class="on">Imorgon</button></div>
-    <div class="numfield" style="margin-top:8px;display:flex;flex-wrap:wrap;gap:8px;align-items:center"><span>Klar</span> <input type="time" id="tp-t" value="07:00">
+    <div class="numfield" style="margin-top:8px;display:flex;flex-wrap:wrap;gap:8px;align-items:center"><span>Klar</span> <input class="hhmm" type="text" inputmode="numeric" maxlength="5" placeholder="TT:MM" autocomplete="off" id="tp-t" value="07:00">
       <input type="number" id="tp-s" min="20" max="100" step="5" value="${t ? t.soc : 80}" style="width:70px"> %</div>
     <button class="big" data-x="ok" style="width:100%;margin-top:10px">Spara resplanen</button>
     ${t ? `<button class="mini" data-x="clear" style="width:100%;margin-top:8px">Ta bort resplanen</button>` : ""}<button class="mini" data-x="no" style="width:100%;margin-top:8px">Avbryt</button>`);
@@ -747,10 +770,10 @@ async function reportSheet() {
 }
 function spaReadySheet() {
   const sp = H && H.spa || {}; let temp = sp.ready_temp || 38; const dflt = new Date(Date.now() + 86400000); dflt.setHours(18, 0, 0, 0); let when = new Date(dflt.getTime() - dflt.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
-  const draw = () => sheet(`<h3>Spabadet klart till…</h3><div class="note">${sp.ready_at ? `Nu satt: ${esc(sp.ready_at)} – ${f1(sp.ready_temp)}°` : "Ingen tid satt just nu."}</div><div class="setrow"><span>Klart</span><input id="sw" type="datetime-local" value="${esc(when)}" style="font-size:16px;padding:6px 8px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--txt)"></div>
+  const draw = () => sheet(`<h3>Spabadet klart till…</h3><div class="note">${sp.ready_at ? `Nu satt: ${esc(sp.ready_at)} – ${f1(sp.ready_temp)}°` : "Ingen tid satt just nu."}</div><div class="setrow"><span>Klart</span><input id="swd" type="date" value="${esc(when.slice(0, 10))}" style="font-size:16px;padding:6px 8px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--txt)"> <input id="swt" class="hhmm" type="text" inputmode="numeric" maxlength="5" placeholder="TT:MM" autocomplete="off" value="${esc(when.slice(11, 16))}" style="font-size:16px;padding:6px 8px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--txt);width:5.6em;text-align:center"></div>
   <div class="setrow"><span>Temperatur</span><div class="step"><button data-v="t-">−</button><span>${f1(temp)}°</span><button data-v="t+">+</button></div></div><div class="seg"><button data-v="go">Spara</button><button data-v="off">Stäng av tidsstyrning</button></div>`);
   draw();
-  $("#sheet").onclick = async (e) => { const b = e.target.closest("[data-v]"); if (!b) { if (e.target.id === "sheet") closeSheet(); return; } const v = b.dataset.v; const w = $("#sw"); if (w) when = w.value || when;
+  $("#sheet").onclick = async (e) => { const b = e.target.closest("[data-v]"); if (!b) { if (e.target.id === "sheet") closeSheet(); return; } const v = b.dataset.v; const wd = $("#swd"), wt = $("#swt"); if (wd && wt) { const tt = normTid(wt.value); when = wd.value && tt ? `${wd.value}T${tt}` : when; }
     if (v === "t+") { temp = Math.min(40, temp + 0.5); draw(); } else if (v === "t-") { temp = Math.max(20, temp - 0.5); draw(); }
     else if (v === "go" || v === "off") { try { const r = await api("home/spa_ready", v === "off" ? { off: true } : { when, temp }); closeSheet(); toast(r.msg); H = await api("home"); render(); } catch (er) { toast(er.message); } } };
 }

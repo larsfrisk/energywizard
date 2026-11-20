@@ -1171,13 +1171,39 @@ def discover_house(entities: list[dict] | None = None) -> dict:
         for e in entities if e["e"].split(".")[0] in ("sensor", "binary_sensor")
         and re.search(r"kompressor|compressor|43427", f"{e.get('n') or ''} {e['e']}", re.I)
     ), key=lambda e: e["name"].lower())
-    # Official Adax cloud/local climate devices report manufacturer Adax. Keep
-    # every zone visible without pretending the single heat-pump planner controls it.
-    radiators = sorted((
-        {"entity": e["e"], "name": e.get("n") or e["e"], "area": e.get("a"), "maker": "Adax"}
-        for e in entities if e["e"].startswith("climate.")
-        and str(e.get("m") or "").strip().casefold() == "adax"
-    ), key=lambda e: (e["name"].casefold(), e["entity"]))
+    # Adax och andra elvärmare med egen climate-termostat (#431). Värmepumpens
+    # climate-entitet hör inte hit. En enda effektgivare på samma enhet följer med.
+    _hp_climate = (((heat_pump or {}).get("generic_suggestion") or {}).get("entities") or {}).get("climate")
+    _heater = re.compile(
+        r"(?:^|[^a-z0-9])(?:golvv(?:ä|a)rme|floor.?heat|panel.?heat|radiator|"
+        r"elv(?:ä|a)rme|electric.?heat|varmepanel|panelovn|element)(?:[^a-z0-9]|$)", re.I)
+
+    def _is_heater(e):
+        if not e["e"].startswith("climate.") or e["e"] == _hp_climate:
+            return False
+        if str(e.get("m") or "").strip().casefold() == "adax":
+            return True
+        return bool(_heater.search(f"{e.get('n') or ''} {e.get('dn') or ''} {e.get('m') or ''} {e['e']}"))
+
+    def _zone_power(e):
+        dev = e.get("d")
+        if not dev:
+            return None
+        hits = [x["e"] for x in entities if x.get("d") == dev and x["e"].startswith("sensor.")
+                and (x.get("dc") == "power" or x.get("u") in ("W", "kW"))]
+        return hits[0] if len(hits) == 1 else None
+
+    radiators = []
+    for e in entities:
+        if not _is_heater(e):
+            continue
+        row = {"entity": e["e"], "name": e.get("n") or e["e"], "area": e.get("a"),
+               "maker": "Adax" if str(e.get("m") or "").strip().casefold() == "adax" else e.get("m")}
+        power = _zone_power(e)
+        if power:
+            row["power"] = power
+        radiators.append(row)
+    radiators.sort(key=lambda e: (e["name"].casefold(), e["entity"]))
     found = {"cars": cars, "heat_pump": heat_pump, "solar": solar, "spa": spa, "chargers": chargers,
              "radiators": radiators,
              "compressor_sensors": compressor_sensors,

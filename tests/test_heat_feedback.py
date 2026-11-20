@@ -129,3 +129,26 @@ def test_låsets_klockslag_visas_i_husets_tid(monkeypatch):
     finally:
         monkeypatch.delenv("TZ")
         time.tzset()
+
+
+def test_golvvakten_låter_huset_glida_när_det_snart_blir_billigt():
+    """2026-11-20: dyrt, nära golvet men över det, och billig el inom 3 h -> börvärdet = golvet i stället för golv + 1."""
+    a, log = run(20.3, 2.0, heat_horizon=(2.0, 6.0))
+    assert a["pump_mode"] == "EXPENSIVE" and a["pump_target_temp"] == 20.0
+    assert "Nära golvet men billig el om 2.0 h" in log[0]
+
+
+def test_golvvakten_höjer_som_förut_när_billig_el_är_långt_borta_eller_under_golvet():
+    a, _ = run(20.3, 2.0, heat_horizon=(5.0, 6.0))                     # billigt först om 5 h
+    assert a["pump_target_temp"] == 21.0
+    a, _ = run(20.3, 2.0, heat_horizon=(None, None))                    # okänd horisont
+    assert a["pump_target_temp"] == 21.0
+    a, _ = run(19.8, 2.0, heat_horizon=(1.0, 6.0))                      # under golvet värms det alltid
+    assert a["pump_target_temp"] == 21.0
+
+
+def test_glidtiden_är_en_inställning():
+    a, _ = run(20.3, 2.0, heat_horizon=(4.0, 6.0), heat_glide_hours=5)
+    assert a["pump_target_temp"] == 20.0
+    a, _ = run(20.3, 2.0, heat_horizon=(2.0, 6.0), heat_glide_hours=1)
+    assert a["pump_target_temp"] == 21.0
