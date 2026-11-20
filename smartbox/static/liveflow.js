@@ -22,7 +22,7 @@
     if (n.key === "nat") return w < -50 ? "säljer" : w > 50 ? "köper" : "i balans";
     if (n.key === "sol") return w > 50 ? "producerar" : "vilar";
     if (n.key === "batteri") return w < -30 ? "laddar ur" : w > 30 ? "laddar" : "vilar";
-    if (n.key.startsWith("ev_")) return n.active ? "laddar" : (n.detail || "").replace(/\s*·.*$/, "").toLowerCase() || "laddar inte";
+    if (n.key.startsWith("ev_")) return n.manual ? "ladda nu" : n.active ? "laddar" : (n.detail || "").replace(/\s*·.*$/, "").toLowerCase() || "laddar inte";
     const parts = (n.detail || "").split("·").map((x) => x.trim()).filter(Boolean);
     if (parts.length > 1) return parts[0].toLowerCase();
     return n.active ? (n.key === "varmvatten" ? "värms" : "går") : "";

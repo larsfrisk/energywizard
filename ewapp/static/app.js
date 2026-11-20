@@ -317,6 +317,9 @@ const FL_TAB = { sol: ["solarsheet"], nat: ["insights"], batteri: ["battery"], v
 function flowCard() {                    // delad med webbens Översikt (smartbox/static/liveflow.js) - samma bild och regler
   if (!FL || !FL.ok || !FL.nodes || !window.EWLiveFlow) return "";
   const attrs = (n) => { const t = n.key.startsWith("ev_") ? ["tab", "bil"] : (FL_TAB[n.key] || ["tab", "hus"]); return `data-a="${t[0]}"${t[1] ? ` data-v="${t[1]}"` : ""}`; };
+  // "Ladda nu" (fast ampere) går före planen: utan märkning ser en bil som laddar dyrt ut som ett misstag (Emil 2026-11-20)
+  const manual = new Set(((S && S.cars) || []).filter((c) => c.mode === "manual").map((c) => "ev_" + c.key));
+  FL.nodes.forEach((n) => { n.manual = manual.has(n.key); });
   return `<section class="card flowcard"><div class="flh"><b>Just nu</b><span class="note">${esc(FL.ts || "")}</span></div>${EWLiveFlow.svg(FL, { compact: true, icons: CL(), attrs, hubAttrs: 'data-a="insights"' })}</section>`;
 }
 
