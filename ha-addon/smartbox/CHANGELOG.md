@@ -1,9 +1,12 @@
 # Ändringar
 
+## 1.2.128 (2026-11-20)
+- **Värmepumpens effekt i appens och webbens "Just nu" är elförbrukningen.** Flödet visade kompressorns värmeeffekt (11,5 kW) i stället för det pumpen drar ur nätet (2,7 kW), så värmepumpen
+  såg ungefär fyra gånger för stor ut och det syntes inte vad som drog resten av huset. Nu går den uppmätta elförbrukningen före när den är färsk; utan mätvärde är det som förut.
+
 ## 1.2.127 (2026-11-20)
 - **Korten visar värmepumpens elförbrukning, inte kompressorns värmeeffekt.** Flödet läste `compressor_power_kw`, som för en värmepump är flera gånger elförbrukningen
-  (11,5 kW värme mot 2,7 kW el vid COP 4,8). Kortsensorn tar nu den uppmätta elförbrukningen (`load_breakdown.pump_w`) när den är färsk. Appens och webbens flöde har samma
-  uppgift kvar att rätta.
+  (11,5 kW värme mot 2,7 kW el vid COP 4,8). Kortsensorn tar nu den uppmätta elförbrukningen (`load_breakdown.pump_w`) när den är färsk. Appens och webbens flöde rättades i 1.2.128.
 
 ## 1.2.126 (2026-11-20)
 - **Fler kort för Home Assistant:** `energywizard-heat-card` (termostatratt med inomhustemperatur och band mellan golv och tak, varmvatten, billiga och dyra pass) och

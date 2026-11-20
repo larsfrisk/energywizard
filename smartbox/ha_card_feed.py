@@ -172,7 +172,7 @@ def entities(engine):
         except (TypeError, ValueError):
             items = []
         cars, has_spa, _heat = live_flow.house_parts(hc)
-        flow = live_flow.nodes(row, items if isinstance(items, list) else [], cars=cars, has_spa=has_spa)
+        flow = live_flow.nodes(row, items if isinstance(items, list) else [], cars=cars, has_spa=has_spa, pump_w=live_flow.latest_pump_w(c))
         if _cache["slots"] is None or time.time() - _cache["t"] > _SLOT_TTL_S:
             _cache.update(t=time.time(), slots=plan_clock.load(
                 c, cars=[{"id": x.get("id"), "name": x.get("name")} for x in (hc.get("evs") or [])]))
@@ -183,11 +183,9 @@ def entities(engine):
     except Exception:
         cfg = {}
     pump_w = None
-    try:                                              # senaste uppmätta elförbrukningen för pumpen, om den är färsk
+    try:
         with engine.connect() as c2:
-            lb = c2.execute(text("SELECT pump_w FROM load_breakdown WHERE timestamp > now() - interval '10 minutes' "
-                                 "ORDER BY timestamp DESC LIMIT 1")).first()
-        pump_w = lb[0] if lb else None
+            pump_w = live_flow.latest_pump_w(c2)
     except Exception:
         pump_w = None
     state, attrs = build(flow, pc, unit=nordpool.cost_settings()["symbol"], row=row, cfg=cfg, pump_w=pump_w)

@@ -25,7 +25,19 @@ def _f(v):
     return f if f is None or math.isfinite(f) else None      # "inf"/"nan" i loggen (#171) visas inte
 
 
-def nodes(row, decision_items=None, cars=None, has_spa=None):
+def latest_pump_w(conn, minutes=10):
+    """Värmepumpens uppmätta elförbrukning i W (load_breakdown.pump_w) om den är färsk, annars None. sensor_log.compressor_power_kw
+    är för många pumpar kompressorns VÄRMEeffekt (11,5 kW värme mot 2,7 kW el vid COP 4,8), så flödet ska visa elen."""
+    try:
+        from sqlalchemy import text
+        r = conn.execute(text(f"SELECT pump_w FROM load_breakdown WHERE timestamp > now() - interval '{int(minutes)} minutes' "
+                              "ORDER BY timestamp DESC LIMIT 1")).first()
+        return float(r[0]) if r and r[0] is not None else None
+    except Exception:
+        return None
+
+
+def nodes(row, decision_items=None, cars=None, has_spa=None, pump_w=None):
     """cars = [(id, namn, effektkolumn)] och has_spa ur installationen (issue #122: andra såg Emils Tesla, Nissan och
     spabad). Utan dem (äldre anrop): som förut."""
     """row = senaste sensor_log-raden som dict. Returnerar {'nodes': [...], 'why': {nyckel: text}}."""
@@ -61,6 +73,8 @@ def nodes(row, decision_items=None, cars=None, has_spa=None):
     comp = _f(r.get("compressor_running"))
     if comp is not None or r.get("compressor_power_kw") is not None:
         kw = _f(r.get("compressor_power_kw")) or 0.0
+        if pump_w is not None and math.isfinite(pump_w):           # uppmätt el går före kompressorns värmeeffekt
+            kw = max(pump_w, 0.0) / 1000.0
         indoor = _f(r.get("indoor_temp"))
         add("varmepump", "Värmepump", "🌡️", kw * 1000.0, (comp or 0) > 0 or kw > 0.1,
             # #184: utan kompressorgivare vet vi inte om pumpen går - då står inget läge (förut "Vilar")

@@ -678,6 +678,8 @@ def api_flow(request: Request):
     if row is None:
         return {"ok": False}
     row = dict(row)
+    with ENGINE.connect() as c:
+        pump_w = live_flow.latest_pump_w(c)
     try:
         items = _json.loads(row.get("decision_summary") or "[]")
     except (TypeError, ValueError):
@@ -687,7 +689,7 @@ def api_flow(request: Request):
     except Exception:
         hc = {}
     cars, has_spa, _heat = live_flow.house_parts(hc)
-    return {"ok": True, "ts": str(row.get("sthlm_time"))[11:16], **live_flow.nodes(row, items if isinstance(items, list) else [], cars=cars, has_spa=has_spa)}
+    return {"ok": True, "ts": str(row.get("sthlm_time"))[11:16], **live_flow.nodes(row, items if isinstance(items, list) else [], cars=cars, has_spa=has_spa, pump_w=pump_w)}
 
 
 @app.get("/api/state")
