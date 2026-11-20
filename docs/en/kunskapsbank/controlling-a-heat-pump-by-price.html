@@ -22,9 +22,8 @@
   own <strong>driver</strong> - a small, clearly scoped code module that knows exactly how that brand accepts
   commands (SG Ready contacts, Modbus, or a local web API, depending on the brand).</p>
 
-  <p>Today there's a finished driver for <strong>Thermia/Husdata</strong>, and the architecture is built so
-  new brands (NIBE, IVT, CTC, Mitsubishi) can be added as their own modules without touching the rest of the
-  control logic - the same pattern already used for cars (Nissan/Tesla/generic EV) and inverters (SolarEdge).</p>
+  <p>The architecture is built so more brands (IVT, CTC, Mitsubishi) can be added as their own modules
+  without touching the control logic, the same pattern already used for cars, chargers and inverters.</p>
 
   <p>The actual decisions - <em>when</em> should the pump run hard, <em>when</em> should it rest - are made by
   a shared priority engine, not by the driver. That means the whole control logic (electricity price, solar
@@ -37,6 +36,8 @@
   <table>
     <tr><th>Heat pump</th><th>Route</th><th>Status</th></tr>
     <tr><td>Thermia (Diplomat and others)</td><td>Husdata H66, Modbus direct</td><td>✅ in daily use</td></tr>
+    <tr><td>Thermia via ThermIQ</td><td>ThermIQ MQTT and ThermIQ's Home Assistant integration</td><td>built, not run against a pump</td></tr>
+    <tr><td>NIBE already in Home Assistant</td><td>the entities the wizard maps (nibegw, Nibe Heat Pump, HA's myUplink)</td><td>reads the sensors; controls the room setpoint or the curve offset (47011) when that entity is writable</td></tr>
     <tr><td>Anything with a <code>climate</code> entity in Home Assistant</td><td>HA (room temperature)</td><td>✅ basic control</td></tr>
     <tr><td>NIBE S series (S735, S1155, S1255, S320 …)</td><td>the pump's local REST API</td><td>built, not run against a pump</td></tr>
     <tr><td>NIBE, Bosch, Atlantic, Daikin via myUplink</td><td>myUplink (cloud)</td><td>built, not run against a pump</td></tr>

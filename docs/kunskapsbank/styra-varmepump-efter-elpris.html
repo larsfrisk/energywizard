@@ -27,6 +27,8 @@
   <table>
     <tr><th>Värmepump</th><th>Väg</th><th>Läge</th></tr>
     <tr><td>Thermia (Diplomat m.fl.)</td><td>Husdata H66, Modbus direkt</td><td>✅ i drift sedan länge</td></tr>
+    <tr><td>Thermia via ThermIQ</td><td>ThermIQ-MQTT och ThermIQ:s integration i Home Assistant</td><td>byggd, ej provad mot pump</td></tr>
+    <tr><td>NIBE som redan finns i Home Assistant</td><td>entiteterna guiden kopplar (nibegw, Nibe Heat Pump, HA:s myUplink)</td><td>läser givarna; styr rumsbörvärde eller kurvförskjutning (47011) när den entiteten går att skriva</td></tr>
     <tr><td>Alla med en <code>climate</code>-entitet i Home Assistant</td><td>HA (rumstemperatur)</td><td>✅ grundstyrning</td></tr>
     <tr><td>NIBE S-serien (S735, S1155, S1255, S320 …)</td><td>pumpens lokala REST-API</td><td>byggd, ej provad mot pump</td></tr>
     <tr><td>NIBE, Bosch, Atlantic, Daikin via myUplink</td><td>myUplink (molnet)</td><td>byggd, ej provad mot pump</td></tr>
