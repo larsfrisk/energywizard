@@ -98,6 +98,7 @@ def test_kompressorlåset_skriver_inte_över_återkopplingen():
     a = g.evaluate(st)
     assert any("Prio 8" in l and "Låst" in l for l in a["log"])
     assert a["pump_mode"] == "EXPENSIVE" and a["pump_target_temp"] == 19.0
+    assert "börvärde" not in next(l for l in a["log"] if "Anti-Short-Cycle" in l)
 
 
 def test_låst_i_annat_läge_ger_lägets_vanliga_temp():
@@ -108,6 +109,7 @@ def test_låst_i_annat_läge_ger_lägets_vanliga_temp():
           "outdoor_avg_5d": 2.0, "heat_stop_outdoor": 17.0, "heat_feedback": "på"}
     a = g.evaluate(st)
     assert a["pump_mode"] == "EXPENSIVE" and a["pump_target_temp"] == 20.0
+    assert "börvärde 20.0 °C" in next(l for l in a["log"] if "Anti-Short-Cycle" in l)
 
 
 def test_låsets_klockslag_visas_i_husets_tid(monkeypatch):

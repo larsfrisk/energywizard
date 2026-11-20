@@ -463,7 +463,7 @@ async function renderOversikt() {
   main.innerHTML = `
     <div class="card" style="margin-bottom:16px">
       <div style="font-size:1.15rem;font-weight:700">${emoji} ${decisionHeadlineHtml(d.decision)}</div>
-      <div class="note" style="margin-top:4px">💸 ${fmtKrOre(d.price)}/kWh · 🌡️ Inne ${fmt(d.indoor_temp, 1, "°C")} (mål ${d.indoor_target.toFixed(0)}) · 🌳 Ute ${fmt(d.outdoor_temp, 1, "°C")}</div>
+      <div class="note" style="margin-top:4px">💸 ${fmtKrOre(d.price)}/kWh · 🌡️ Inne ${fmt(d.indoor_temp, 1, "°C")} (mål ${fmt(d.indoor_target, 1, "")}) · 🌳 Ute ${fmt(d.outdoor_temp, 1, "°C")}</div>
     </div>
     ${(d.ftw_problems || []).map((s) => `<div class="card" style="margin-bottom:16px;border-color:var(--warn,#f59e0b)">
       <b>⚠️ Växelriktaren svarar inte (FTW-drivrutinen ${esc(s.driver)}, ${esc(s.host || "")}:${esc(String(s.port || ""))})</b>
@@ -476,7 +476,7 @@ async function renderOversikt() {
     ${tariffRow ? `<div class="card" style="margin-bottom:16px"><span class="note">${tariffRow}</span></div>` : ""}
     <div class="grid" style="margin-bottom:16px">
       ${metricCard("⚡", "Elpris just nu", fmtKrOre(d.price) + "/kWh")}
-      ${metricCard("🌡️", "Inne", fmt(d.indoor_temp, 1, "°C"), `Mål ${d.indoor_target.toFixed(0)}°C${d.indoor_humidity != null ? " · 💧 " + d.indoor_humidity.toFixed(0) + "%" : ""}`)}
+      ${metricCard("🌡️", "Inne", fmt(d.indoor_temp, 1, "°C"), `Mål ${fmt(d.indoor_target, 1, "°C")}${d.indoor_humidity != null ? " · 💧 " + d.indoor_humidity.toFixed(0) + "%" : ""}`)}
       ${metricCard("🌲", "Ute (Pump)", fmt(d.outdoor_temp, 1, "°C"))}
       ${metricCard(d.net_power_w < 0 ? "☀️" : "🔌", d.net_power_w < 0 ? "Netto (Säljer!)" : "Netto (Köper)", d.net_power_w != null ? (d.net_power_w / 1000).toFixed(2) + " kW" : "–")}
       ${metricCard("☀️", "PV-effekt", d.pv_power_w != null ? (d.pv_power_w / 1000).toFixed(2) + " kW" : "–")}
@@ -1947,7 +1947,7 @@ async function renderVarmepump() {
   main.innerHTML = `
     <div class="card" style="margin-bottom:16px">
       <div style="font-size:1.1rem;font-weight:700">♨️ Värmepump</div>
-      <div class="note" style="margin-top:4px">Ute ${fmt(d.outdoor_temp, 1, "°C")} · Inne ${fmt(d.indoor_temp, 1, "°C")} (mål ${d.indoor_target.toFixed(0)}°C)</div>
+      <div class="note" style="margin-top:4px">Ute ${fmt(d.outdoor_temp, 1, "°C")} · Inne ${fmt(d.indoor_temp, 1, "°C")} (mål ${fmt(d.indoor_target, 1, "°C")})</div>
     </div>
     ${pumpCardHtml(d.pump)}
     <div class="card" style="margin-bottom:16px">

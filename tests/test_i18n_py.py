@@ -56,3 +56,7 @@ def test_motorns_rader_med_namn():
     assert t("🔧 Sätter pumpens måltemp till 20.0°C...", "en") == "🔧 Setting the pump's target to 20.0°C..."
     assert t("ML: rummen ligger över golvet, börvärdet höjs inte under dyr el, de två kallaste rummen 21.0 °C, median 21.4 °C", "en") == \
         "ML: the rooms are already above the minimum, the setpoint is not raised while power is expensive, the two coldest rooms 21.0 °C, median 21.4 °C"
+    assert t("Anti-Short-Cycle – Låst i läge EXPENSIVE till 15:03, börvärde 20.0 °C.", "en") == \
+        "Anti-short-cycle – locked in mode EXPENSIVE until 15:03, setpoint 20.0 °C."
+    assert t("Anti-Short-Cycle – Låst i läge EXPENSIVE till 15:03, börvärde 20.0 °C.", "cs").startswith(
+        "Ochrana proti častému spínání")

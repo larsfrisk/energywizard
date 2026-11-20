@@ -1219,7 +1219,12 @@ class GlobalPriorityManager:
                 actions["pump_target_temp"] = state.get('temp_cheap', 22.0)
             else:
                 actions["pump_target_temp"] = state.get('temp_expensive', 20.0)
-            actions["log"].append(f"⚙️ Prio 8 (KOMPRESSOR): Anti-Short-Cycle -> Låst i läge {self.current_pump_mode} till {_local_hm(self.pump_mode_lock_until)}.")
+            _lock = f"Anti-Short-Cycle -> Låst i läge {self.current_pump_mode} till {_local_hm(self.pump_mode_lock_until)}"
+            # När låset byter börvärde måste raden säga vilket. Annars vinner den över rumsåterkopplingen
+            # och översikten säger "sparläge" eller bara att läget är låst (#517).
+            if actions.get("heat_feedback_for_mode") != self.current_pump_mode:
+                _lock += f", börvärde {float(actions['pump_target_temp']):.1f} °C"
+            actions["log"].append(f"⚙️ Prio 8 (KOMPRESSOR): {_lock}.")
         else:
             if actions["pump_mode"] != self.current_pump_mode:
                 lock_mins = 60 if actions["pump_mode"] == "CHEAP" else 45
