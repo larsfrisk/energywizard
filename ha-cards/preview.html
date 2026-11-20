@@ -41,5 +41,11 @@ attrs.cars = [{ id: "nissan", name: "Nissan Leaf", soc: 64, w: 0, on: false, win
 const kind = q.get("card") || "house";
 const el = document.createElement("energywizard-" + kind + "-card"); el.id = "c"; document.getElementById("w").appendChild(el);
 el.setConfig({ tab: q.get("tab") || "now", language: q.get("lang") || "sv", title: q.get("title") || undefined });
-el.hass = { language: q.get("lang") || "sv", states: q.get("missing") ? {} : { "sensor.energywizard_kort": { state: "billigt", last_updated: "x", attributes: attrs } } };
+const states = q.get("missing") ? {} : { "sensor.energywizard_kort": { state: "billigt", last_updated: "x", attributes: attrs } };
+if (!q.get("missing") && q.get("controls") !== "0") {
+  const opts = ["Auto", "Ladda nu", "Pausa"];
+  states["select.energywizard_ev_nissan_mode"] = { state: "Auto", attributes: { options: opts } };
+  states["select.energywizard_ev_tesla_mode"] = { state: "Ladda nu", attributes: { options: opts } };
+}
+el.hass = { language: q.get("lang") || "sv", states, callService: (d, s, data) => console.log("callService", d, s, JSON.stringify(data)) };
 </script></body></html>

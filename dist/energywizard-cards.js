@@ -17,12 +17,12 @@ const EW_VERSION = "0.1.0";
 const EW_TEXT = {
   sv: { now: "Nu", plan: "Plan", cars: "Bilar", cheap: "billigt", dear: "dyrt", unknown: "okänt", noData: "Ingen data från EnergyWizard än.",
         missing: (e) => `Hittar inte ${e}. Är EnergyWizard uppdaterad och kopplad till Home Assistant?`, stale: "Gammal data", clock: "Klocka", skyline: "Skyline",
-        heat: "Värme", water: "Varmvatten", outdoor: "Ute", setpoint: "Börvärde", within: "inom", cheapUntil: (h) => `Billigt till ${h}`, dearUntil: (h) => `Dyrt till ${h}`, thenCheap: "sedan billigt", thenDear: "sedan dyrt", noHeat: "Ingen värmedata än.", noPlan: "Inget planerat pass", plannedAt: "Planerad laddning", battery: "Laddnivå", notCharging: "Laddar inte",
+        heat: "Värme", water: "Varmvatten", outdoor: "Ute", setpoint: "Börvärde", within: "inom", cheapUntil: (h) => `Billigt till ${h}`, dearUntil: (h) => `Dyrt till ${h}`, thenCheap: "sedan billigt", thenDear: "sedan dyrt", noHeat: "Ingen värmedata än.", noPlan: "Inget planerat pass", plannedAt: "Planerad laddning", battery: "Laddnivå", notCharging: "Laddar inte", modes: { "Auto": "Auto", "Ladda nu": "Ladda nu", "Pausa": "Pausa" }, modeHint: "Auto = AI-schemat styr. Ladda nu laddar tills bilen är full eller kabeln dras ur.",
         perKwh: "kWh", price: "Pris nu", cheapest: "Billigast", dearest: "Dyrast", sun: "Sol", charging: "Laddar", noCars: "Inga elbilar i installationen.",
         why: "Varför", house: "Hemmet", ago: (m) => `${m} min sedan` },
   en: { now: "Now", plan: "Plan", cars: "Cars", cheap: "cheap", dear: "expensive", unknown: "unknown", noData: "No data from EnergyWizard yet.",
         missing: (e) => `Cannot find ${e}. Is EnergyWizard updated and connected to Home Assistant?`, stale: "Old data", clock: "Clock", skyline: "Skyline",
-        heat: "Heating", water: "Hot water", outdoor: "Outdoors", setpoint: "Setpoint", within: "within", cheapUntil: (h) => `Cheap until ${h}`, dearUntil: (h) => `Expensive until ${h}`, thenCheap: "then cheap", thenDear: "then expensive", noHeat: "No heating data yet.", noPlan: "No planned session", plannedAt: "Planned charging", battery: "Charge level", notCharging: "Not charging",
+        heat: "Heating", water: "Hot water", outdoor: "Outdoors", setpoint: "Setpoint", within: "within", cheapUntil: (h) => `Cheap until ${h}`, dearUntil: (h) => `Expensive until ${h}`, thenCheap: "then cheap", thenDear: "then expensive", noHeat: "No heating data yet.", noPlan: "No planned session", plannedAt: "Planned charging", battery: "Charge level", notCharging: "Not charging", modes: { "Auto": "Auto", "Ladda nu": "Charge now", "Pausa": "Pause" }, modeHint: "Auto = the AI plan decides. Charge now charges until the car is full or the cable is unplugged.",
         perKwh: "kWh", price: "Price now", cheapest: "Cheapest", dearest: "Most expensive", sun: "Sun", charging: "Charging", noCars: "No EVs in the installation.",
         why: "Why", house: "House", ago: (m) => `${m} min ago` },
 };
@@ -299,6 +299,12 @@ class EnergyWizardBase extends HTMLElement {
         <span class="chip ${cls}">${esc(fmtPrice(p.now, unit))} · ${esc(label)}</span></div>${stale}<div class="body">${this._body(a, t, unit)}</div>`;
     }
     this.shadowRoot.innerHTML = `<style>${STYLE}</style><ha-card>${inner}</ha-card>`;
+    // Knappar som styr EnergyWizard går via en väljare (select) i HA; kortet anropar bara HA:s tjänst.
+    this.shadowRoot.querySelectorAll("button[data-select]").forEach((b) => b.addEventListener("click", () => {
+      if (!this._hass || b.classList.contains("on")) return;
+      b.disabled = true; b.style.opacity = ".5";                    // väntar tills sensorn visar nya läget
+      this._hass.callService("select", "select_option", { entity_id: b.dataset.select, option: b.dataset.option });
+    }));
   }
 }
 
@@ -373,10 +379,14 @@ class EnergyWizardCarCard extends EnergyWizardBase {
       const wins = (c.win || []).map(([x, y, k]) => `${hhmm(x)}–${hhmm(y)} · ${k.toFixed(1).replace(".", ",")} kW`);
       const planned = wins.length ? `<div class="why"><b>${esc(t.plannedAt)}:</b> ${esc(wins.slice(0, 3).join("  ·  "))}${wins.length > 3 ? " …" : ""}</div>` : `<div class="why">${esc(t.noPlan)}</div>`;
       const reason = a.why && a.why["ev_" + c.id] ? `<div class="why">${esc(a.why["ev_" + c.id])}</div>` : "";
+      const sel = this._hass && this._hass.states ? this._hass.states[`select.energywizard_ev_${c.id}_mode`] : null;
+      const ctl = sel && sel.attributes && Array.isArray(sel.attributes.options) && this._config.controls !== false
+        ? `<div class="seg" style="justify-content:flex-start;padding:8px 0 2px">${sel.attributes.options.map((o) => `<button class="${o === sel.state ? "on" : ""}" data-select="select.energywizard_ev_${esc(c.id)}_mode" data-option="${esc(o)}">${esc((t.modes && t.modes[o]) || o)}</button>`).join("")}</div>
+           ${cars.indexOf(c) === 0 ? `<div class="why" style="margin-top:2px">${esc(t.modeHint)}</div>` : ""}` : "";
       return `<div style="padding:6px 4px 14px"><div class="row" style="border:0;padding:4px 0"><span class="dot ${c.on ? "on" : ""}"></span>
           <div style="flex:1;min-width:0"><div class="n">🚗 ${esc(c.name || c.id)}</div><div class="d">${status}</div></div>
           <div class="n" style="font-size:1.6rem;font-weight:300">${soc == null ? "–" : soc + " %"}</div></div>${bar}
-        ${priceStrip(a.slots || [], c.win, unit, t, 110)}${planned}${reason}</div>`;
+        ${ctl}${priceStrip(a.slots || [], c.win, unit, t, 110)}${planned}${reason}</div>`;
     }).join("");
   }
 }

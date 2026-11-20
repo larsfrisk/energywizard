@@ -19,3 +19,9 @@ def test_alla_tre_korten_ar_registrerade():
     js = (ROOT / "dist" / "energywizard-cards.js").read_text(encoding="utf-8")
     for tag in ("energywizard-house-card", "energywizard-heat-card", "energywizard-car-card"):
         assert f'customElements.define("{tag}"' in js
+
+
+def test_bilkortets_knappar_anropar_ha_och_visas_bara_med_vaeljare():
+    js = (ROOT / "dist" / "energywizard-cards.js").read_text(encoding="utf-8")
+    assert 'callService("select", "select_option"' in js and "select.energywizard_ev_${c.id}_mode" in js
+    assert "controls !== false" in js            # kan stängas av i kortets inställningar

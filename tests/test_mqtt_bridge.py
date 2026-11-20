@@ -38,3 +38,32 @@ def test_alla_id_ar_ascii():
     for key in mqtt_bridge.SWITCHES:
         _, s = mqtt_bridge.switch_payload(key)
         assert s["default_entity_id"].isascii() and s["command_topic"].isascii()
+
+
+def test_bilens_laddlage_som_vaeljare_i_ha():
+    """#557: varje bil får en väljare (Auto, Ladda nu, Pausa) som Bil-kortet visar som knappar."""
+    topic, p = mqtt_bridge.car_select_payload("nissan", "Nissan Leaf")
+    assert topic == "homeassistant/select/energywizard/energywizard_ev_nissan_mode/config"
+    assert p["options"] == ["Auto", "Ladda nu", "Pausa"] and p["default_entity_id"] == "select.energywizard_ev_nissan_mode"
+    assert p["command_topic"] == "energywizard/select/ev_nissan/set" and p["state_topic"] == "energywizard/select/ev_nissan/state"
+    json.dumps(p)
+
+
+def test_laddlage_ur_overstyrningarna():
+    assert mqtt_bridge.car_mode("tesla", {}) == "Auto"
+    assert mqtt_bridge.car_mode("tesla", {"tesla_force_amps": "16"}) == "Ladda nu"
+    assert mqtt_bridge.car_mode("tesla", {"tesla_hold": "on"}) == "Pausa"
+    assert mqtt_bridge.car_mode("tesla", {"tesla_hold": "on", "tesla_force_amps": "16"}) == "Ladda nu"     # tvång går före spärr
+
+
+def test_knapparna_sätter_samma_overstyrningar_som_appen():
+    got = {}
+    assert mqtt_bridge.apply_car_mode("tesla", "Ladda nu", 16, got.__setitem__) is True
+    assert got["tesla_force_amps"] == "16" and got["tesla_hold"] == "off" and got["tesla_charge_now_target"] == ""
+    got.clear()
+    assert mqtt_bridge.apply_car_mode("tesla", "Pausa", 16, got.__setitem__) and got["tesla_hold"] == "on" and got["tesla_force_amps"] == "0"
+    got.clear()
+    assert mqtt_bridge.apply_car_mode("tesla", "Auto", 16, got.__setitem__)
+    assert got["tesla_hold"] == "off" and got["tesla_force_amps"] == "0" and got["force_ev_recalc"] == "true"
+    got.clear()
+    assert mqtt_bridge.apply_car_mode("tesla", "Köp en ny bil", 16, got.__setitem__) is False and got == {}      # okänt: ingenting ändras

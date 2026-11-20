@@ -1,5 +1,10 @@
 # Ändringar
 
+## 1.2.136 (2026-11-20)
+- **Knappar i Bil-kortet i Home Assistant (#557): Auto, Ladda nu, Pausa.** Med MQTT påslaget (Inställningar → Home Assistant via MQTT) får varje bil en väljare, `select.energywizard_ev_<bil>_mode`,
+  och kortet visar den som knappar. De sätter samma överstyrningar som appens knappar. Ladda nu laddar tills bilen är full eller kabeln dras ur, och Auto ger tillbaka AI-schemat. Utan MQTT finns
+  inga knappar och kortet läser bara som förut. `controls: false` döljer knapparna.
+
 ## 1.2.135 (2026-11-20)
 - **Webben på telefon:** genomgång av alla 14 sidor på 390 px. Fält med flera värden på samma rad (`Billigt … Dyrt … Spara`, `Börvärde lägst … högst`) klipptes i högerkanten och bryts nu till ny rad.
   Flödesbilden "Just nu" på Översikten blev så liten att texten inte gick att läsa; den använder nu det kompakta läget på smala skärmar (som mobilappen).
