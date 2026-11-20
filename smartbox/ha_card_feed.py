@@ -48,10 +48,14 @@ def _epoch(iso):
         return None
 
 
-def _flow(flow):
+def _flow(flow, pump_w=None):
+    """pump_w: värmepumpens uppmätta elförbrukning (load_breakdown). live_flow ger kompressorns värmeeffekt, som för en
+    värmepump är flera gånger elförbrukningen (11,5 kW värme mot 2,7 kW el vid COP 4,8), så kortet ska visa elen."""
     out = []
     for n in (flow or {}).get("nodes", []) or []:
         w = _num(n.get("w"), 0)
+        if n.get("key") == "varmepump" and pump_w is not None:
+            w = _num(pump_w, 0)
         out.append({"k": n.get("key"), "l": n.get("label"), "i": n.get("icon"), "w": None if w is None else int(w),
                     "on": bool(n.get("active")), "d": n.get("detail"), "r": n.get("role")})
     return out
@@ -126,7 +130,7 @@ def _heat(row, cfg):
             "max": _num(cfg.get("indoor_max"), 1), "min": _num(cfg.get("indoor_min"), 1)}
 
 
-def build(flow, planclock, now=None, unit="kr", row=None, cfg=None):
+def build(flow, planclock, now=None, unit="kr", row=None, cfg=None, pump_w=None):
     """Sensorns (tillstånd, attribut) ur flödet och planen. Rena funktioner, testas utan databas."""
     now = now or datetime.now().astimezone()
     slots = _slots(planclock)
@@ -138,7 +142,7 @@ def build(flow, planclock, now=None, unit="kr", row=None, cfg=None):
     price = {"now": cur[1] if cur else None, "spot": cur[2] if cur else None, "mode": cur[3] if cur else ""}
     attrs = {
         "friendly_name": "EnergyWizard kort", "icon": "mdi:flash", "v": SCHEMA, "ts": now.isoformat(timespec="seconds"),
-        "unit": unit, "flow": _flow(flow), "why": {k: str(v)[:240] for k, v in ((flow or {}).get("why") or {}).items()},
+        "unit": unit, "flow": _flow(flow, pump_w), "why": {k: str(v)[:240] for k, v in ((flow or {}).get("why") or {}).items()},
         "slots": slots, "cars": _cars(flow, planclock), "heat": _heat(row, cfg),
         "price": price, "battery": bool((planclock or {}).get("has_battery")),
     }
@@ -178,5 +182,13 @@ def entities(engine):
         cfg = settings.get_settings()
     except Exception:
         cfg = {}
-    state, attrs = build(flow, pc, unit=nordpool.cost_settings()["symbol"], row=row, cfg=cfg)
+    pump_w = None
+    try:                                              # senaste uppmätta elförbrukningen för pumpen, om den är färsk
+        with engine.connect() as c2:
+            lb = c2.execute(text("SELECT pump_w FROM load_breakdown WHERE timestamp > now() - interval '10 minutes' "
+                                 "ORDER BY timestamp DESC LIMIT 1")).first()
+        pump_w = lb[0] if lb else None
+    except Exception:
+        pump_w = None
+    state, attrs = build(flow, pc, unit=nordpool.cost_settings()["symbol"], row=row, cfg=cfg, pump_w=pump_w)
     return {ENTITY: (state, attrs)}

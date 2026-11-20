@@ -65,6 +65,15 @@ def test_varme_ur_senaste_raden_och_installningar():
     assert ha_card_feed.build(FLOW, PC, now=NOW)[1]["heat"] is None
 
 
+def test_varmepumpens_effekt_ar_elforbrukningen_inte_varmen():
+    flow = {"nodes": [{"key": "varmepump", "label": "Värmepump", "w": 11500, "active": True, "detail": "Går", "role": "load"},
+                      {"key": "spabad", "label": "Spabad", "w": 180, "active": False, "detail": "38 °C", "role": "load"}]}
+    _, a = ha_card_feed.build(flow, PC, now=NOW, pump_w=2718.4)
+    assert [n["w"] for n in a["flow"]] == [2718, 180]                       # bara värmepumpen byts
+    _, b = ha_card_feed.build(flow, PC, now=NOW)
+    assert b["flow"][0]["w"] == 11500                                       # utan mätvärde som förut
+
+
 def test_tom_data_kraschar_inte():
     state, a = ha_card_feed.build({}, {}, now=NOW)
     assert state == "okänt" and a["flow"] == [] and a["slots"] == [] and a["price"]["now"] is None and a["cars"] == []

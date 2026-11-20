@@ -1,5 +1,10 @@
 # Ändringar
 
+## 1.2.127 (2026-11-20)
+- **Korten visar värmepumpens elförbrukning, inte kompressorns värmeeffekt.** Flödet läste `compressor_power_kw`, som för en värmepump är flera gånger elförbrukningen
+  (11,5 kW värme mot 2,7 kW el vid COP 4,8). Kortsensorn tar nu den uppmätta elförbrukningen (`load_breakdown.pump_w`) när den är färsk. Appens och webbens flöde har samma
+  uppgift kvar att rätta.
+
 ## 1.2.126 (2026-11-20)
 - **Fler kort för Home Assistant:** `energywizard-heat-card` (termostatratt med inomhustemperatur och band mellan golv och tak, varmvatten, billiga och dyra pass) och
   `energywizard-car-card` (laddnivå, status och planerade laddpass över elpriset, per bil). Kortsensorn har fått värmedata och bilarnas laddnivå och pass.
