@@ -2747,6 +2747,7 @@
  "ML: lägsta börvärde som håller de två kallaste rummen över # °C i # h (förutsägs # °C), de två kallaste rummen # °C, median # °C": "ML: lowest setpoint that keeps the two coldest rooms above # °C for # h (predicted # °C), the two coldest rooms # °C, median # °C",
  "ML: högsta börvärde som håller huset under # °C i # h (förutsägs # °C), de två kallaste rummen # °C, median # °C": "ML: highest setpoint that keeps the house below # °C for # h (predicted # °C), the two coldest rooms # °C, median # °C",
  "ML: inget börvärde håller golvet i # h, de två kallaste rummen # °C, median # °C": "ML: no setpoint holds the minimum for # h, the two coldest rooms # °C, median # °C",
+ "ML: rummen ligger över golvet, börvärdet höjs inte under dyr el, de två kallaste rummen # °C, median # °C": "ML: the rooms are already above the minimum, the setpoint is not raised while power is expensive, the two coldest rooms # °C, median # °C",
  "ML: alla börvärden förutsägs ta huset över # °C, de två kallaste rummen # °C, median # °C": "ML: all setpoints are predicted to take the house above # °C, the two coldest rooms # °C, median # °C",
  "Nära golvet, de två kallaste rummen # °C": "Close to the minimum, the two coldest rooms # °C",
  "Börvärdesmodell (ML): lärd på # perioder.": "Setpoint model (ML): trained on # periods.",

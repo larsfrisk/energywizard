@@ -50,6 +50,29 @@ def test_dyrt_väljer_lägsta_som_håller_golvet():
     assert end >= 20.2
 
 
+def test_dyrt_och_redan_varmt_hojer_inte_over_sparlaget():
+    """#517: prognosen håller golvet först vid 23 °C, men rummen ligger redan över det. Då stannar börvärdet på sparläget."""
+    w = [-1.25, 0.0275, 0.0275, -0.001]
+    assert heat_ml.predict_end(w, 21.0, 20.5, 21.4, 4.0, 8.0) < 20.7
+    assert heat_ml.predict_end(w, 21.0, 23.0, 21.4, 4.0, 8.0) >= 20.7
+    sp, why = heat_ml.choose(w, "EXPENSIVE", 21.0, 21.4, 4.0, 8.0, 20.5, 22.5, 15.0, 25.0)
+    assert sp == 20.5 and "höjs inte" in why
+
+
+def test_motorn_skriver_sparlaget_nar_prognosen_vill_varma():
+    from test_heat_feedback import NOW
+    from gpm import GlobalPriorityManager
+    w = [-1.25, 0.0275, 0.0275, -0.001]
+    base = {"now": NOW, "car_ids": [], "indoor_temp": 21.4, "indoor_min": 19.0, "indoor_max": 22.5,
+            "temp_cheap": 22.0, "temp_expensive": 20.5, "current_price": 2.4, "dynamic_limit": 2.0, "hysteresis": 0.1,
+            "outdoor_avg_5d": 2.0, "heat_stop_outdoor": 17.0, "heat_feedback": "på", "outdoor_temp": 4.0,
+            "heat_feedback_min_sp": 15.0, "heat_feedback_max_sp": 25.0, "indoor_low2": 21.0,
+            "heat_ml_w": w, "heat_horizon": (8.0, 0.0)}
+    a = GlobalPriorityManager().evaluate(base)
+    assert a["pump_target_temp"] == 20.5
+    assert any("höjs inte under dyr el" in l for l in a["log"])
+
+
 def test_billigt_väljer_högsta_under_taket():
     sp, _ = heat_ml.choose(SANT, "CHEAP", 20.8, 21.0, 2.0, 3.0, 20.0, 22.0, 15.0, 25.0)
     assert heat_ml.predict_end(SANT, 21.0, sp, 21.0, 2.0, 3.0) <= 21.7

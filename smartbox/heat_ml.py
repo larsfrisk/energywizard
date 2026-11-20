@@ -10,7 +10,8 @@ stabila; därför en säkerhetsmarginal och en löpande nivårättning (bias) mo
 
 Val (choose):
   - dyrt: LÄGSTA börvärde där de två kallaste rummen (snitt) förutsägs ligga kvar över golvet + marginal fram till nästa
-    billiga period (högst 8 h fram)
+    billiga period (högst 8 h fram). Ligger rummen redan över golvet höjs börvärdet inte över sparläget: en prognos som
+    vill ha 23 °C när rummen är 21 °C startar kompressorn och köper el nu, fast valet görs om varje minut (#517).
   - billigt: HÖGSTA börvärde där huset (median) förutsägs ligga under maxgränsen - marginal till slutet av den billiga
     perioden (högst 6 h)
   - inom de hårda gränserna (heat_feedback_min_sp/max_sp, standard 15-25)
@@ -22,6 +23,7 @@ HORIZON_H = 4
 MIN_SAMPLES = 400
 MARGIN_LOW = 0.2         # °C över golvet som de kallaste rummen ska hålla
 MARGIN_HIGH = 0.3        # °C under maxgränsen
+ABOVE_FLOOR = 0.4        # samma band som gpm: under det tar golvvakten över, inte den här spärren
 MAX_EXPENSIVE_H = 8.0
 MAX_CHEAP_H = 6.0
 REFIT = timedelta(hours=24)
@@ -77,10 +79,16 @@ def choose(w, mode, low2, median, tout, hours, floor, indoor_max, lo, hi, bias=0
     cands = [lo + 0.5 * i for i in range(int(round((hi - lo) / 0.5)) + 1)]
     if mode == "EXPENSIVE":
         h = min(max(hours, 0.25), MAX_EXPENSIVE_H)
-        for sp in cands:                                   # lägsta som håller golvet
+        # Rummen är redan över golvet. Prognosen räknas om varje minut, så ett högt börvärde nu
+        # värmer huset på dyr el i stället för att vänta tills rummen närmar sig golvet (#517).
+        cap = min(max(float(floor), float(lo)), float(hi)) if low2 >= floor + ABOVE_FLOOR else None
+        pool = [sp for sp in cands if cap is None or sp <= cap]
+        for sp in pool:                                    # lägsta som håller golvet
             end = predict_end(w, low2, sp, median, tout, h, bias)
             if end >= floor + MARGIN_LOW:
                 return sp, f"ML: lägsta börvärde som håller de två kallaste rummen över {floor + MARGIN_LOW:.1f} °C i {h:.1f} h (förutsägs {end:.1f} °C)"
+        if cap is not None:
+            return cap, "ML: rummen ligger över golvet, börvärdet höjs inte under dyr el"
         return None, f"ML: inget börvärde håller golvet i {h:.1f} h"
     h = min(max(hours, 0.25), MAX_CHEAP_H)
     best = None
