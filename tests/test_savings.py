@@ -45,6 +45,29 @@ def test_procent_doljs_nar_jamforelsekostnaden_ar_nara_noll():
     assert p["today"]["pct"] is None and p["today"]["saved_kr"] == 0.8
 
 
+def test_avgifter_gor_att_betalt_snitt_kan_sla_hogsta_spot():
+    """#510: snittet på köpt el är inklusive avgifter. Högsta spotpriset är det inte."""
+    from datetime import datetime, timezone
+    from savings import price_span
+    cheap = datetime(2026, 11, 18, 6, tzinfo=timezone.utc)
+    peak = datetime(2026, 11, 18, 17, tzinfo=timezone.utc)
+    span = price_span([(cheap, 0.80), (peak, 2.43), (peak, None)], buy_cost=lambda spot, t: spot + 0.50)
+    assert span["spot"]["max"] == 2.43
+    assert span["buy"]["min"] == 1.30 and span["buy"]["max"] == 2.93
+    assert span["buy"]["max"] > span["spot"]["max"]
+    assert round(span["spot"]["avg"], 4) == round((0.80 + 2.43) / 2, 4)
+    # Tidstariffen hör till timmen, så högst att köpa kan skilja sig från ett fast påslag.
+    span = price_span([(cheap, 1.0), (peak, 1.0)], buy_cost=lambda spot, t: spot + (0.2 if t.hour >= 17 else 0))
+    assert span["buy"]["min"] == 1.0 and span["buy"]["max"] == 1.2
+
+
+def test_prisintervall_utan_rader():
+    from savings import price_span
+    empty = {"min": None, "avg": None, "max": None}
+    assert price_span([]) == {"spot": empty, "buy": empty}
+    assert price_span([(None, None)], buy_cost=lambda spot, t: spot)["spot"]["max"] is None
+
+
 def test_pengar_per_period():
     from savings import money_periods
     rows = [{"day": "2026-10-20", "bought_kwh": 10, "cost": 30, "sold_kwh": 0, "income": 0, "net": 30},
