@@ -1,7 +1,7 @@
 """#491: HeishaMon-drivrutinen i FTW skrev safe_offset (0) till Z1_Heat_Request_Temp vid varje
 vakthund och omstart. Den som styr förskjutningen från Home Assistant fick den nollställd.
-Nu publiceras offset bara när control är på, och vakthunden återställer bara efter att
-drivrutinen själv har skrivit. Ingen MQTT-anslutning: publiceringen fångas i minnet.
+Upstream rättade vakthunden (0.8.1: återställer bara efter att FTW själv skrivit). Vår enda ändring ovanpå är
+control: false (helt läsande). Ingen MQTT-anslutning: publiceringen fångas i minnet.
 Värden nil betyder lyckad publicering, samma kontrakt som FTW:s värd (felsträng vid misslyckande)."""
 import os
 
@@ -50,10 +50,12 @@ def test_återställning_efter_egen_skrivning(published):
     assert published == [(TOPIC, "2")]
     d.L.globals().driver_default_mode()
     d.L.globals().driver_cleanup()
-    assert published == [(TOPIC, "2"), (TOPIC, "0"), (TOPIC, "0")]
+    assert published == [(TOPIC, "2"), (TOPIC, "0")]      # återställs en gång; markeringen släpps efter lyckad återställning
 
 
-def test_misslyckad_skrivning_armerar_inte_återställning(published, monkeypatch):
+def test_misslyckad_skrivning_armerar_aterstallning_som_upstream(published, monkeypatch):
+    """Upstream (srcfl/device-drivers#235, 0.8.1) markerar före publiceringen: ett misslyckat publicerat kan ändå ha nått
+    mäklaren, och en onödig återställning är det gamla, säkra beteendet."""
     def fail(self, topic, payload):
         published.append((str(topic), str(payload)))
         return "broker nere"
@@ -63,7 +65,7 @@ def test_misslyckad_skrivning_armerar_inte_återställning(published, monkeypatc
     assert d.command("set_heat_curve_offset", 0, {"offset": 1}) is False
     published.clear()
     d.L.globals().driver_default_mode()
-    assert published == []
+    assert published == [(TOPIC, "0")]
 
 
 def test_control_false_skriver_aldrig_men_läser_ändå(published):

@@ -23,7 +23,7 @@ påstod att Sourceful gett sitt OK. Det var en övertolkning av ett vänligt sva
 | `ferroamp.lua` | 2026-11-13 | EnergyWizard #343: source-dated per-ESO SOC telemetry and explicit scheduled-maintenance charge context above the normal 95% dispatch margin. Default dispatch and BMS protection remain unchanged. | |
 | `deye-svk.lua` | 2026-11-09 | Skydd mot nil-SoC vid misslyckad poll i energiheadroom-beräkningen (samma skydd som i `50-125k-svk*.lua`). Av lazgeo, #215. Skickad till källan: [srcfl/device-drivers#224](https://github.com/srcfl/device-drivers/pull/224). | `101713e` |
 | `deye-svk.lua` | 2026-11-12 | `read_rated_w` och `detect_hv` indexerar inte en nil-tabell när Modbus svarar `(nil, fel)` utan att kasta. Det gav `LuaError` i `driver_poll` varje varv tills märkeffekten var känd (#297). | |
-| `heishamon.lua` | 2026-11-20 | Skriver inte 0 °C till `Z1_Heat_Request_Temp` vid varje vakthund och omstart. Det neutrala värdet skrivs bara efter att drivrutinen själv har ändrat kurvförskjutningen, och `control: false` gör den helt läsande (#491). Ännu inte skickad till källan. | ae65d33 |
+| `heishamon.lua` | 2026-11-20 | Upstreams 0.8.1 (srcfl/device-drivers#235) med en ändring: valfri `control: false` gör drivrutinen helt läsande (inga kommandon, `DRIVER.controls` tom), så att Home Assistant behåller kurvförskjutningen (#491). Inte skickad till källan än. | |
 
 Drivrutinerna körs av `smartbox/lua_host.py` och används via `smartbox/drivers/ftw_device.py` (`driver: ftw` för
 batteri och solceller i house_config.yaml). Styrning (laddning, urladdning, exportbegränsning) är avstängd för alla
@@ -38,5 +38,5 @@ Copyright 2026 Sourceful Labs AB and contributors, commit `e07d27038e83` (fetche
 distributed under the upstream license, **GNU AGPL-3.0 only**, with the terms and notices in the upstream files that
 are included here unchanged (`UPSTREAM-LICENSE`, `UPSTREAM-NOTICE`, `UPSTREAM-LICENSING.md`,
 `UPSTREAM-THIRD_PARTY_NOTICES.md`). No separate permission from Sourceful exists or is claimed beyond the license.
-Changes from upstream are listed in the table above (`deye-svk.lua`: nil-SoC guard #215, and the #297 guard so a failed Modbus read does not crash `driver_poll`; `heishamon.lua`: the neutral curve offset is only written back after the driver has changed it itself, #491), and fixes
+Changes from upstream are listed in the table above (`deye-svk.lua`: nil-SoC guard #215, and the #297 guard so a failed Modbus read does not crash `driver_poll`; `heishamon.lua`: upstream 0.8.1 plus an optional `control: false` read-only mode, #491), and fixes
 are sent upstream as pull requests.

@@ -1,5 +1,9 @@
 # Ändringar
 
+## 1.2.132 (2026-11-20)
+- **HeishaMon: samma drivrutin som upstream (0.8.1) plus `control: false`.** Upstream (srcfl/device-drivers#235) rättade samma fel som vi (vakthunden nollställde kurvförskjutningen) två dygn före oss. Vi har bytt
+  vår egen rättning mot deras fil och behåller bara ett tillägg: `control: false` gör drivrutinen helt läsande (#491). `NOTICE.md` är rättad.
+
 ## 1.2.131 (2026-11-20)
 - **Husdata/Thermia: värmepumpens elförbrukning från H66 när du angett watt (#466).** H66 räknar själv ut en summa av de watt du anger per statusvariabel (Compressor, Add heat step 1/2, pumparna) och visar den som
   "Power consumption". Är den större än 0 använder motorn den som pumpens elförbrukning i lastnedbrytningen och COP, i stället för uppskattningen ur framledningstemperaturen. Utan inställda watt är allt som förut.
