@@ -1,5 +1,11 @@
 # Ändringar
 
+## 1.2.119 (2026-11-20)
+- **Översikten visar börvärdet som beställdes (#517).** Vid dyr el sa beslutsraden "styrs ner till sparläge"
+  eller att kompressorlåset höll läget, medan rumsåterkopplingen hade beställt ett annat börvärde (till exempel
+  17,5 °C). Beslutet är nu det börvärdet. När låset själv byter börvärde står temperaturen i låsraden.
+  Måltemperaturen bredvid innetemperaturen är samma beställda värde, inte bara inställningen för dyr el.
+
 ## 1.2.118 (2026-11-20)
 - **Märkesnamn med å, ä, ö, š m.fl. blev fel i telemetrin** ("Škoda" blev "Åkoda"). HA:s svar lästes som latin-1 i stället för
   UTF-8. Rättat, och telemetrisidan visar redan inkomna "Åkoda" som Škoda. Kia, Volvo, Volkswagen, Mercedes och Huawei med

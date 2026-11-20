@@ -53,11 +53,19 @@ def _tidy(text):
     return text[:1].upper() + text[1:] if text else text
 
 
+def _lock_note(line):
+    """Kompressorlåset loggas efter börvärdet. Utan ett eget börvärde ändrar raden inget som beställts."""
+    text = line or ""
+    if "börvärde" in text:
+        return False
+    return "Anti-Short-Cycle" in text or "Byter läge till" in text
+
+
 def summarize(log_lines, actions=None):
     """{'headline': str, 'items': [{'key', 'icon', 'label', 'text'}]} ur gpm.py:s logg."""
     latest = {}
     for line in log_lines or []:
-        if any(n in line for n in _NOISE):
+        if any(n in line for n in _NOISE) or _lock_note(line):
             continue
         tag, text = _parse(line)
         key = _TAG_TO_KEY.get(tag)

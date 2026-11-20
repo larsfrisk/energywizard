@@ -54,3 +54,7 @@ def test_motorns_rader_med_namn():
         "  🚗 Prio 3 (EV plan): Charging by the schedule. The house fuse allows 16A. Setting Zeekr: 16A."
     assert t("⚡ Easee: Dynamisk gräns satt till 0 A", "en") == "⚡ Easee: dynamic limit set to 0 A"
     assert t("🔧 Sätter pumpens måltemp till 20.0°C...", "en") == "🔧 Setting the pump's target to 20.0°C..."
+    assert t("Anti-Short-Cycle – Låst i läge EXPENSIVE till 15:03, börvärde 20.0 °C.", "en") == \
+        "Anti-short-cycle – locked in mode EXPENSIVE until 15:03, setpoint 20.0 °C."
+    assert t("Anti-Short-Cycle – Låst i läge EXPENSIVE till 15:03, börvärde 20.0 °C.", "cs").startswith(
+        "Ochrana proti častému spínání")

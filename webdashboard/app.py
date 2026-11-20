@@ -1205,6 +1205,15 @@ def _temp_target(conn, mode: str) -> float:
     return float(cheap if cheap is not None else 22.0) if mode == "CHEAP" else float(expensive if expensive is not None else 20.0)
 
 
+def shown_indoor_target(logged, fallback):
+    """Översiktens mål är börvärdet motorn beställde (target_room_temp), inte billig/dyr-inställningen.
+
+    #517: inställningen vid dyr el var 21 °C medan rumsåterkopplingen hade beställt 17,5 °C. Kortet
+    visade 21, så det såg ut som att sparläget inte sänkte värmen fast pumpen fått ett lägre börvärde.
+    """
+    return logged if logged is not None else fallback
+
+
 def _heat_battery(row) -> dict | None:
     """Varmvattenberedaren som ett termiskt batteri: laddnivå = var water_temp ligger
     mellan husets EGNA aktuella golv (water_start_temp) och tak (water_setpoint) -
@@ -1240,7 +1249,7 @@ async def overview(request: Request):
         if row is None:
             return {"ok": False, "error": "Ingen data i sensor_log än"}
         mode = str(row.get("active_mode") or "").upper()
-        target_room = _temp_target(c, mode)
+        target_room = shown_indoor_target(_n(row.get("target_room_temp")), _temp_target(c, mode))
         ov = _overrides(c, ("heat", "hotwater"))
         cfg = _settings_row(c, ("temp_cheap", "temp_expensive", "legionella_days", "legionella_temp"))
         leg_last = _legionella_last(c, cfg.get("legionella_temp"))

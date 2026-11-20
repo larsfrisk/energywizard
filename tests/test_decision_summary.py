@@ -81,6 +81,29 @@ def test_prio_5b_rumsaterkoppling_vinner_over_grundlaget():
     assert "21.5" in pump["text"] and "sparläge" not in pump["text"]
 
 
+def test_kompressorlaset_doljer_inte_bestallt_borvarde():
+    """#517: låset loggas efter rumsåterkopplingen. Beslutet är börvärdet, inte sparläget och inte låsraden."""
+    log = [
+        "🔴 Grundläge: Dyr el (2.43 kr >= 2.19 kr). Värmepump styrs ner till sparläge.",
+        "🌡️ Prio 5b (HUS): Rumsåterkoppling sätter börvärdet till 17.5 °C. ML: lägsta börvärde som håller golvet.",
+        "⚙️ Prio 8 (KOMPRESSOR): Anti-Short-Cycle -> Låst i läge EXPENSIVE till 15:03.",
+    ]
+    pump = next(i for i in summarize(log)["items"] if i["key"] == "varmepump")
+    assert pump["text"].startswith("Rumsåterkoppling sätter börvärdet till 17.5")
+    assert "sparläge" not in pump["text"] and "Låst" not in pump["text"]
+    assert summarize(log)["headline"].startswith("Värmepump: Rumsåterkoppling")
+
+
+def test_kompressorlaset_visar_borvardet_nar_det_andrar_det():
+    log = [
+        "🌡️ Prio 5b (HUS): Rumsåterkoppling sätter börvärdet till 22.0 °C. Billigt.",
+        "⚙️ Prio 8 (KOMPRESSOR): Anti-Short-Cycle -> Låst i läge EXPENSIVE till 15:03, börvärde 20.0 °C.",
+    ]
+    pump = next(i for i in summarize(log)["items"] if i["key"] == "varmepump")
+    assert "20.0" in pump["text"] and "börvärde" in pump["text"]
+    assert "22.0" not in pump["text"]
+
+
 def test_skuggraden_ar_inget_beslut():
     log = [
         "🔴 Grundläge: Dyr el (2.79 kr >= 1.85 kr). Värmepump styrs ner till sparläge.",
