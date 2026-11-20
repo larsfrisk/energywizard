@@ -138,6 +138,16 @@ spa:
 #     heater_switch: switch.shelly_spa           # krävs
 #     temperature: sensor.spa_vattentemperatur   # rekommenderas (Shelly Add-on + DS18B20)
 #     power: sensor.shelly_spa_power             # valfri
+#
+# Filtercykeln (#447). Av som standard. control false räknar och loggar, inget skrivs.
+# En switch krävs för att kunna flytta cykeln till billiga timmar. Cirkulationen rörs
+# inte medan värmaren går eller ett bad är nära.
+#   filter:
+#     enabled: true
+#     control: false
+#     switch: switch.spa_filter          # Balboa: filtercykelns brytare. Utelämna för bara skugga
+#     min_minutes: 120                   # vila på dyr el först efter så här många minuter idag
+#     daily_minutes: 240                 # kör på billig el tills dygnet nått så här många minuter
 
 # --- Husbatteri (valfri) ---
 # Ferroamp EnergyHub: driver: ferroamp_modbus läser lokalt via Modbus TCP.

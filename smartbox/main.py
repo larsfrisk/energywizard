@@ -42,6 +42,7 @@ import learning         # AI-modeller för temperatur och avsvalning
 import mpc               # Prediktiv förvärmnings-planerare (skuggläge + veckovis självvalidering)
 import house_config      # EnergyWizard Open: drivrutinsarkitektur (bil/laddare/värmepump/sol/spa)
 import smart_plugs
+import spa_filter          # #447: filtercykeln vilar på dyr el, skugga tills control är true
 import ev_handshake      # Generisk laddar-handskakning (vilken fysisk laddare hör till vilken bil)
 import decision_summary  # Vad görs nu och varför, per enhet (ur gpm.py:s logg)
 import solar_write_guard # Hur ofta exportgränsen får skrivas (flashminnet i växelriktaren)
@@ -173,6 +174,9 @@ hot_water_driver = _build_or_null("Varmvattnet", lambda cfg: house_config.build_
 solar_driver = _build_or_null("Solcellerna", house_config.build_solar_driver, house_config.NullSolarDriver)
 spa_driver = _build_or_null("Spabadet", house_config.build_spa_driver, house_config.NullSpaDriver)
 HAS_SPA = not isinstance(spa_driver, house_config.NullSpaDriver)   # inget spa i installationen: ingen spa-bevakning eller -styrning
+_spa_filter = spa_filter.Policy(((house_cfg.get("spa") or {}).get("filter")))
+if _spa_filter.enabled:
+    print(f"Spabadets filtercykel: {'styr' if _spa_filter.control else 'skugga'}")
 battery_driver = _build_or_null("Batteriet", house_config.build_battery_driver, house_config.NullBatteryDriver)
 
 
@@ -1879,6 +1883,7 @@ while True:
             # Badtider (spa_bath.py): utanför dem ligger badet på eco-golvet och värms inför nästa badtid. Ett manuellt
             # schema (spa_schedule_enabled) går före.
             spa_bath_note = None
+            _in_bath, _next_bath = False, None
             if not (spa_schedule_active and target_dt and target_dt > now):
                 _bath_mode = _ew_settings.get("spa_bath_mode") or "bath"     # "nobath": tider då man inte badar (Emil 2026-11-15)
                 _in_bath, _next_bath, _bath_end = spa_bath.status(now, _ew_settings.get("spa_bath_windows"), _bath_mode)
@@ -2908,6 +2913,17 @@ while True:
                     _spa_act = spa_driver.read_activities()
                     logger.log_spa_phase(spa_power_data.get('phase_a_w'), spa_power_data.get('phase_b_w'),
                                          spa_power_data.get('phase_c_w'), _spa_act)
+                    if _spa_filter.enabled:
+                        try:
+                            _bath_at = _next_bath if _next_bath is not None else (
+                                target_dt if spa_schedule_active and target_dt and target_dt > now else None)
+                            _spa_filter.tick(
+                                now, current_mode, _spa_act,
+                                (gecko_data or {}).get("heater_state"), bool(_in_bath), _bath_at,
+                                (spa_power_data or {}).get("total_w"), homeassistant.set_switch,
+                                shadow.record, shadow.active())
+                        except Exception as _sfe:
+                            print(f"Spabadets filtercykel hoppade över: {_sfe}")
             except Exception as _spe:
                 print(f"spa_phase-logg hoppade över: {_spe}")
 
