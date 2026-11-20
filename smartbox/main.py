@@ -53,6 +53,7 @@ import battery_control   # Husbatteriet som del av hela systemet (styr / samarbe
 import sofar_shadow      # Sofar HYD: skuggrecept, skriver inga register (#395)
 import growatt_shadow    # Growatt hybrid: skuggrecept, skriver inga register (#395)
 import saj_shadow        # SAJ H2: skuggrecept, skriver inga register (#395)
+import alphaess_shadow   # AlphaESS SMILE: skuggrecept, skriver inga register (#395)
 import battery_limits
 import ew_journal
 import battery_commands
@@ -2353,6 +2354,10 @@ while True:
                     if _saj:
                         gpm_actions["log"].append(f"🔋 (BATTERI): {_saj}")
                         print(f"🔋 {_saj}")
+                    _alpha = alphaess_shadow.observation((house_cfg.get("battery") or {}).get("shadow_recipe"), _bstate, battery_cfg)
+                    if _alpha:
+                        gpm_actions["log"].append(f"🔋 (BATTERI): {_alpha}")
+                        print(f"🔋 {_alpha}")
                     battery_driver.set_balancing(_bdec.get("rule") == "balance")
                     if _bdec.get("rule") not in battery_control.SAFETY_RULES:
                         battery_driver.refresh()       # håller en pågående tvångsladdning vid liv (Solis RC m.fl.)
