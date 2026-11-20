@@ -2747,6 +2747,7 @@
   "ML: lägsta börvärde som håller de två kallaste rummen över # °C i # h (förutsägs # °C), de två kallaste rummen # °C, median # °C": "ML: nejnižší požadovaná hodnota, která udrží dvě nejchladnější místnosti nad # °C po # h (předpověď # °C), dvě nejchladnější místnosti # °C, medián # °C",
   "ML: högsta börvärde som håller huset under # °C i # h (förutsägs # °C), de två kallaste rummen # °C, median # °C": "ML: nejvyšší požadovaná hodnota, která udrží dům pod # °C po # h (předpověď # °C), dvě nejchladnější místnosti # °C, medián # °C",
   "ML: inget börvärde håller golvet i # h, de två kallaste rummen # °C, median # °C": "ML: žádná požadovaná hodnota neudrží minimum po # h, dvě nejchladnější místnosti # °C, medián # °C",
+  "ML: rummen ligger över golvet, börvärdet höjs inte under dyr el, de två kallaste rummen # °C, median # °C": "ML: místnosti jsou už nad minimem, požadovaná teplota se při drahé elektřině nezvyšuje, dvě nejchladnější místnosti # °C, medián # °C",
   "ML: alla börvärden förutsägs ta huset över # °C, de två kallaste rummen # °C, median # °C": "ML: všechny požadované hodnoty podle předpovědi zvednou dům nad # °C, dvě nejchladnější místnosti # °C, medián # °C",
   "Nära golvet, de två kallaste rummen # °C": "Blízko minima, dvě nejchladnější místnosti # °C",
   "Börvärdesmodell (ML): lärd på # perioder.": "Model požadované hodnoty (ML): naučen na # obdobích.",

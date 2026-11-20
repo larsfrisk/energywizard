@@ -1,5 +1,11 @@
 # Ändringar
 
+## 1.2.120 (2026-11-20)
+- **Dyr el höjer inte börvärdet när rummen redan är över golvet (#517).** Rumsåterkopplingens prognos
+  kunde beställa 23 °C medan de kallaste rummen låg på 21 °C och sparläget var 20,5 °C. Pumpen värmde
+  och huset köpte el, trots att översikten sa sparläge. Ligger rummen över golvet stannar börvärdet på
+  sparläget eller lägre. När rummen närmar sig golvet höjs det som förut.
+
 ## 1.2.119 (2026-11-20)
 - **HeishaMon nollställer inte kurvförskjutningen i onödan (#491).** FTW-drivrutinen skrev 0 °C till
   `Z1_Heat_Request_Temp` vid varje vakthund och omstart, även när Home Assistant styrde förskjutningen.

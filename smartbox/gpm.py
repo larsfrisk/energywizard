@@ -1135,6 +1135,7 @@ class GlobalPriorityManager:
             elif ml_w and ml_hz[0] is not None:
                 import heat_ml
                 hours = ml_hz[1] if actions["pump_mode"] == "CHEAP" else ml_hz[0]
+                # Dyrt och redan över golvet: choose höjer inte över sparläget (#517).
                 ml_sp, ml_why = heat_ml.choose(ml_w, actions["pump_mode"], low2, indoor_temp, state.get('outdoor_temp') or 0.0,
                                                hours, fb_floor, indoor_max, fb_lo, fb_hi, float(state.get('heat_ml_bias') or 0.0))
                 if ml_sp is None:
