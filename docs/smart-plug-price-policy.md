@@ -25,7 +25,7 @@ smart_plugs:
       # unoccupied_minutes: 15
       # away: false                      # follow the house home signal
       # vacation: false                  # follow the vacation signal
-      # presence_off: false              # true switches the relay off
+      # presence_off: false              # true switches off, and back on when the signal clears
 ```
 
 Thresholds use the configured contract's complete import-price calculation, in
@@ -74,16 +74,20 @@ finished its wait and the minimum-on dwell has also elapsed. The room follows
 follows `vacation`. At least one of those is required. A missing or non-finite
 price still causes no switching. The write uses the same changed-state check as
 the price policy. One failed or ambiguous write suspends the device; there is
-no retry. The plug is not turned back on when the room is occupied again,
-someone comes home, vacation ends, or the price falls. Turning it on by hand
-suspends the device until restart. An off caused only by a high price is still
-restored when the price falls, unless presence still wants that plug off.
+no retry. When every opted-in signal has cleared, the plug turns back on
+after the minimum-off dwell, unless the price is still above `off_above`.
+A price that high keeps it off until the price is no longer above that
+threshold; it does not wait for `restore_below`. While a presence signal
+still applies, a falling price does not turn the plug on. A plug that was
+already off is never switched on. Turning it on by hand suspends the device
+until restart. An off caused only by a high price is still restored when the
+price falls below `restore_below`, unless presence still wants that plug off.
 Shadow mode sends no plug calls.
 
 Invalid occupancy settings disable the notes and this switch, and leave the
 price policy running.
 
 This is a price-policy milestone, not the complete #217 feature. It does not
-learn standby power, turn a plug back on when someone returns, calculate
-savings, coordinate fuse/phase restoration budgets, or provide setup/status
-dashboard controls. No runtime device has been tested or enrolled by this change.
+learn standby power, calculate savings, coordinate fuse/phase restoration
+budgets, or provide setup/status dashboard controls. No runtime device has
+been tested or enrolled by this change.
