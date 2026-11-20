@@ -1,5 +1,10 @@
 # Ändringar
 
+## 1.2.119 (2026-11-20)
+- **Elvärme räknas i skugga (#431, #221).** Adax, golvvärme och andra element med egen termostat kan listas under
+  `electric_heat`. När värmepumpen är i billigt läge visas elementets tak, och i dyrt läge dess golv, i besluten.
+  Ingenting skrivs till elementen. Startguiden lägger listan avstängd i den nedladdade konfigurationen.
+
 ## 1.2.118 (2026-11-20)
 - **Märkesnamn med å, ä, ö, š m.fl. blev fel i telemetrin** ("Škoda" blev "Åkoda"). HA:s svar lästes som latin-1 i stället för
   UTF-8. Rättat, och telemetrisidan visar redan inkomna "Åkoda" som Škoda. Kia, Volvo, Volkswagen, Mercedes och Huawei med

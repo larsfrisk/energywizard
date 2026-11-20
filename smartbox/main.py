@@ -16,6 +16,7 @@ import settings  # Hanterar konfigurationsinställningar
 import weather   # Hämtar och cachelagrar väderprognos inkl. solprognos
 import gps_home  # bilens hemkomst ur GPS (approaching)
 import indoor_hold  # håll givarnas innetemp när de glappar en kort stund
+import electric_heat  # elvärme i skugga (#431): räknar börvärde, skriver inte
 import ev_rules  # per bil: bara sol / maxpris (#427, #429)
 import trip_plan  # appens resplan: engångsmål idag/imorgon
 import heat_ml  # ML-valt börvärde för rumsåterkopplingen
@@ -2196,6 +2197,8 @@ while True:
                 })
             
             gpm_actions = gpm_engine.evaluate(gpm_state)
+            for _eh_line in electric_heat.plan((house_cfg or {}).get("electric_heat"), gpm_actions.get("pump_mode")):
+                gpm_actions["log"].append(_eh_line)   # #431: bara en rad, ingen skrivning till elementet
             _hw_manual = (all_overrides.get("hotwater", "auto") != "auto"
                           or all_overrides.get("pump_smart_mode", "auto") == "manual")
             _hw_hygiene = bool(days_since_leg >= leg_max_days or (days_since_leg >= leg_max_days - 2

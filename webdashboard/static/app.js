@@ -2537,7 +2537,7 @@ async function runDiscovery(ev, cached) {
   html += simpleCard("♨️", "Värmepump", d.heat_pump, d.heat_pump ? `<span data-noi18n>${esc(d.heat_pump.device_name || "")}</span> ${compressorPicker(d)}` : "");
   if ((d.radiators || []).length) {
     html += `<div class="card" style="margin-bottom:16px"><h2>Radiatorer i Home Assistant</h2>
-      <div class="note">Upptäckta radiatorer visas endast som inventering. Styr dem i Home Assistant; separat zonschemaläggning stöds ännu inte.</div>`;
+      <div class="note">Upptäckta element visas här. I den nedladdade filen finns en avstängd lista. Sätt electric_heat.enabled: true för att se börvärdet i besluten. Ingenting skrivs till elementen.</div>`;
     d.radiators.forEach(r => {
       html += `<div class="note"><b data-noi18n>${esc(r.name)}</b> · <code>${esc(r.entity)}</code>${r.area ? ` · <span data-noi18n>${esc(r.area)}</span>` : ""}</div>`;
     });
