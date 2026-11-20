@@ -1061,7 +1061,7 @@ async function maybeSponsor() {
   try { const r = await fetch("api/sponsor?lang=" + I18N.lang); if (!r.ok) return; SPONSOR = await r.json(); } catch (e) { return; }
   if (!SPONSOR.show) return;
   const o = document.createElement("div"); o.id = "sponsp"; document.body.appendChild(o);
-  o.innerHTML = `<div class="instbox" role="dialog" aria-modal="true" data-noi18n><button class="instx" aria-label="×">×</button><div style="font-size:2rem">❤️</div><h3>${esc(SPONSOR.title)}</h3><p>${esc(SPONSOR.text)}</p><a class="instgo" href="${esc(SPONSOR.url)}" target="_blank" rel="noopener" style="display:block;text-align:center;text-decoration:none">${esc(SPONSOR.button)}</a></div>`;
+  o.innerHTML = `<div class="instbox" role="dialog" aria-modal="true" data-noi18n><button class="instx" aria-label="×">×</button><div style="font-size:2rem">❤️</div><h3>${esc(SPONSOR.title)}</h3><p>${esc(SPONSOR.text)}</p><a class="instgo" href="${esc(SPONSOR.url)}" target="_blank" rel="noopener" style="display:block;text-align:center;text-decoration:none">${esc(SPONSOR.button)}</a>${SPONSOR.alt_url ? `<a class="mini" href="${esc(SPONSOR.alt_url)}" target="_blank" rel="noopener" style="display:block;text-align:center;text-decoration:none;margin-top:8px">${esc(SPONSOR.alt_button)}</a>` : ""}</div>`;
   const close = () => { o.remove(); fetch("api/sponsor/dismiss", { method: "POST" }).catch(() => {}); };
   o.querySelector(".instx").onclick = close;
   o.querySelector(".instgo").addEventListener("click", close);

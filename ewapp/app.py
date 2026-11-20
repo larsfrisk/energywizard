@@ -2268,7 +2268,7 @@ try:
     import i18n_routes  # noqa: E402
     i18n_routes.register(app)
     import web_common  # noqa: E402
-    web_common.register(app, _role)
+    web_common.register(app, _role, engine=ENGINE)
 except ImportError as _ie:
     print(f"⚠️ Språk/sponsring avstängt (äldre smartbox/ på värden, kör git pull): {_ie}", flush=True)
 

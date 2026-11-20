@@ -1,5 +1,10 @@
 # Ändringar
 
+❤️ EnergyWizard är gratis och öppet. Om det sparar pengar hemma hos dig kan du hålla det så med en sponsring (runt 10 USD i månaden räcker långt): https://github.com/sponsors/murre87
+
+## 1.2.142 (2026-11-20)
+- **Påminnelsen om sponsring säger först vad EnergyWizard sparat dig den senaste veckan** och föreslår en konkret summa (runt 10 USD i månaden). Den visas bara när besparingen är minst 50 och minst tre dygn med data finns; annars väntar den. En andra knapp ("Ge utan GitHub-konto") visas så fort en alternativ betalsida är inlagd.
+
 ## 1.2.141 (2026-11-20)
 - **Större "Just nu"-graf i mobilappen**: flödet fyller nu kortets hela bredd (smalare rityta, större rutor och text) och använder mer av höjden på Hem.
 - **Installationer på mobil**: raderna i husens detaljer flödar inte längre ut över kortets kant, och felgruppens namn bryts på ord i stället för ett tecken per rad (raden får radbrytning, Logg-knappen hamnar under vid smal skärm).

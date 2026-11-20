@@ -1379,7 +1379,7 @@ async function showSponsorBanner() {
   el.innerHTML = `<div class="sponsorcard" data-noi18n>
       <div style="font-size:1.6rem">❤️</div>
       <div class="txt"><b>${esc(st.title)}</b><div style="margin-top:6px">${esc(st.text)}</div>
-        <div class="btns"><a class="go" href="${esc(st.url)}" target="_blank" rel="noopener">${esc(st.button)}</a>
+        <div class="btns"><a class="go" href="${esc(st.url)}" target="_blank" rel="noopener">${esc(st.button)}</a>${st.alt_url ? `<a class="go" href="${esc(st.alt_url)}" target="_blank" rel="noopener" style="background:transparent;color:inherit;border:1px solid currentColor">${esc(st.alt_button)}</a>` : ""}
         <button class="icobtn" id="sponsorlater">${I18N.lang === "sv" ? "Inte nu" : "Not now"}</button></div></div></div>`;
   el.hidden = false;
   const close = () => { el.hidden = true; api("api/sponsor/dismiss", { method: "POST" }).catch(() => {}); };

@@ -10,13 +10,47 @@ import i18n_routes
 import sponsor
 
 
-def register(app, role_of, open_setup=lambda: False):
+_saved_cache = {"t": 0.0, "v": None}
+
+
+def week_saved(engine):
+    """(besparing senaste 7 dygnen, valutasymbol) eller (None, "kr") om det inte går att räkna. Cachas i tio minuter."""
+    import time
+    if engine is None:
+        return None, "kr"
+    try:
+        import nordpool
+        sym = nordpool.cost_settings()["symbol"]
+    except Exception:
+        sym = "kr"
+    if time.time() - _saved_cache["t"] < 600:
+        return _saved_cache["v"], sym
+    v = None
+    try:
+        import datetime as dt
+        import zoneinfo
+
+        import savings
+        today = dt.datetime.now(zoneinfo.ZoneInfo("Europe/Stockholm")).date().isoformat()
+        with engine.connect() as c:
+            wk = savings.summarize_periods(savings.daily_rows(c, days=10), today)["week"]
+        v = wk["saved_kr"] if wk["days"] >= 3 else None      # minst tre dygn med data, annars är siffran missvisande
+    except Exception:
+        v = None
+    _saved_cache.update(t=time.time(), v=v)
+    return v, sym
+
+
+def register(app, role_of, open_setup=lambda: False, engine=None):
     @app.get("/api/sponsor")
     async def api_sponsor(request: Request, lang: str = ""):
-        st = sponsor.state(lang or i18n_routes.default_language())
+        lang = lang or i18n_routes.default_language()
         if role_of(request) != "owner":
+            st = sponsor.state(lang)
             st["show"] = False                       # påminnelsen är till ägaren, länken till alla
-        return st
+            return st
+        saved, sym = week_saved(engine)
+        return sponsor.state(lang, saved=saved, symbol=sym)
 
     @app.post("/api/sponsor/dismiss")
     async def api_sponsor_dismiss(request: Request):

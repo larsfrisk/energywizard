@@ -2573,7 +2573,7 @@ async def api_save_house_config(request: Request):
 import i18n_routes  # noqa: E402
 i18n_routes.register(app)
 import web_common  # noqa: E402
-web_common.register(app, lambda r: AUTH.session(r)[0], lambda: not webauth.owner_password())
+web_common.register(app, lambda r: AUTH.session(r)[0], lambda: not webauth.owner_password(), engine=ENGINE)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 

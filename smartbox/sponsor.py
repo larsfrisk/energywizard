@@ -29,6 +29,23 @@ TEXT = {
 CAMPAIGN = {"2026-11": "2026-11-kostnad"}
 BUTTON = {"sv": "Sponsra EnergyWizard", "en": "Sponsor EnergyWizard"}
 
+# Sparbaserad påminnelse (2026-11-20): när installationen vet hur mycket den sparat sista veckan sägs det först,
+# och förslaget blir en konkret summa. Utan sparsiffra (för lite data) visas den vanliga texten som förut. Är
+# besparingen under SAVED_MIN visas ingen ruta alls: då finns inget värde att peka på än.
+SAVED_MIN = 50
+VALUE_TEXT = {
+    "sv": ("EnergyWizard har sparat dig {saved} {sym} den senaste veckan. Jag bygger det på min fritid och delar det "
+           "gratis. Om det är värt något för dig håller en sponsring på runt 10 USD i månaden det gratis och öppet "
+           "för alla. Stor som liten summa gör skillnad, och du kan sluta när du vill. Tack för att du är med!"),
+    "en": ("EnergyWizard has saved you {saved} {sym} over the past week. I build it in my spare time and share it for "
+           "free. If it is worth something to you, a sponsorship of around 10 USD a month keeps it free and open for "
+           "everyone. Any amount helps, and you can stop whenever you like. Thank you for being part of it!"),
+}
+# Alternativ till GitHub Sponsors för den som inte har GitHub-konto (Buy Me a Coffee, Ko-fi). Tomt tills kontot finns:
+# då visas ingen extra knapp. Fyll i adressen här och i .github/FUNDING.yml.
+ALT_URL = ""
+ALT_BUTTON = {"sv": "Ge utan GitHub-konto", "en": "Give without a GitHub account"}
+
 
 def _month(now):
     m = now.strftime("%Y-%m")
@@ -66,12 +83,23 @@ def _due(now, key):
     return ew_settings.get(key) != _month(now)
 
 
-def state(lang="sv", now=None) -> dict:
-    """Vad webben och appen ska visa."""
+def _fmt_saved(v) -> str:
+    return f"{int(round(v)):,}".replace(",", " ")
+
+
+def state(lang="sv", now=None, saved=None, symbol="kr") -> dict:
+    """Vad webben och appen ska visa. saved: besparingen senaste veckan i installationens valuta (None = okänd)."""
     now = now or datetime.now()
     lang = lang if lang in TEXT else "en"
-    return {"url": URL, "enabled": enabled(), "show": _due(now, "sponsor_seen_month"),
-            "title": TITLE[lang], "text": TEXT[lang], "button": BUTTON[lang]}
+    show = _due(now, "sponsor_seen_month")
+    text = TEXT[lang]
+    if saved is not None:
+        if saved < SAVED_MIN:
+            show = False
+        else:
+            text = VALUE_TEXT[lang].format(saved=_fmt_saved(saved), sym=symbol)
+    return {"url": URL, "enabled": enabled(), "show": show, "title": TITLE[lang], "text": text, "button": BUTTON[lang],
+            "alt_url": ALT_URL, "alt_button": ALT_BUTTON[lang]}
 
 
 def dismiss(now=None):

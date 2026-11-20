@@ -105,3 +105,21 @@ def test_extra_utskick_visas_igen_aven_om_manadens_redan_setts(st):
     assert sponsor.state("sv", t)["show"] is False
     assert not sponsor.send_ha_notice(lambda *a: True, "sv", t + timedelta(hours=1))
     assert "/Emil" not in sponsor.state("sv", t)["text"]
+
+
+def test_sponsorrutan_utgar_fran_besparingen(st):
+    import sponsor
+    t0 = datetime(2026, 12, 1)
+    sponsor.state("sv", t0)
+    t1 = t0 + timedelta(days=9)
+    ok = sponsor.state("sv", t1, saved=212.4, symbol="kr")
+    assert ok["show"] and "212 kr" in ok["text"] and "10 USD" in ok["text"]
+    assert "saved you 1 250 kr" in sponsor.state("en", t1, saved=1250, symbol="kr")["text"]
+    assert sponsor.state("sv", t1, saved=12, symbol="kr")["show"] is False          # inget värde att peka på än
+    assert sponsor.state("sv", t1)["show"] is True                                  # okänd siffra: som förut
+    assert sponsor.state("sv", t1)["alt_url"] == sponsor.ALT_URL
+
+
+def test_sparsiffran_utan_databas_ar_okand():
+    import web_common
+    assert web_common.week_saved(None)[0] is None
