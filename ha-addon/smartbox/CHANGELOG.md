@@ -1,5 +1,9 @@
 # Ändringar
 
+## 1.2.138 (2026-11-20)
+- **Webbens Översikt visar också "ladda nu".** Appen fick etiketten i 1.2.134, men webbens flöde skrev fortfarande "laddar" på en bil som laddar på kommandot "Ladda nu". Märkningen kommer nu från servern (en bil med fast ampere
+  som faktiskt laddar), så appen och webben visar samma sak.
+
 ## 1.2.137 (2026-11-20)
 - **Skicka felsökningsinfo (#559).** Under Logg i webben och appen finns en knapp som skickar den sanerade loggen (2 dygn) till utvecklarna och ger en referens, t.ex. `EW-7K3F2`, att skriva i
   ärendet. Loggen läggs aldrig publikt: den saneras i huset och igen i samlaren, sparas i 7 dagar och kan bara läsas av administratörerna med deras nyckel (`/admin/logs?ref=EW-…`, med granskningslogg).

@@ -1679,10 +1679,11 @@ async def api_flow():
     with ENGINE.connect() as c:
         row = _latest_row(c)
         pump_w = live_flow.latest_pump_w(c)
+        manual = live_flow.manual_charge_cars(c)
     if row is None:
         return {"ok": False, "error": "Ingen data i sensor_log än"}
     cars, has_spa, _has_heat = _house_parts()
-    d = live_flow.nodes(row, _json_list(row.get("decision_summary")), cars=cars, has_spa=has_spa, pump_w=pump_w)
+    d = live_flow.nodes(row, _json_list(row.get("decision_summary")), cars=cars, has_spa=has_spa, pump_w=pump_w, manual_cars=manual)
     return {"ok": True, "ts": str(row.get("sthlm_time"))[:16], "battery_sign": _battery_sign_hint(row), **d}
 
 
