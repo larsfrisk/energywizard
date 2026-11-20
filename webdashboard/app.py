@@ -62,7 +62,7 @@ TELEMETRY_ADMIN_USERS = {
 INSTALLS_PAGE = {"id": "installationer", "name": "Installationer", "icon": "👥", "built": True}
 # API-vägar ett flottkonto får nå. Allt annat (ägarens sensorer, styrning, logg) är 403.
 FLEET_ADMIN_API = frozenset({
-    "/api/me", "/api/installs", "/api/login", "/api/logout", "/api/setup/status", "/api/ping",
+    "/api/me", "/api/installs", "/api/installs/support", "/api/login", "/api/logout", "/api/setup/status", "/api/ping",
 })
 
 
@@ -1342,6 +1342,30 @@ async def installs(request: Request):
         return {"ok": True, "configured": True, **r.json()}
     except (requests.RequestException, ValueError) as e:
         return {"ok": False, "configured": True, "error": "Kunde inte nå telemetrisamlaren"}
+
+
+def _support_url(stats_url: str) -> str:
+    """Samlarens /api/support ur samma adress som flottvyn (…/api/stats -> …/api/support)."""
+    return stats_url.rstrip("/").rsplit("/api/", 1)[0] + "/api/support"
+
+
+@app.get("/api/installs/support")
+async def installs_support(request: Request, key: str = ""):
+    """Sanerade loggutdrag för en felgrupp ("modul: feltyp") ur samlaren, för flottvyn. Hämtas med den här installationens
+    egen administratörsnyckel, så samlarens granskningslogg visar vem som tittade. Aldrig utan flottvy-behörighet."""
+    role, user = AUTH.session(request)
+    if not _can_view_installs(role, user):
+        raise HTTPException(status_code=403, detail="forbidden")
+    module, _, error_type = key.partition(": ")
+    if not module or not error_type:
+        return {"ok": False, "error": "Ogiltig felgrupp"}
+    try:
+        r = requests.get(_support_url(TELEMETRY_STATS_URL), timeout=10, headers={"X-Stats-Token": TELEMETRY_STATS_TOKEN},
+                         params={"module": module, "error_type": error_type, "limit": 10})
+        r.raise_for_status()
+        return {"ok": True, "items": r.json().get("items", [])}
+    except (requests.RequestException, ValueError):
+        return {"ok": False, "error": "Kunde inte hämta loggen från telemetrisamlaren (har du en administratörsnyckel?)"}
 
 
 def _latest_row(c):

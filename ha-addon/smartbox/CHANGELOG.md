@@ -1,5 +1,10 @@
 # Ändringar
 
+## 1.2.120 (2026-11-20)
+- **Installationer: Logg-knapp per felgrupp** (för den som har en administratörsnyckel till telemetrisamlaren). Visar de sanerade
+  loggutdragen direkt i webben. Hämtningen sker med installationens egen nyckel, så samlarens granskningslogg visar vem som tittade.
+  De automatiska felärendena på GitHub har ingen loggtext längre, bara en länk till samlarens loggsida (ärendena är publika).
+
 ## 1.2.119 (2026-11-20)
 - **HeishaMon nollställer inte kurvförskjutningen i onödan (#491).** FTW-drivrutinen skrev 0 °C till
   `Z1_Heat_Request_Temp` vid varje vakthund och omstart, även när Home Assistant styrde förskjutningen.

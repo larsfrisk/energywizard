@@ -163,3 +163,33 @@ def test_fleet_data_requires_authorized_signed_session(monkeypatch, role, user, 
         get.assert_not_called()
     assert "test-only-stats-token" not in body
     assert "test-only-owner-password" not in body
+
+
+def test_loggutdrag_i_flottvyn_hamtas_med_egen_nyckel_och_kraver_behorighet(monkeypatch):
+    mod = _reload_app(TELEMETRY_STATS_URL="https://samlare.example/telemetry/api/stats",
+                      TELEMETRY_STATS_TOKEN="lazgeos-nyckel", TELEMETRY_ADMIN_USERS="lazgeo")
+    assert mod._support_url("https://samlare.example/telemetry/api/stats") == "https://samlare.example/telemetry/api/support"
+    assert "/api/installs/support" in mod.FLEET_ADMIN_API
+    seen = {}
+
+    class R:
+        def raise_for_status(self): pass
+        def json(self): return {"items": [{"received_at": "2026-11-20T10:00", "house": "684a1da6", "version": "1", "support": "❌ x"}]}
+
+    def fake_get(url, **kw):
+        seen.update(url=url, **kw)
+        return R()
+
+    monkeypatch.setattr(mod.requests, "get", fake_get)
+    mod.AUTH.session = lambda request: ("family", "lazgeo")
+    out = asyncio.run(mod.installs_support(MagicMock(), key="database: DatabaseUnavailable"))
+    assert out["ok"] and out["items"][0]["support"] == "❌ x"
+    assert seen["headers"] == {"X-Stats-Token": "lazgeos-nyckel"}
+    assert seen["params"]["module"] == "database" and seen["params"]["error_type"] == "DatabaseUnavailable"
+    # fel namn och ogiltig nyckel nekas / avvisas utan att samlaren anropas
+    mod.AUTH.session = lambda request: ("family", "elin")
+    with pytest.raises(Exception):
+        asyncio.run(mod.installs_support(MagicMock(), key="database: DatabaseUnavailable"))
+    mod.AUTH.session = lambda request: ("family", "lazgeo")
+    seen.clear()
+    assert asyncio.run(mod.installs_support(MagicMock(), key="utan-kolon"))["ok"] is False and not seen

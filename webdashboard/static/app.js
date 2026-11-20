@@ -2101,7 +2101,8 @@ async function renderInstalls() {
   const groups = (d.error_groups || []);
   const gRow = (g) => { const t = TRANS.test(g.key); return `<div style="display:flex;gap:10px;align-items:baseline;padding:7px 0;border-top:1px solid var(--line)">
       <span style="flex:0 0 22px">${t ? "🌐" : "⚠️"}</span><span style="flex:1 1 auto;min-width:0;overflow-wrap:anywhere"><span style="${t ? "color:var(--mut)" : "color:#e74c3c;font-weight:600"}">${esc(g.key)}</span>${(g.versions || []).length ? `<span class="note" style="display:block">Version: ${g.versions.map(esc).join(", ")}</span>` : ""}</span>
-      <span class="note" style="flex:0 0 auto;white-space:nowrap">${g.houses} hus · ${g.reports} ggr · ${ago(g.last)} sedan</span></div>`; };
+      <span class="note" style="flex:0 0 auto;white-space:nowrap">${g.houses} hus · ${g.reports} ggr · ${ago(g.last)} sedan</span>
+      <button class="icobtn" data-logkey="${esc(g.key)}" style="flex:0 0 auto">Logg</button></div><div class="loghere" data-for="${esc(g.key)}"></div>`; };
   const errCard = groups.length ? `<div class="card" style="margin-bottom:16px"><h2 style="margin:0 0 4px">Fel senaste 48 h</h2>
     <div class="note">Grupperade över alla hus. Rött = fel att undersöka, grått = tillfälliga nätverksfel.</div>
     ${groups.filter((g) => !TRANS.test(g.key)).map(gRow).join("")}
@@ -2120,6 +2121,16 @@ async function renderInstalls() {
       .map(([k, l]) => `<button data-v="${k}" class="${k === flt ? "on" : ""}">${l}</button>`).join("")}</div>` + rows
       + `<details class="card" style="margin-top:12px"><summary style="cursor:pointer;font-weight:700">Totalt per märke</summary><div style="margin-top:10px">${installsCard(d)}</div></details>`;
     main.querySelectorAll("#instflt button").forEach((b) => b.onclick = () => { flt = b.dataset.v; draw(); });
+    main.querySelectorAll("button[data-logkey]").forEach((b) => b.onclick = async () => {
+      const box = [...main.querySelectorAll(".loghere")].find((x) => x.dataset.for === b.dataset.logkey);
+      if (!box) return;
+      if (box.innerHTML) { box.innerHTML = ""; return; }                      // andra klicket stänger
+      box.innerHTML = '<div class="note">Hämtar loggen…</div>';
+      const r = await api(`api/installs/support?key=${encodeURIComponent(b.dataset.logkey)}`).catch(() => null);
+      if (!r || !r.ok) { box.innerHTML = `<div class="note">${esc((r && r.error) || "Kunde inte hämta loggen")}</div>`; return; }
+      box.innerHTML = r.items.length ? r.items.map((i) => `<details style="margin:6px 0"><summary class="note" style="cursor:pointer">${esc(String(i.received_at).slice(0, 16).replace("T", " "))} UTC · hus ${esc(i.house)} · ${esc(i.version)}</summary><pre style="white-space:pre-wrap;overflow-wrap:anywhere;font-size:.8rem;margin:4px 0">${esc(i.support)}</pre></details>`).join("")
+        : '<div class="note">Inga loggutdrag för det här felet (användaren har stängt av felsökningsutdrag, eller äldre klient).</div>';
+    });
   };
   draw();
 }
