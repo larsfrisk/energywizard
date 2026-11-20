@@ -53,11 +53,11 @@ def test_thermia_och_heishamon_skriver_inte(monkeypatch):
     import pump
     monkeypatch.setattr(pump, "PUMP_IPS", ["192.0.2.10"])      # en pump med adress (utan adress skrivs inget alls, #172)
     with patch.object(pump, "_get_client") as gc:
-        assert pump._write_holding(13, 215) is True
+        assert pump._write_holding(13, 600) is True
     gc.assert_not_called()
     from drivers.heatpump_heishamon import HeishaMonHeatPumpDriver
     class Http:
         def get(self, *a, **k):
             raise AssertionError("inget anrop i skuggläget")
     assert HeishaMonHeatPumpDriver("hm", session=Http())._command("SetHeatpump", 0)
-    assert ("Thermia (Husdata) register", "13 = 215") in logged and ("HeishaMon", "SetHeatpump=0") in logged
+    assert ("Thermia (Husdata) register", "13 = 600") in logged and ("HeishaMon", "SetHeatpump=0") in logged

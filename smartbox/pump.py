@@ -1,4 +1,6 @@
 import os
+import re
+import threading
 import time
 _READ_TRANSPORT_ERRORS = (OSError,)
 try:                                # finns i motorns bild men inte i mobilappens (som bara läser installationen)
@@ -28,6 +30,27 @@ TIMEOUT = int(os.environ.get("PUMP_TIMEOUT", 5))
 DEVICE_ID = 1
 
 _active_ip_index = 0
+
+# H66 tar bara EN Modbus-klient åt gången (Husdatas biblioteksdokumentation, och mätt mot en riktig H66 2026-11-20:
+# en andra samtidig klient får TCP-anslutning men aldrig något svar, 3 försök och timeout). Därför får inte två
+# trådar i motorn prata med gatewayen samtidigt - låset serialiserar all Modbus-trafik i den här processen (#466).
+_io_lock = threading.RLock()
+
+# En ej inkopplad temperaturgivare ger ett fast skenvärde. Uppmätt på en Thermia Diplomat via H66: -40,0 °C
+# (Cooling-givaren som saknas); Husdatas bibliotek för Rego 600 anger -48,3 °C. Båda blir None så att loggar och
+# styrning inte räknar med en temperatur som inte finns (#466). Utetemperaturen får vara -40,0 (kan hända i norr).
+_NO_SENSOR_RAW = (-483, -400)
+
+
+def _serialized(fn):
+    """All Modbus-trafik mot pumpen går en i taget (se _io_lock)."""
+    import functools
+
+    @functools.wraps(fn)
+    def wrapper(*a, **kw):
+        with _io_lock:
+            return fn(*a, **kw)
+    return wrapper
 
 def _connect_client(ip):
     client = ModbusTcpClient(ip, port=PORT, timeout=TIMEOUT)
@@ -67,7 +90,26 @@ def _to_signed(val):
     """
     return val - 65536 if val > 32767 else val
 
+_last_read = {"transport_error": False}
+_RETRY_PAUSE_S = 1.5
+_READ_RETRY = True
+
+
+@_serialized
 def read_sensors():
+    """Läser pumpen; vid ett nätverksfel (anslutningen återställd, inget svar) ett enda nytt försök efter en kort paus.
+    Gatewayen tar en klient åt gången, så en annan läsare (Home Assistants egen Modbus-anslutning, mobilappen) som
+    råkar vara inne samtidigt ger ett sådant fel som försvinner av sig självt (mätt mot en riktig H66, #466). Är
+    gatewayen helt nere (kan inte ansluta) görs inget omförsök."""
+    _last_read["transport_error"] = False
+    res = _read_sensors_once()
+    if res is None and _READ_RETRY and _last_read["transport_error"]:
+        time.sleep(_RETRY_PAUSE_S)
+        res = _read_sensors_once()
+    return res
+
+
+def _read_sensors_once():
     """
     Läser in sensordata direkt från Husdata via Modbus TCP.
     Returnerar en dict med alla värden, eller None vid fel.
@@ -122,11 +164,16 @@ def read_sensors():
             return None
 
         reg = res_in.registers
+        _verify_register_map_once(PUMP_IPS[min(_active_ip_index, len(PUMP_IPS) - 1)])
         hold = res_hold.registers
 
-        def get_temp(idx):
-            """Temperaturer från Husdata är oftast heltal multiplicerat med 10."""
-            return _to_signed(reg[idx]) / 10.0
+        def get_temp(idx, allow_minus_40=False):
+            """Temperaturer från Husdata är oftast heltal multiplicerat med 10. None för en givare som inte är
+            inkopplad (fast skenvärde, se _NO_SENSOR_RAW)."""
+            raw = _to_signed(reg[idx])
+            if raw in _NO_SENSOR_RAW and not (allow_minus_40 and raw == -400):
+                return None
+            return raw / 10.0
 
         return {
             # Temperaturer (Input Registers)
@@ -134,7 +181,7 @@ def read_sensors():
             "forward_temp":       get_temp(1),      # 1: Radiator Forward
             "brine_in_temp":      get_temp(2),      # 2: Brine in
             "brine_out_temp":     get_temp(3),      # 3: Brine out
-            "outdoor_temp":       get_temp(4),      # 4: Outdoor
+            "outdoor_temp":       get_temp(4, allow_minus_40=True),      # 4: Outdoor
             "indoor_temp":        get_temp(5),      # 5: Indoor
             "water_temp_top":     get_temp(6),      # 6: Warm water 1 / Top
             "hot_gas_temp":       get_temp(7),      # 7: Pressure tube / Hot gas
@@ -190,14 +237,23 @@ def read_sensors():
     except _READ_TRANSPORT_ERRORS as e:
         # Tillfälliga nätverksfel — ⚠️ så Admin räknar dem gråa (#299).
         print(f"⚠️ Husdata: Nätverksfel vid läsning (Modbus): {e}")
+        _last_read["transport_error"] = True
         return None
     except Exception as e:
         print(f"❌ Husdata: Oväntat fel vid läsning (Modbus): {e}")
         return None
 
+@_serialized
 def _write_holding(reg_addr, value, retries=3):
     """Hjälpfunktion för att skriva till ett Modbus Holding-register med retries."""
     if not PUMP_IPS:                          # ingen pump angiven (#172: skuggläget visade skrivningar till en pump som inte finns)
+        return False
+    try:
+        value = int(value)
+    except (TypeError, ValueError):
+        print(f"❌ Husdata: vägrar skriva '{value}' till register {reg_addr} (inte ett heltal).")
+        return False
+    if not _write_value_ok(reg_addr, value):
         return False
     import shadow
     if shadow.active():                       # skuggläge: pumpen rörs inte, åtgärden loggas
@@ -237,6 +293,137 @@ def _write_holding(reg_addr, value, retries=3):
     print(f"❌ Husdata: Misslyckades att skriva till register {reg_addr} efter {retries} försök.")
     return False
 
+# Gränser per skrivbart register (råvärde = värde x 10). Pumpen anger dem själv på H66:ans startsida
+# ("Setting between: 30 and 65"); de läses därifrån (_live_limits). Tabellen är reserv när sidan inte går att läsa och
+# är avläst på en Thermia Diplomat via H66 (firmware 360301, 2026-11-20). Ett värde utanför går aldrig till pumpen:
+# ett fel längre upp (fel enhet, NaN, 0 i stället för 20) ska stoppas här, med en tydlig logg. Husdatas bibliotek
+# kontrollerar också intervall före varje skrivning (#466).
+_WRITE_LIMITS = {
+    13: (300, 650),     # Warm Water stop temp, 30-65 °C
+    14: (0, 40),        # Operating mode (x10), 0-4
+    15: (100, 290),     # Room temp setpoint, 10-29 °C
+    16: (0, 100),       # Room sensor influence, 0-10
+    17: (220, 560),     # Heat set 1, CurveL, 22-56 °C
+    18: (400, 850),     # Heat set 2, CurveR, 40-85 °C
+    19: (0, 410),       # Heating setpnt./start, 0-41 °C
+    20: (290, 550),     # Warm Water start temp, 29-55 °C
+}
+_LIMITS_TTL_S = 3600
+_limits_cache = {"at": 0.0, "ip": None, "limits": {}}
+
+
+def _write_value_ok(reg_addr, value) -> bool:
+    lo, hi = _live_limits().get(reg_addr) or _WRITE_LIMITS.get(reg_addr, (-32768, 32767))
+    if not lo <= value <= hi:
+        print(f"❌ Husdata: vägrar skriva {value} till register {reg_addr} (pumpen tillåter {lo}-{hi}, råvärde x10). "
+              f"Pumpen rörs inte.")
+        return False
+    return True
+
+
+# --- H66:ans startsida: styrenhet, firmware, registerlista och tillåtna intervall ---
+# Biblioteket husdata-h66-modbus läser registerkartan härifrån i stället för att anta den (#466).
+
+_ROW_RE = re.compile(r"<tr[^>]*><td>(.*?)</td><td>(\d+)&nbsp;(Input|Hold)</td><td>(.*?)</td><td>(.*?)</td></tr>", re.S)
+_RANGE_RE = re.compile(r"Setting between: (-?[\d.]+) and (-?[\d.]+)")
+_TAG_RE = re.compile(r"<[^>]+>")
+
+
+def _text(html: str) -> str:
+    return re.sub(r"\s+", " ", _TAG_RE.sub("", html).replace("&nbsp;", " ")).strip()
+
+
+def parse_home_page(html: str) -> dict:
+    """{"controller", "firmware", "registers": {index: {"kind", "var_id", "name", "range": (lo, hi)|None}}}. Intervallet
+    är i pumpens egen enhet (°C); skrivna råvärden är x10."""
+    out = {"controller": None, "firmware": None, "registers": {}}
+    m = re.search(r"<td>&nbsp;Controller</td><td>(.*?)</td>", html)
+    if m:
+        out["controller"] = _text(m.group(1))
+    m = re.search(r"<td>&nbsp;Version</td><td>(.*?)</td>", html)
+    if m:
+        out["firmware"] = _text(m.group(1))
+    for first, idx, kind, name, _value in _ROW_RE.findall(html):
+        rng = _RANGE_RE.search(first)
+        out["registers"][int(idx)] = {
+            "kind": kind, "var_id": _text(first), "name": _text(name),
+            "range": (float(rng.group(1)), float(rng.group(2))) if rng else None,
+        }
+    return out
+
+
+# Vad motorn förutsätter om varje register (index -> delar av namnet, små bokstäver). Stämmer inte en rad är det
+# en annan styrenhet än Thermia Diplomat (t.ex. IVT/Bosch Rego 600, vars karta är en annan) och värdena skulle bli fel.
+_EXPECTED_NAMES = {
+    0: "radiator return", 1: "radiator forward", 2: "brine in", 3: "brine out", 4: "outdoor", 5: "indoor",
+    6: "warm water", 7: "pressure tube", 8: "cooling", 10: "heating setpoint", 13: "warm water stop",
+    14: "operating mode", 15: "room temp setpoint", 16: "room sensor", 17: "curvel", 18: "curver",
+    19: "heating setpnt", 20: "warm water start", 25: "compressor", 29: "pump radiator", 30: "switch valve",
+    32: "alarm", 34: "runtime",
+}
+
+
+def check_register_map(page: dict) -> list:
+    """Avvikelser mellan H66:ans registerlista och det motorn förutsätter. Tom lista = kartan stämmer."""
+    regs = page.get("registers") or {}
+    if not regs:
+        return ["kunde inte läsa registerlistan på H66:ans startsida"]
+    bad = []
+    for idx, want in _EXPECTED_NAMES.items():
+        got = (regs.get(idx) or {}).get("name", "")
+        if want not in got.lower():
+            bad.append(f"register {idx}: motorn förväntar '{want}', gatewayen har '{got or 'inget'}'")
+    return bad
+
+
+def fetch_home_page(ip: str, timeout: float = 3.0) -> dict | None:
+    import urllib.request
+    try:
+        with urllib.request.urlopen(f"http://{ip}/", timeout=timeout) as r:
+            return parse_home_page(r.read().decode("utf-8", "replace"))
+    except Exception:
+        return None
+
+
+def _live_limits() -> dict:
+    """Pumpens egna intervall som råvärden (x10) per register, en timmes cache. Tom dict om sidan inte går att läsa."""
+    if not PUMP_IPS:
+        return {}
+    ip = PUMP_IPS[min(_active_ip_index, len(PUMP_IPS) - 1)]
+    c = _limits_cache
+    if c["ip"] == ip and time.time() - c["at"] < _LIMITS_TTL_S:
+        return c["limits"]
+    page = fetch_home_page(ip)
+    limits = {}
+    if page:
+        for idx, r in page["registers"].items():
+            if r["kind"] == "Hold" and r["range"]:
+                limits[idx] = (int(round(r["range"][0] * 10)), int(round(r["range"][1] * 10)))
+    c.update(at=time.time(), ip=ip, limits=limits)
+    return limits
+
+
+_map_checked = set()
+
+
+def _verify_register_map_once(ip: str) -> None:
+    """Efter första lyckade läsningen mot en adress: stämmer H66:ans registerlista med det motorn förutsätter?"""
+    if ip in _map_checked:
+        return
+    _map_checked.add(ip)
+    page = fetch_home_page(ip)
+    if not page:
+        _map_checked.discard(ip)           # försök igen nästa gång
+        return
+    bad = check_register_map(page)
+    ctrl = page.get("controller") or "okänd"
+    if not bad:
+        print(f"✅ Husdata: registerkartan stämmer med EnergyWizards (styrenhet: {ctrl}, firmware {page.get('firmware')}).")
+    else:
+        print(f"⚠️ Husdata: styrenhet '{ctrl}' har en annan registerkarta än Thermia Diplomat som motorn förutsätter - "
+              f"värdena kan vara fel. {'; '.join(bad[:4])}")
+
+
 def set_room_temp(target_temp):
     """
     Skriver ny måltemperatur för rummet.
@@ -245,6 +432,7 @@ def set_room_temp(target_temp):
     """
     return _write_holding(15, target_temp)
 
+@_serialized
 def _read_holding(reg_addr, count=1):
     """Läser holding-register (råvärden) eller None."""
     client = _get_client()

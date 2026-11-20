@@ -12,6 +12,7 @@ import pump
 @pytest.mark.parametrize("stage", ["input", "holding"])
 def test_modbus_transport_errors_warn_and_close(monkeypatch, capsys, failure, stage):
     monkeypatch.setattr(pump, "PUMP_IPS", ["test.invalid"])
+    monkeypatch.setattr(pump, "_READ_RETRY", False)   # testet gäller ett försök (omförsöket: test_pump_husdata_466)
     result = SimpleNamespace(isError=lambda: False, registers=[0] * 40)
     client = Mock()
     client.read_input_registers.return_value = result
