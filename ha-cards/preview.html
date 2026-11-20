@@ -1,0 +1,40 @@
+<!doctype html><html lang="sv"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>EnergyWizard-kort: förhandsvisning</title>
+<style>
+  body { margin:0; padding:20px; font-family:Roboto,system-ui,sans-serif; }
+  body.dark { background:#111; --primary-text-color:#e1e1e1; --secondary-text-color:#9b9b9b; --card-background-color:#1c1c1c; --divider-color:rgba(255,255,255,.12); --primary-color:#03a9f4; }
+  body.light { background:#f2f2f2; --primary-text-color:#212121; --secondary-text-color:#727272; --card-background-color:#fff; --divider-color:rgba(0,0,0,.12); --primary-color:#03a9f4; }
+  .wrap { max-width:420px; margin:0 auto 20px; }
+  ha-card { display:block; background:var(--card-background-color); border-radius:12px; box-shadow:0 2px 6px rgba(0,0,0,.25); color:var(--primary-text-color); }
+</style></head><body class="dark"><div class="wrap"><energywizard-house-card id="c"></energywizard-house-card></div>
+<script src="energywizard-cards.js"></script>
+<script>
+const q = new URLSearchParams(location.search);
+document.body.className = q.get("theme") === "light" ? "light" : "dark";
+const now = Math.floor(Date.now() / 1000), start = now - (now % 900);
+const slots = [];
+for (let i = 0; i < 96; i++) {
+  const t = start + i * 900, h = new Date(t * 1000).getHours() + new Date(t * 1000).getMinutes() / 60;
+  const price = 1.1 + 1.6 * Math.max(0, Math.sin(((h - 5) / 17) * Math.PI)) + 0.6 * (h > 16 && h < 20 ? 1 : 0) + 0.05 * Math.sin(i);
+  const sun = Math.max(0, Math.sin(((h - 8) / 8) * Math.PI)) * 3200;
+  slots.push([t, +price.toFixed(3), +(price - 0.6).toFixed(3), price < 1.9 ? "C" : "E", Math.round(sun), h >= 1 && h < 5 ? 3.7 : 0, null]);
+}
+const flow = [
+  { k: "sol", l: "Sol", i: "☀️", w: 1850, on: true, d: "1.9 kW", r: "source" },
+  { k: "nat", l: "Elnät", i: "🔌", w: 2100, on: true, d: "Köper 2.1 kW", r: "grid" },
+  { k: "hus", l: "Hemmet", i: "🏠", w: 3950, on: true, d: "4.0 kW", r: "hub" },
+  { k: "varmepump", l: "Värmepump", i: "🌡️", w: 1700, on: true, d: "Går · inne 21.4 °C", r: "load" },
+  { k: "varmvatten", l: "Varmvatten", i: "💧", w: null, on: false, d: "60 °C", r: "load" },
+  { k: "spabad", l: "Spabad", i: "🛁", w: 180, on: false, d: "38.5 °C", r: "load" },
+  { k: "ev_nissan", l: "Nissan Leaf", i: "🚗", w: 0, on: false, d: "Laddar inte · 64 %", r: "load" },
+  { k: "ev_tesla", l: "Tesla Model Y", i: "🚗", w: 2100, on: true, d: "Laddar 2.1 kW · 52 %", r: "load" },
+];
+const cur = slots[0];
+const attrs = { v: 1, ts: new Date().toISOString(), unit: q.get("unit") || "kr", flow: q.get("empty") ? [] : flow,
+  why: { varmepump: "Rumsåterkoppling sätter börvärdet till 18.0 °C. ML: lägsta börvärde som håller de två kallaste rummen över 20.7 °C.", ev_tesla: "Laddar enligt schema." },
+  slots: q.get("empty") ? [] : slots, cars: [{ id: "nissan", name: "Nissan Leaf" }, { id: "tesla", name: "Tesla Model Y" }],
+  price: { now: cur[1], spot: cur[2], mode: cur[3] }, battery: false };
+const el = document.getElementById("c");
+el.setConfig({ tab: q.get("tab") || "now", language: q.get("lang") || "sv", title: q.get("title") || undefined });
+el.hass = { language: q.get("lang") || "sv", states: q.get("missing") ? {} : { "sensor.energywizard_kort": { state: "billigt", last_updated: "x", attributes: attrs } } };
+</script></body></html>

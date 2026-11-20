@@ -220,6 +220,12 @@ def _collect():
                 "manader": [[to_ms(m["manad"]), m["lite_sol_kwh"], m["carport_sol_kwh"], m["lite_kwh"], m["carport_kwh"]] for m in evm[-24:]]})
     except Exception as e:
         print(f"⚠️ elbil_solel: {e}")
+    # EnergyWizards kort i HA (ha-cards/, HACS) läser EN sensor med flöde, pris och plan: sensor.energywizard_kort
+    try:
+        import ha_card_feed
+        ent.update(ha_card_feed.entities(engine))
+    except Exception as e:
+        print(f"⚠️ kortsensor: {e}")
     return ent
 
 

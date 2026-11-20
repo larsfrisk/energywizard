@@ -1,5 +1,10 @@
 # Ändringar
 
+## 1.2.125 (2026-11-20)
+- **Kort för Home Assistant (förhandsversion).** Motorn publicerar nu `sensor.energywizard_kort` (flöde, pris och plan) varje minut, och mappen `ha-cards/` har ett första kort,
+  `energywizard-house-card`, som ritar det i appens stil: energiflöde, planklocka eller skyline, och bilar. Samma kort fungerar för tillägget och Docker.
+  Se `ha-cards/README.md`.
+
 ## 1.2.124 (2026-11-20)
 - **Ekonomi: snittpris på såld el (#549).** Rutan Såld el visar nu även vad man i snitt fick betalat per såld kWh, som Köpt el gör. Förslag och kod av larsfrisk.
 
