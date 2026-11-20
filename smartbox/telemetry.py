@@ -147,7 +147,8 @@ def _ha_maker(entity_id: str) -> str:
     r = requests.post(f"{homeassistant._BASE}/template", headers=homeassistant._HEADERS, timeout=5,
                       verify=homeassistant._VERIFY, json={"template": template})
     r.raise_for_status()
-    return r.text.strip()
+    # HA svarar text/plain utan teckenkodning; requests antar då latin-1 och "Škoda" blev "Å\xa0koda" (-> "Åkoda" efter rensningen).
+    return r.content.decode("utf-8", "replace").strip()
 
 
 def _driver_summary(cfg: dict, maker_fn=None) -> list[str]:

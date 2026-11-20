@@ -1,5 +1,10 @@
 # Ändringar
 
+## 1.2.118 (2026-11-20)
+- **Märkesnamn med å, ä, ö, š m.fl. blev fel i telemetrin** ("Škoda" blev "Åkoda"). HA:s svar lästes som latin-1 i stället för
+  UTF-8. Rättat, och telemetrisidan visar redan inkomna "Åkoda" som Škoda. Kia, Volvo, Volkswagen, Mercedes och Huawei med
+  olika stavningar samlas också under ett märke.
+
 ## 1.2.117 (2026-11-20)
 - **Beslutsraden visar det som faktiskt beställdes.** "Prio 5b" (rumsåterkopplingen) kändes inte igen av sammanfattningen,
   så den gamla grundlägesraden "Dyr el, styrs ner till sparläge" visades medan börvärdet i själva verket höjts till

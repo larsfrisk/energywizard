@@ -2128,7 +2128,7 @@ const DRIVER_NAMES = { thermia_husdata: "Thermia (Husdata)", generic_climate: "c
   tou_tariff: "tidstariff", battery_styr: "styr batteriet", battery_samarbete: "läser batteriet", battery_av: "batteri av",
   SE: "Sverige", NO: "Norge", DK: "Danmark", FI: "Finland", DE: "Tyskland", GB: "Storbritannien", NL: "Nederländerna" };
 // Samma märke ska bli EN rad (NIBE, Nibe Energy Systems, F750, S1256 ... är alla NIBE) med modellerna bakom en klickbar rad.
-const MAKER_ALIASES = [[/^nibe/, "NIBE"], [/^(f|s|vvm|smo)\s?\d/, "NIBE"], [/^gecko/, "Gecko"], [/^ftw-(.+)$/, null]];
+const MAKER_ALIASES = [[/^nibe/, "NIBE"], [/^(å|š)koda/, "Škoda"], [/^kia/, "Kia"], [/^volvo/, "Volvo"], [/^(volkswagen|vw\b)/, "Volkswagen"], [/^mercedes/, "Mercedes-Benz"], [/^huawei/, "Huawei"], [/^(f|s|vvm|smo)\s?\d/, "NIBE"], [/^gecko/, "Gecko"], [/^ftw-(.+)$/, null]];
 const MAKER_SUFFIX = /\s+(energy systems|energy|technologies|technology|power|alliance|ab|gmbh|inc|ltd|co)\b.*$/;
 function makerFamily(maker) {
   let m = String(maker || "").trim().toLowerCase();
@@ -2138,15 +2138,18 @@ function makerFamily(maker) {
 }
 function groupEquipment(items) {   // [[nyckel, antal]] -> [{name, total, subs:[{model, drv, n}]}]
   const fam = new Map();
-  for (const [k, n] of items) {
+  for (let [k, n] of items) {
+    k = k.replace(/Åkoda/g, "Škoda");   // äldre telemetri: Š blev Å (UTF-8 lästes som latin-1)
     const [drv, rest] = k.split("@");
     const maker = rest !== undefined ? rest.split("#")[0] : (DRIVER_NAMES[drv] || drv);
     let model = rest !== undefined && rest.includes("#") ? rest.slice(rest.indexOf("#") + 1) : "";
     const [id, fixed] = makerFamily(maker);
-    if (fixed && rest !== undefined && !maker.toLowerCase().startsWith(fixed.toLowerCase())) model = `${maker} ${model}`.trim();   // "F750#Cu" -> modell "F750 Cu"
+    if (fixed === "NIBE" && rest !== undefined && !/^nibe/i.test(maker)) model = `${maker} ${model}`.trim();   // "F750#Cu" -> modell "F750 Cu"
     let g = fam.get(id);
     if (!g) { g = { name: fixed || maker.replace(/^ftw-/i, "").replace(/^./, (c) => c.toUpperCase()), total: 0, top: 0, subs: [] }; fam.set(id, g); }
-    g.total += n; g.subs.push({ model, drv, n, hasBrand: rest !== undefined });
+    g.total += n;
+    const same = g.subs.find((x) => x.model === model && x.drv === drv);   // samma modell från flera märkesstavningar: en rad
+    if (same) same.n += n; else g.subs.push({ model, drv, n, hasBrand: rest !== undefined });
     if (!fixed && n > g.top) { g.top = n; g.name = maker.replace(/^ftw-/i, "").replace(/^./, (c) => c.toUpperCase()); }
   }
   return [...fam.values()].sort((a, b) => b.total - a.total);

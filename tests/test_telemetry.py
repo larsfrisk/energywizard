@@ -357,3 +357,19 @@ def test_kodplats_i_felrapporten_utan_feltext():
     except TypeError as e:
         loc = telemetry.code_location(e.__traceback__)
     assert loc.startswith("test_telemetry.py:") and loc.endswith(" inner") and "None" not in loc
+
+
+def test_ha_maker_laser_utf8_fran_ha(monkeypatch):
+    """HA svarar text/plain utan teckenkodning. Förut avkodade requests det som latin-1, så "Škoda" blev "Å\\xa0koda" och
+    "Åkoda" i statistiken (2026-11-20). Svaret ska läsas som UTF-8."""
+    t = _reload(monkeypatch)
+    import homeassistant
+    monkeypatch.setattr(homeassistant, "configured", lambda: True)
+
+    class R:
+        content = "Škoda|Enyaq".encode("utf-8")
+        text = "Škoda|Enyaq".encode("utf-8").decode("latin-1")     # det requests gav utan charset
+        def raise_for_status(self): pass
+
+    with patch.object(t.requests, "post", return_value=R()):
+        assert t._ha_maker("sensor.bil_soc") == "Škoda|Enyaq"
