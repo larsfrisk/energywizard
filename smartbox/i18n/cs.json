@@ -3028,5 +3028,9 @@
  "Värmepump: Rumsåterkoppling i skugga skulle sätta # °C, nu # °C": "Tepelné čerpadlo: Zpětná vazba ve stínovém režimu by nastavila # °C, teď # °C",
  "inklusive avgifter": "včetně poplatků",
  "spotpris": "spotová cena",
- "snittpris inklusive avgifter": "průměrná cena včetně poplatků"
+ "snittpris inklusive avgifter": "průměrná cena včetně poplatků",
+ "Hämtar loggen…": "Načítám log…",
+ "Kunde inte hämta loggen": "Log se nepodařilo načíst",
+ "Kunde inte hämta loggen från telemetrisamlaren (har du en administratörsnyckel?)": "Log se nepodařilo načíst ze sběrače telemetrie (máte administrátorský klíč?)",
+ "Ogiltig felgrupp": "Neplatná skupina chyb"
 }
