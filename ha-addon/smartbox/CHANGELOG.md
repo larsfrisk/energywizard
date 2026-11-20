@@ -1,5 +1,49 @@
 # Ändringar
 
+## 1.2.122 (2026-11-20)
+- **Dyr el höjer inte börvärdet när rummen redan är över golvet (#517).** Rumsåterkopplingens prognos
+  kunde beställa 23 °C medan de kallaste rummen låg på 21 °C och sparläget var 20,5 °C. Pumpen värmde
+  och huset köpte el, trots att översikten sa sparläge. Ligger rummen över golvet stannar börvärdet på
+  sparläget eller lägre. När rummen närmar sig golvet höjs det som förut.
+
+- **Elvärmens effekt förklaras (#431).** När `electric_heat` är på kan varje element ha `power_w`, en sensor eller en lista.
+  Den uppmätta effekten syns i beslutet och räknas i lastnedbrytningen, så elementet inte blir oförklarad last.
+  En givare som redan ligger under `loads` räknas bara en gång. Ingenting skrivs till elementen.
+
+- **Growatt hybrid loggar ett skuggrecept utan att skriva register (#395).** När Home Assistant kan läsa
+  batteriet men inte har lägen (ingen Time 1 Mode) kan samarbetsläget tala om vilket registerpar receptet använder:
+  självförbrukning är 1102 = 0 och 1092 = 0, håll är 1102 = 1 och 1092 = 0, och full konfigurerad nätladdning är
+  1102 = 1 och 1092 = 1. En delad effekt, urladdning och vila tigs, eftersom receptet inte kan uttrycka dem.
+  Inga register skrivs, och den engångsinställning receptet kräver görs inte. Styrläge använder inte receptet.
+  Growatt som redan har Time 1 Mode styrs som förut.
+
+- **SAJ H2 loggar ett skuggrecept utan att skriva register (#395).** När Home Assistant kan läsa
+  batteriet men inte har lägen kan samarbetsläget tala om vilket registerläge receptet använder:
+  självförbrukning är 13895 = 2 och 13905 = lägsta nivå, håll är 13895 = 2 och 13905 = högsta nivå,
+  och laddning på hela märkeffekten är läge 1 med tidsfönster hela dygnet och 100 %. En delad effekt,
+  urladdning och vila tigs, eftersom receptet inte kan uttrycka dem. Inga register skrivs. Styrläge
+  använder inte receptet.
+
+- **Närvaro kan stänga av en plugg när det är valt (#217).** `presence_off: true` slår av en påslagen
+  plugg när rummet varit tomt, huset borta eller semestern på, efter väntetiden och minsta på-tid.
+  Utan flaggan är det fortfarande bara en rad i loggen. Saknat pris och skuggläge skriver inte.
+  Pluggen slås inte på igen när någon kommer tillbaka eller elen blir billig.
+
+- **Närvaro slår på en plugg igen när någon är tillbaka (#217).** En plugg som `presence_off`
+  stängde av slås på efter minsta av-tid när rummet, huset eller semestern inte längre vill ha den av,
+  så länge elpriset inte fortfarande ligger över av-gränsen. Är elen dyrare än så väntar den tills
+  priset sjunkit till gränsen, inte tills den billiga återgången. Saknat pris och skuggläge skriver inte.
+  En plugg som redan var av slås inte på.
+
+  plugg när rummet varit tomt, huset borta eller semestern på, efter väntetiden och minsta på-tid.
+  Utan flaggan är det fortfarande bara en rad i loggen. Saknat pris och skuggläge skriver inte.
+  Pluggen slås inte på igen när någon kommer tillbaka eller elen blir billig.
+
+- **Översikten visar börvärdet som beställdes (#517).** Vid dyr el sa beslutsraden "styrs ner till sparläge"
+  eller att kompressorlåset höll läget, medan rumsåterkopplingen hade beställt ett annat börvärde (till exempel
+  17,5 °C). Beslutet är nu det börvärdet. När låset själv byter börvärde står temperaturen i låsraden.
+  Måltemperaturen bredvid innetemperaturen är samma beställda värde, inte bara inställningen för dyr el.
+
 ## 1.2.121 (2026-11-20)
 - Installationer: det första loggutdraget är uppfällt direkt, så att texten syns (och går att markera och kopiera) utan extra klick.
 
