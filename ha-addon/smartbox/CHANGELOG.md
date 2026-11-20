@@ -1,5 +1,13 @@
 # Ändringar
 
+## 1.2.117 (2026-11-20)
+- **Beslutsraden visar det som faktiskt beställdes.** "Prio 5b" (rumsåterkopplingen) kändes inte igen av sammanfattningen,
+  så den gamla grundlägesraden "Dyr el, styrs ner till sparläge" visades medan börvärdet i själva verket höjts till
+  golv + 1. Skuggläget räknas inte längre som ett beslut.
+- **Spabadets plan jämför inte längre med ett påhittat pris.** Tider efter sista kända elpris (morgondagens publiceras
+  först vid ca 13) fylldes med det sista priset; de får nu genomsnittet av de kända priserna. Tidstillägget på
+  0,05 kr/h före badtiden är borttaget, så valet av uppvärmningstimmar går på pris och sol.
+
 ## 1.2.116 (2026-11-16)
 - **Startfel vid saknat värmestopp (#449, #464, #470).** Saknade värden för pumpens värmestopp eller
   utetemperaturens femdygnsmedel får inte längre huvudloopen att krascha med ett `NoneType`-fel.

@@ -31,9 +31,10 @@ DEVICES = [
 _TAG_TO_KEY = {tag: key for key, _, _, tags in DEVICES for tag in tags}
 
 # Rader som bara är information, inte ett beslut om vad som görs.
-_NOISE = ("inaktiverat av användaren", "Skickade notis")
+# "i skugga skulle": rumsåterkopplingen i skuggläge loggar bara vad den SKULLE göra, inget beställs.
+_NOISE = ("inaktiverat av användaren", "Skickade notis", "i skugga skulle")
 
-_PREFIX = re.compile(r"^\W*\s*(?:Prio\s+[\d.]+\s*)?\(([^)]+)\)\s*:\s*|^\W*\s*([A-ZÅÄÖ][A-ZÅÄÖ -]+?|Grundläge|Fukt|GPM Failsafe)\s*:\s*")
+_PREFIX = re.compile(r"^\W*\s*(?:Prio\s+[\d.]+[a-z]?\s*)?\(([^)]+)\)\s*:\s*|^\W*\s*([A-ZÅÄÖ][A-ZÅÄÖ -]+?|Grundläge|Fukt|GPM Failsafe)\s*:\s*")
 
 
 def _parse(line):

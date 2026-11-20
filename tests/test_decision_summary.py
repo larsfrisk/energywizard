@@ -68,3 +68,23 @@ def test_riktig_gpm_utvardering_ger_inte_peak_shaving_som_rubrik():
     s = summarize(actions["log"], actions)
     assert "inaktiverat" not in s["headline"]                   # ...men det visas inte som beslut
     assert any(i["key"] == "varmepump" for i in s["items"])
+
+
+def test_prio_5b_rumsaterkoppling_vinner_over_grundlaget():
+    """2026-11-20: 'Prio 5b' kändes inte igen, så sammanfattningen sa 'Dyr el, styrs ner till sparläge' medan
+    rumsåterkopplingen beställde 21,5 °C och pumpen gick."""
+    log = [
+        "🔴 Grundläge: Dyr el (2.79 kr >= 1.85 kr). Värmepump styrs ner till sparläge.",
+        "  🌡️ Prio 5b (HUS): Rumsåterkoppling sätter börvärdet till 21.5 °C. Nära golvet, de två kallaste rummen 20.6 °C.",
+    ]
+    pump = next(i for i in summarize(log)["items"] if i["key"] == "varmepump")
+    assert "21.5" in pump["text"] and "sparläge" not in pump["text"]
+
+
+def test_skuggraden_ar_inget_beslut():
+    log = [
+        "🔴 Grundläge: Dyr el (2.79 kr >= 1.85 kr). Värmepump styrs ner till sparläge.",
+        "🧪 Prio 5b (HUS): Rumsåterkoppling i skugga skulle sätta 21.5 °C, nu 18.0 °C. Nära golvet.",
+    ]
+    pump = next(i for i in summarize(log)["items"] if i["key"] == "varmepump")
+    assert "sparläge" in pump["text"]

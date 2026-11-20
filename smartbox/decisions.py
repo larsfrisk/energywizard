@@ -100,7 +100,16 @@ def check_spa_schedule_plan(now, target_dt, curr_temp, target_temp, model_interc
             df_p.set_index('t', inplace=True)
             # Sommartid -> normaltid (sista söndagen i oktober): klockan 02 finns två gånger i lokal tid. Behåll första så indexet blir unikt.
             df_p = df_p[~df_p.index.duplicated(keep='first')]
+            _res = df_p.index.to_series().diff().median() if len(df_p) > 1 else pd.Timedelta(hours=1)
+            _known_end = df_p.index.max() + (_res if pd.notna(_res) else pd.Timedelta(hours=1))
             df_plan = df_p.reindex(full_idx).ffill().bfill().reset_index().rename(columns={'index': 't_slot'})
+            # 2026-11-20: tider efter sista kända pris (morgondagens priser publiceras först vid ~13) fylldes förut med
+            # SISTA kända priset, ofta kvällens lägsta, och planen jämförde då dyra timmar idag mot ett påhittat billigt
+            # imorgon. Okänd framtid får i stället genomsnittet av de kända priserna, så en känd dyr timme inte
+            # väljs bara för att okänd framtid ser billig ut, och inte heller bortväljs av ett påhittat lågt pris.
+            _unknown = df_plan['t_slot'] >= _known_end
+            if _unknown.any() and (~_unknown).any():
+                df_plan.loc[_unknown, 'price'] = float(df_plan.loc[~_unknown, 'price'].mean())
         else:
             df_plan = pd.DataFrame({'t_slot': full_idx, 'price': 0.5})
 
@@ -119,7 +128,8 @@ def check_spa_schedule_plan(now, target_dt, curr_temp, target_temp, model_interc
 
         df_plan['score'] = df_plan['price']
         df_plan['hours_from_target'] = (target_dt_naive - df_plan['t_slot']).dt.total_seconds() / 3600.0
-        df_plan['score'] += df_plan['hours_from_target'] * 0.05
+        # Tidstillägget (+0,05 kr/h före badtiden) är borttaget 2026-11-20: det gjorde en dyr timme nära badtiden
+        # "billigare" än en billig timme långt före. Valet ska bara gå på pris (och sol).
 
         # Ge soltimmar en stor bonus, och gynna TIDIGA soltimmar (så vi fångar överskottet direkt och buffrar)
         df_plan.loc[df_plan['solar_w'] > 1500, 'score'] -= (10.0 + df_plan['hours_from_target'] * 0.1)
