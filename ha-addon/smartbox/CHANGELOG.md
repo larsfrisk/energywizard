@@ -1,5 +1,13 @@
 # Ändringar
 
+## 1.2.120 (2026-11-20)
+- **SAJ H2 loggar ett skuggrecept utan att skriva register (#395).** När Home Assistant kan läsa
+  batteriet men inte har lägen kan samarbetsläget tala om vilket registerläge receptet använder:
+  självförbrukning är 13895 = 2 och 13905 = lägsta nivå, håll är 13895 = 2 och 13905 = högsta nivå,
+  och laddning på hela märkeffekten är läge 1 med tidsfönster hela dygnet och 100 %. En delad effekt,
+  urladdning och vila tigs, eftersom receptet inte kan uttrycka dem. Inga register skrivs. Styrläge
+  använder inte receptet.
+
 ## 1.2.119 (2026-11-20)
 - **HeishaMon nollställer inte kurvförskjutningen i onödan (#491).** FTW-drivrutinen skrev 0 °C till
   `Z1_Heat_Request_Temp` vid varje vakthund och omstart, även när Home Assistant styrde förskjutningen.
