@@ -49,6 +49,7 @@ import decision_summary  # Vad görs nu och varför, per enhet (ur gpm.py:s logg
 import solar_write_guard # Hur ofta exportgränsen får skrivas (flashminnet i växelriktaren)
 import config_watch      # Startar om motorn när house_config.yaml ändras
 import battery_control   # Husbatteriet som del av hela systemet (styr / samarbete / av)
+import sofar_shadow      # Sofar HYD: skuggrecept, skriver inga register (#395)
 import battery_limits
 import ew_journal
 import battery_commands
@@ -2301,7 +2302,7 @@ while True:
                             logger.set_override(_k, "")
                             all_overrides[_k] = ""
                         _tu_t = 0
-                    _bdec = battery_control.decide({
+                    _bstate = {
                         "soc": battery_state.get("soc_pct"), "price": current_price, "avg_net_w": avg_net,
                         "currency_symbol": nordpool.cost_settings()["symbol"],
                         "battery_w": battery_state.get("power_w"),
@@ -2319,8 +2320,13 @@ while True:
                         "learned_note": _battery_note(_battery["model"], (_bplan or {}).get("live_charge_note")),
                         "fuse_charge_cap_w": _battery_fuse_cap_w(battery_state.get("power_w")),
                         "topup_target": _tu_t or None,
-                    }, battery_cfg, battery_driver.supported_intents())
+                    }
+                    _bdec = battery_control.decide(_bstate, battery_cfg, battery_driver.supported_intents())
                     gpm_actions["log"].append(f"🔋 (BATTERI): {_bdec['reason']}")
+                    _sofar = sofar_shadow.observation((house_cfg.get("battery") or {}).get("shadow_recipe"), _bstate, battery_cfg)
+                    if _sofar:
+                        gpm_actions["log"].append(f"🔋 (BATTERI): {_sofar}")
+                        print(f"🔋 {_sofar}")
                     battery_driver.set_balancing(_bdec.get("rule") == "balance")
                     if _bdec.get("rule") not in battery_control.SAFETY_RULES:
                         battery_driver.refresh()       # håller en pågående tvångsladdning vid liv (Solis RC m.fl.)
