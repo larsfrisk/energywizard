@@ -10,6 +10,7 @@ import pump
 @pytest.mark.parametrize("fallback", [False, True])
 def test_connection_reset_closes_failed_client(monkeypatch, capsys, fallback):
     monkeypatch.setattr(pump, "PUMP_IPS", ["primary.invalid", "fallback.invalid"])
+    monkeypatch.setattr(pump, "_READ_RETRY", False)   # testet gäller ett försök (omförsöket: test_pump_husdata_466)
     monkeypatch.setattr(pump, "_active_ip_index", 0)
     failed = Mock()
     failed.connect.side_effect = ConnectionResetError("peer reset")

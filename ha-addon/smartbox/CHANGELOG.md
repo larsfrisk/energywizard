@@ -1,5 +1,16 @@
 # Ändringar
 
+## 1.2.130 (2026-11-20)
+- **Husdata/Thermia: lärdomar av Husdatas eget Modbus-bibliotek (#466), alla mätta mot en riktig H66.**
+  - **Saknad givare är inte längre en temperatur.** En ej inkopplad givare ger ett fast skenvärde (−40,0 °C på en Thermia Diplomat, −48,3 °C på Rego 600). Det läses nu som "saknas", så loggar och styrning räknar inte med det. Det
+    hade bland annat kunnat se ut som en frusen köldbärare för nödspärren vid −7 °C. Utetemperaturen får fortfarande vara −40,0.
+  - **En Modbus-klient åt gången.** H66 svarar bara en klient i taget; en andra får anslutning men aldrig något svar. Trådarna i motorn pratar nu med pumpen en i taget, och ett nätverksfel (t.ex. när Home Assistant läser
+    samtidigt) ger ett enda nytt försök. Mätt mot en riktig H66: två samtidiga läsare lyckades 5 av 10 gånger förut, 10 av 10 nu.
+  - **Registerkartan kontrolleras mot gatewayen.** Efter första läsningen läser motorn H66:ans startsida och jämför styrenhet och registerlista med det den förutsätter. Har du en annan styrenhet än Thermia Diplomat
+    (t.ex. IVT/Bosch Rego 600, som har en annan karta) står det i loggen att värdena kan vara fel, i stället för att de tyst blir fel.
+  - **Skrivvärden kontrolleras innan de når pumpen.** Gränserna läses ur pumpens egna "Setting between"-intervall på startsidan (reservtabell när sidan inte går att läsa). Ett orimligt värde nekas med en tydlig logg och
+    pumpen rörs inte.
+
 ## 1.2.129 (2026-11-20)
 - **"Ladda nu" laddar tills bilen är full eller kabeln dras ur, även "Tills jag stoppar".** Utan mål låg tvånget kvar när kabeln drogs ur och slog till igen nästa gång bilen kopplades in,
   vid vilket pris som helst. Nu avslutas Ladda nu när bilen slutat ladda själv (full eller vid sin egen gräns) eller kabeln dras ur, och planen tar över. Med mål (X %) gäller dessutom målet och 24 timmar.
