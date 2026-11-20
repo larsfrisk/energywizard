@@ -25,6 +25,13 @@
 --         max_offset: 3
 --         safe_offset: 0
 --         power_topic: Heat_Power_Consumption
+--         control: true
+--
+-- control: false keeps the driver read-only (#491). Home Assistant or the
+-- pump's own controller then owns Z1_Heat_Request_Temp. With control left on,
+-- driver_default_mode and driver_cleanup still only write safe_offset after
+-- this driver itself has published an offset. A watchdog trip or restart
+-- before that must not zero an offset someone else set.
 --
 -- power_topic names a main/ topic carrying electrical power in W.
 -- The default is Heat_Power_Consumption (TOP16), the heat-mode input.
@@ -39,7 +46,7 @@ DRIVER = {
   id           = "heishamon",
   name         = "Panasonic Aquarea (Heishamon)",
   manufacturer = "Panasonic",
-  version      = "0.8.0",
+  version      = "0.8.1",
   protocols    = { "mqtt" },
   capabilities = { "heatpump" },
   description  = "Panasonic Aquarea H/J/K/L/M-series heat pump via Heishamon MQTT bridge. Controls Zone 1 heat curve offset (Z1_Heat_Request_Temp) in range -3..+3 °C.",
@@ -90,6 +97,20 @@ local min_offset   = -3
 local max_offset   = 3
 local safe_offset  = 0
 local power_topic  = "Heat_Power_Consumption"
+local control      = true
+local offset_written = false
+
+local function control_enabled(v)
+    if v == nil then return true end
+    if v == false or v == 0 then return false end
+    if type(v) == "string" then
+        local s = string.lower(v)
+        if s == "false" or s == "no" or s == "off" or s == "0" then
+            return false
+        end
+    end
+    return true
+end
 
 ----------------------------------------------------------------------------
 -- Lifecycle
@@ -104,6 +125,12 @@ function driver_init(config)
         if config.max_offset  then max_offset  = tonumber(config.max_offset)  or  3   end
         if config.safe_offset then safe_offset = tonumber(config.safe_offset) or  0   end
         if config.power_topic then power_topic = config.power_topic                   end
+        if config.control ~= nil then control = control_enabled(config.control)       end
+    end
+    if not control then
+        -- The host renders DRIVER.controls. An empty list offers no offset command
+        -- when this installation only wants the metrics.
+        DRIVER.controls = {}
     end
 
     -- Subscribe broadly to all Heishamon topics
@@ -117,7 +144,8 @@ function driver_init(config)
     host.log("info", "Heishamon: initialized, base_topic=" .. base_topic
         .. " offset_range=[" .. min_offset .. ".." .. max_offset .. "]"
         .. " safe_offset=" .. safe_offset
-        .. " power_topic=" .. power_topic)
+        .. " power_topic=" .. power_topic
+        .. " control=" .. tostring(control))
 end
 
 function driver_poll()
@@ -211,29 +239,49 @@ local function apply_offset(offset)
 end
 
 function driver_command(action, _power_w, cmd)
+    if not control then
+        host.log("debug", "Heishamon: control is off — not writing the offset")
+        return false
+    end
     if action == "set_heat_curve_offset" then
         local offset = tonumber(cmd and (cmd.offset or cmd.value))
         if offset == nil then
             host.log("warn", "Heishamon: set_heat_curve_offset missing value in cmd")
             return false
         end
-        return apply_offset(offset)
+        local ok = apply_offset(offset)
+        if ok then offset_written = true end
+        return ok
     end
 
     host.log("debug", "Heishamon: ignoring unsupported action=" .. tostring(action))
     return false
 end
 
--- Called by FTW watchdog when control is released or EMS stops.
--- Return to safe/neutral offset so the pump runs on its own heat curve.
-function driver_default_mode()
-    host.log("info", "Heishamon: default_mode — resetting offset to " .. tostring(safe_offset))
+-- Watchdog and shutdown used to publish safe_offset unconditionally. That
+-- zeroed Z1_Heat_Request_Temp on every restart for pumps controlled from
+-- Home Assistant (#491). Reset only after this driver has written.
+local function release_offset(reason)
+    if not control then
+        host.log("info", "Heishamon: " .. reason .. " — control is off, offset left unchanged")
+        return
+    end
+    if not offset_written then
+        host.log("info", "Heishamon: " .. reason .. " — offset left unchanged (this driver has not written it)")
+        return
+    end
+    host.log("info", "Heishamon: " .. reason .. " — resetting offset to " .. tostring(safe_offset))
     apply_offset(safe_offset)
 end
 
+-- Called by FTW watchdog when control is released or EMS stops.
+-- Return to safe/neutral offset so the pump runs on its own heat curve.
+function driver_default_mode()
+    release_offset("default_mode")
+end
+
 function driver_cleanup()
-    host.log("info", "Heishamon: cleanup — resetting offset to " .. tostring(safe_offset))
-    apply_offset(safe_offset)
+    release_offset("cleanup")
     outside_temp = nil
     outlet_temp  = nil
     inlet_temp   = nil

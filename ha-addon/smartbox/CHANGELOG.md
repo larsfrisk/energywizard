@@ -1,5 +1,11 @@
 # Ändringar
 
+## 1.2.119 (2026-11-20)
+- **HeishaMon nollställer inte kurvförskjutningen i onödan (#491).** FTW-drivrutinen skrev 0 °C till
+  `Z1_Heat_Request_Temp` vid varje vakthund och omstart, även när Home Assistant styrde förskjutningen.
+  Nu skrivs det neutrala värdet bara efter att drivrutinen själv har ändrat förskjutningen. `control: false`
+  gör den helt läsande: mätvärdena kommer in, men inget offset kommenderas.
+
 ## 1.2.118 (2026-11-20)
 - **Märkesnamn med å, ä, ö, š m.fl. blev fel i telemetrin** ("Škoda" blev "Åkoda"). HA:s svar lästes som latin-1 i stället för
   UTF-8. Rättat, och telemetrisidan visar redan inkomna "Åkoda" som Škoda. Kia, Volvo, Volkswagen, Mercedes och Huawei med
