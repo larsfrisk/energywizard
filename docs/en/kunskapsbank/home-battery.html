@@ -21,8 +21,9 @@
   <p>EnergyWizard can control a home battery as part of the <strong>whole</strong> house, not as an
   island. The battery competes with the EV, the heat pump, the spa and solar export for the same watts,
   so its decisions are made in the same engine that controls everything else: EV charging, the peak cap,
-  the main fuse, the electricity price and the solar surplus. Everything goes through the battery's own
-  Home Assistant integration, with no protocol code of our own.</p>
+  the main fuse, the electricity price and the solar surplus. Most brands go through the battery's own
+  Home Assistant integration. Deye, Sigenergy, Solinteg and Pixii can instead be read directly on the
+  network when Home Assistant can read the device but cannot control it.</p>
 
   <p><strong>Status:</strong> built and tested with simulated calls, but not yet run against a real
   battery. Have one? Get in touch - that is exactly what we need.</p>
@@ -52,9 +53,18 @@
     <tr><td>HomeWizard Plug-In Battery (HA's built-in <a href="https://www.home-assistant.io/integrations/homewizard/">HomeWizard</a>)</td><td>✅</td><td>✅ auto, hold, idle, charge</td></tr>
     <tr><td>FoxESS cloud (<a href="https://github.com/macxq/foxess-ha">foxess-ha</a>)</td><td>✅</td><td>auto and hold</td></tr>
     <tr><td>Felicity Solar (<a href="https://github.com/partach/ha_felicity">ha_felicity</a>)</td><td>✅</td><td>no, the integration's own scheduler does it (see below)</td></tr>
+    <tr><td>Ferroamp EnergyHub</td><td>✅ local Modbus</td><td>off by default</td></tr>
+    <tr><td>Deye, Sunsynk, Sigenergy and Solinteg</td><td>✅ directly on the network, when Home Assistant can read but not control</td><td>off. Not run on real hardware</td></tr>
+    <tr><td>Pixii</td><td>✅ directly on the network, the battery only</td><td>off. Not run on real hardware</td></tr>
     <tr><td>SolarEdge, GivEnergy, Huawei Luna, Sonnen, Victron, Pylontech and others</td><td>✅</td><td>if you map the modes yourself (example at the bottom)</td></tr>
   </table>
   <p>Everything beyond reading is built against the integrations' source code and not yet run against a real battery.</p>
+
+  <h3>Direct reading when Home Assistant cannot control</h3>
+  <p>The setup guide suggests this for Deye, Sunsynk, Sigenergy, Solinteg and Pixii when Home Assistant
+  can read the device but cannot control the battery. You fill in the IP address. Deye, Sunsynk, Sigenergy and
+  Solinteg can also read solar production. Pixii reads only the battery. Control stays off, and none of
+  these drivers has been run on real hardware, so start in shadow mode. Turn control on yourself if you want to try it.</p>
 
   <h3>The rules (in priority order)</h3>
   <ol>

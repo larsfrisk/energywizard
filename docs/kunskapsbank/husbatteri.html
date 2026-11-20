@@ -21,8 +21,9 @@
   <p>EnergyWizard kan styra ett husbatteri som en del av <strong>hela</strong> huset, inte som en egen
   ö. Batteriet konkurrerar med elbilen, värmepumpen, spabadet och exporten om samma watt.
   Därför fattas besluten i samma motor som styr allt annat: hur elbilen laddar, effekttaket,
-  huvudsäkringen, elpriset och solöverskottet. Allt styrs via batteriets egen Home
-  Assistant-integration, utan egen protokollkod.</p>
+  huvudsäkringen, elpriset och solöverskottet. De flesta märken styrs via batteriets egen
+  Home Assistant-integration. Deye, Sigenergy, Solinteg och Pixii kan i stället läsas direkt
+  i nätverket när Home Assistant kan läsa men inte styra.</p>
 
   <p><strong>Status:</strong> byggt och testat med simulerade anrop, men ännu aldrig kört mot ett
   riktigt batteri. Har du ett? Hör av dig - det är precis det vi behöver.</p>
@@ -52,9 +53,18 @@
     <tr><td>HomeWizard Plug-In Battery (HA:s inbyggda <a href="https://www.home-assistant.io/integrations/homewizard/">HomeWizard</a>)</td><td>✅</td><td>✅ auto, håll, vila, ladda</td></tr>
     <tr><td>FoxESS via molnet (<a href="https://github.com/macxq/foxess-ha">foxess-ha</a>)</td><td>✅</td><td>auto och håll</td></tr>
     <tr><td>Felicity Solar (<a href="https://github.com/partach/ha_felicity">ha_felicity</a>)</td><td>✅</td><td>nej, integrationens egen styrning sköter det (se nedan)</td></tr>
+    <tr><td>Ferroamp EnergyHub</td><td>✅ lokal Modbus</td><td>av som standard, se <a href="vaxelriktare.html">växelriktarsidan</a></td></tr>
+    <tr><td>Deye, Sunsynk, Sigenergy och Solinteg</td><td>✅ direkt i nätverket, när Home Assistant kan läsa men inte styra</td><td>av. Inte provad på riktig hårdvara</td></tr>
+    <tr><td>Pixii</td><td>✅ direkt i nätverket, bara batteriet</td><td>av. Inte provad på riktig hårdvara</td></tr>
     <tr><td>SolarEdge, GivEnergy, Huawei Luna, Sonnen, Victron, Pylontech m.fl.</td><td>✅</td><td>om du kopplar lägena själv (exempel längst ner)</td></tr>
   </table>
   <p>Allt utom läsningen är byggt mot integrationernas källkod och ännu inte kört mot ett riktigt batteri.</p>
+
+  <h3>Direktläsning när Home Assistant inte kan styra</h3>
+  <p>Guiden föreslår det här för Deye, Sunsynk, Sigenergy, Solinteg och Pixii när Home Assistant
+  kan läsa enheten men inte styra batteriet. Du fyller i IP-adressen. Deye, Sunsynk, Sigenergy och Solinteg
+  kan också läsa solproduktionen. Pixii läser bara batteriet. Styrningen är av, och ingen av
+  drivrutinerna är provad på riktig hårdvara, så börja i skuggläge. Vill du prova styrning slår du på den själv.</p>
 
   <h3>Reglerna (i prioritetsordning)</h3>
   <ol>
