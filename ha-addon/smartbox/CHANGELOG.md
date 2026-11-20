@@ -1,6 +1,10 @@
 # Ändringar
 
 ## 1.2.118 (2026-11-20)
+- **Ekonomisidans högsta pris går att jämföra med det man betalat (#510).** Snittet under Köpt el räknas
+  inklusive moms, nätavgift och skatt, medan Högst idag bara var spotpriset. Snittet kunde därför ligga över
+  dagens högsta. Lägst, snitt och högst visar nu vad elen kostar att köpa, och spotpriset står under när det
+  skiljer sig. Dygnet är installationens tidszon, samma som för köpt el.
 - **Märkesnamn med å, ä, ö, š m.fl. blev fel i telemetrin** ("Škoda" blev "Åkoda"). HA:s svar lästes som latin-1 i stället för
   UTF-8. Rättat, och telemetrisidan visar redan inkomna "Åkoda" som Škoda. Kia, Volvo, Volkswagen, Mercedes och Huawei med
   olika stavningar samlas också under ett märke.

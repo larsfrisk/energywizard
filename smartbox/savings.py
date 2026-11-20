@@ -153,6 +153,32 @@ def money_rows(conn, days=40):
     return out
 
 
+def price_span(rows, buy_cost=None):
+    """Min, medel och max för spotpris och för det man faktiskt betalar.
+
+    rows är (tid, sek_per_kwh). Köpt el på ekonomi-sidan är kostnaden inklusive moms,
+    nätavgift och skatt delat på köpta kWh. Högsta spotpriset kan då ligga under det
+    snittet (#510). buy använder samma formel som nordpool.full_buy_cost."""
+    if buy_cost is None:
+        import nordpool
+        buy_cost = nordpool.full_buy_cost
+    spots, buys = [], []
+    for row in rows or []:
+        t, p = (row[0], row[1]) if len(row) > 1 else (None, row[0])
+        if p is None:
+            continue
+        spot = float(p)
+        spots.append(spot)
+        buys.append(float(buy_cost(spot, t)))
+
+    def pack(xs):
+        if not xs:
+            return {"min": None, "avg": None, "max": None}
+        return {"min": min(xs), "avg": sum(xs) / len(xs), "max": max(xs)}
+
+    return {"spot": pack(spots), "buy": pack(buys)}
+
+
 def money_periods(rows, today):
     """Idag / 7 dagar / innevarande månad, samma perioder som summarize_periods()."""
     from datetime import date, timedelta

@@ -877,10 +877,19 @@ async function renderEkonomi() {
     const money = (v) => v == null ? "–" : `${v.toFixed(v >= 100 || v <= -100 ? 0 : 2).replace(".", ",")} ${sym}`;
     const chip = (k, label) => `<button class="icobtn" data-econ="${k}"${k === econPeriod ? ` style="border-color:var(--acc);color:var(--acc)"` : ""}>${label}</button>`;
     const label = { today: "idag", week: "senaste 7 dagarna", month: "den här månaden" }[econPeriod];
+    // #510: snittet på köpt el är inklusive avgifter. Lägst/snitt/högst måste vara samma bas,
+    // annars kan snittet se högre ut än dagens högsta (det var bara spotpriset).
+    const paidSub = (buy, spot) => {
+      if (buy == null && spot == null) return "";
+      const differs = buy != null && spot != null && Math.abs(buy - spot) >= 0.005;
+      return differs ? `<span>inklusive avgifter</span> · <span>spotpris</span> <span data-noi18n>${fmtKrOre(spot)}</span>` : "spotpris";
+    };
+    const paidTile = (icon, name, buy, spot) => statTile(`${icon} ${name}`, fmtKrOre(buy != null ? buy : spot) + "/kWh", paidSub(buy, spot));
+    const avgPaid = m.avg_paid == null ? "" : ` · <span>snittpris inklusive avgifter</span> <span data-noi18n>${m.avg_paid.toFixed(2).replace(".", ",")} ${sym}/kWh</span>`;
     return `
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px">${chip("today", "Idag")}${chip("week", "7 dagar")}${chip("month", "Månad")}</div>
     <div class="grid" style="margin-bottom:16px">
-      ${statTile("🧾 Köpt el", money(m.cost), `${fmt(m.bought_kwh, 1, " kWh")}${m.avg_paid != null ? " · snitt " + m.avg_paid.toFixed(2).replace(".", ",") + " " + sym + "/kWh" : ""}`)}
+      ${statTile("🧾 Köpt el", money(m.cost), `${fmt(m.bought_kwh, 1, " kWh")}${avgPaid}`)}
       ${statTile("☀️ Såld el", money(m.income), fmt(m.sold_kwh, 1, " kWh"))}
       ${statTile("💰 Netto", money(m.net), "köpt minus sålt")}
       ${statTile("🎯 Sparat genom tajmning", t.saved_kr != null ? (t.saved_kr >= 0 ? "+" : "") + money(t.saved_kr) : "–", t.pct != null ? `${t.pct.toFixed(0)} % billigare än dygnets snitt` : "")}
@@ -891,9 +900,9 @@ async function renderEkonomi() {
     <div class="card" style="margin-bottom:16px"><h2>📊 Sparat per dag</h2><div class="note">Jämfört med ett vanligt hushåll utan styrning, inkl. moms. Grönt = billigare, rött = dyrare.</div><div id="econsavingsbars" style="height:220px;margin-top:10px"></div></div>
     <div class="grid" style="margin-bottom:16px">
       ${statTile("💸 Elpris just nu", fmtKrOre(d.price) + "/kWh", "spotpris")}
-      ${statTile("📉 Lägst idag", fmtKrOre(d.price_min) + "/kWh")}
-      ${statTile("📊 Snitt idag", fmtKrOre(d.price_avg) + "/kWh")}
-      ${statTile("📈 Högst idag", fmtKrOre(d.price_max) + "/kWh")}
+      ${paidTile("📉", "Lägst idag", d.price_buy_min, d.price_min)}
+      ${paidTile("📊", "Snitt idag", d.price_buy_avg, d.price_avg)}
+      ${paidTile("📈", "Högst idag", d.price_buy_max, d.price_max)}
     </div>
     <div class="card"><h2>Elpris senaste dygnet</h2><div id="econpricechart" style="height:240px;margin-top:10px"></div></div>
     <div class="note" style="margin-top:10px">Beloppen räknas minut för minut med dina inställningar under Inställningar → Elpris och avgifter (${esc(label)}).</div>`;
