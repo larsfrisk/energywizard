@@ -75,6 +75,9 @@ def _db():
         conn.execute("""CREATE TABLE IF NOT EXISTS error_support (
             id INTEGER PRIMARY KEY AUTOINCREMENT, received_at TEXT, house TEXT,
             version TEXT, module TEXT, error_type TEXT, support TEXT)""")
+        # Vem som hämtat supportutdrag (granskningslogg)
+        conn.execute("""CREATE TABLE IF NOT EXISTS admin_access (
+            id INTEGER PRIMARY KEY AUTOINCREMENT, at TEXT, admin TEXT, what TEXT, detail TEXT)""")
         try:
             cols = {r[1] for r in conn.execute("PRAGMA table_info(errors)").fetchall()}
             if "has_support" not in cols:
@@ -177,11 +180,30 @@ async def recent(request: Request, limit: int = 50):
 
 
 STATS_TOKEN = os.environ.get("STATS_TOKEN", "").strip()   # satt: /api/stats och /api/recent kräver X-Stats-Token
+# Egen nyckel per administratör: STATS_TOKENS="emil:nyckel1,lazgeo:nyckel2". Då kan en person spärras utan att byta de andras
+# nyckel, och varje hämtning av ett supportutdrag skrivs i admin_access med vem som hämtade. Den gamla delade STATS_TOKEN
+# gäller kvar (som "emil").
+ADMINS = {}
+for _pair in os.environ.get("STATS_TOKENS", "").split(","):
+    _n, _, _t = _pair.strip().partition(":")
+    if _n.strip() and _t.strip():
+        ADMINS[_n.strip().lower()] = _t.strip()
+if STATS_TOKEN:
+    ADMINS.setdefault("emil", STATS_TOKEN)
+
+
+def _admin_name(request: Request):
+    """Namnet på administratören vars nyckel skickades, annars None. Utan några nycklar alls är samlaren öppen som förut."""
+    import hmac
+    got = request.headers.get("X-Stats-Token", "")
+    for name, tok in ADMINS.items():
+        if hmac.compare_digest(got, tok):
+            return name
+    return None
 
 
 def _token_ok(request: Request) -> bool:
-    import hmac
-    return not STATS_TOKEN or hmac.compare_digest(request.headers.get("X-Stats-Token", ""), STATS_TOKEN)
+    return not ADMINS or _admin_name(request) is not None
 
 
 ACTIVE_DAYS = 3          # smartbox skickar översikten varje dygn: hörd inom 3 dygn = aktiv
@@ -360,6 +382,79 @@ async def error_groups(request: Request, days: int = 14):
             "support": g.get("support") or ""}
            for k, g in groups.items()]
     return {"groups": sorted(out, key=lambda x: (-x["houses"], x["key"]))}
+
+
+@app.get("/api/support")
+async def support(request: Request, module: str = "", error_type: str = "", days: int = 14, limit: int = 20):
+    """Sanerade supportutdrag (#227) per felgrupp, för administratörerna. Bara med egen nyckel, och varje hämtning loggas.
+    house = de första 8 tecknen av det hashade hus-ID:t, så att två administratörer kan prata om samma hus."""
+    from datetime import timedelta
+    admin = _admin_name(request)
+    if ADMINS and admin is None:
+        return JSONResponse({"error": "forbidden"}, status_code=403)
+    since = (datetime.now(timezone.utc) - timedelta(days=max(1, min(days, 90)))).isoformat()
+    q, args = "SELECT received_at, house, version, module, error_type, support FROM error_support WHERE received_at >= ?", [since]
+    if module:
+        q += " AND module = ?"; args.append(module)
+    if error_type:
+        q += " AND error_type = ?"; args.append(error_type)
+    q += " ORDER BY id DESC LIMIT ?"; args.append(max(1, min(limit, 100)))
+    with _db() as c:
+        rows = c.execute(q, args).fetchall()
+        c.execute("INSERT INTO admin_access (at, admin, what, detail) VALUES (?, ?, ?, ?)",
+                  (datetime.now(timezone.utc).isoformat(), admin or "(utan nyckel)", "support",
+                   f"{module}: {error_type} ({len(rows)} utdrag)"[:200]))
+    return {"items": [{"received_at": r[0], "house": (r[1] or "")[:8], "version": r[2], "module": r[3], "error_type": r[4],
+                       "support": r[5]} for r in rows]}
+
+
+@app.get("/api/admin-access")
+async def admin_access(request: Request, limit: int = 100):
+    """Granskningsloggen: vem som hämtat vad och när."""
+    if ADMINS and _admin_name(request) is None:
+        return JSONResponse({"error": "forbidden"}, status_code=403)
+    with _db() as c:
+        rows = c.execute("SELECT at, admin, what, detail FROM admin_access ORDER BY id DESC LIMIT ?", (max(1, min(limit, 500)),)).fetchall()
+    return {"items": [{"at": r[0], "admin": r[1], "what": r[2], "detail": r[3]} for r in rows]}
+
+
+ADMIN_LOGS_HTML = """<!doctype html><html lang="sv"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>EnergyWizard: supportutdrag</title>
+<style>body{font:15px system-ui;margin:16px;max-width:900px}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f4f4f4;padding:10px;border-radius:8px}
+details{margin:10px 0}small{color:#666}input{padding:6px}</style></head><body>
+<h1>Supportutdrag</h1>
+<p><small>Sanerade felrader från installationerna. Varje hämtning loggas med ditt namn. Dela inte sidan eller nyckeln.</small></p>
+<form id="f"><input id="t" type="password" placeholder="Din nyckel" autocomplete="off" size="40"> <button>Visa</button></form>
+<div id="out"></div>
+<script>
+const q = new URLSearchParams(location.search);
+const out = document.getElementById("out"), tok = document.getElementById("t");
+tok.value = sessionStorage.getItem("ewk") || "";
+async function go() {
+  out.textContent = "Hämtar…";
+  const u = "api/support?" + new URLSearchParams({module: q.get("module") || "", error_type: q.get("error_type") || ""});
+  const r = await fetch(u, {headers: {"X-Stats-Token": tok.value}});
+  if (!r.ok) { out.textContent = r.status === 403 ? "Fel nyckel." : "Fel " + r.status; return; }
+  sessionStorage.setItem("ewk", tok.value);
+  const d = await r.json(); out.textContent = "";
+  if (!d.items.length) { out.textContent = "Inga utdrag för det här felet."; return; }
+  for (const i of d.items) {
+    const el = document.createElement("details"); el.open = out.children.length === 0;
+    const sm = document.createElement("summary"); sm.textContent = i.received_at.slice(0, 16).replace("T", " ") + " UTC · hus " + i.house + " · " + i.version;
+    const pre = document.createElement("pre"); pre.textContent = i.support;
+    el.append(sm, pre); out.append(el);
+  }
+}
+document.getElementById("f").onsubmit = (e) => { e.preventDefault(); go(); };
+if (tok.value) go();
+</script></body></html>"""
+
+
+@app.get("/admin/logs")
+async def admin_logs_page():
+    """Själva sidan innehåller ingen data. Den frågar /api/support med nyckeln du skriver in."""
+    from fastapi.responses import HTMLResponse
+    return HTMLResponse(ADMIN_LOGS_HTML)
 
 
 @app.get("/api/ping")

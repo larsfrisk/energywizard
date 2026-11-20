@@ -45,6 +45,21 @@ Han ser fortfarande sitt eget hus som vanligt. Han ser **inte** ditt hus live oc
 
 `TELEMETRY_ADMIN_USERS` på utvecklarservern + family-login där ger enbart flottvy på *din* webb (spärrad från ditt hus-UI). Det är fel modell när support redan kör EnergyWizard hemma.
 
+## Administratörer och loggutdrag (2026-11-20)
+
+Samlaren (telemetry-collector) har en egen nyckel per administratör: `STATS_TOKENS="emil:nyckel1,lazgeo:nyckel2"`
+(`STATS_TOKEN` gäller kvar som "emil"). Det ger:
+
+- **Flottvyn** (`/api/stats`) med vilken administratörsnyckel som helst, i den egna installationens `telemetry_stats_url` och
+  `telemetry_stats_token`.
+- **Loggutdrag** (sanerade felrader, #227) på `https://<samlaren>/telemetry/admin/logs?module=…&error_type=…`. Sidan frågar efter
+  nyckeln och visar utdragen per hus (8 tecken av hashen, så att två administratörer kan prata om samma hus).
+- **Granskningslogg** (`/api/admin-access`): varje hämtning skrivs med vem, vad och när.
+- **Spärr:** ta bort personens rad ur `STATS_TOKENS` och starta om samlaren. De andras nycklar rörs inte.
+
+De automatiska felärendena på GitHub innehåller inget loggutdrag, bara en länk till sidan ovan. Ärendena är publika, och ett
+utdrag ur någons hem ska inte vara det även om det är sanerat.
+
 ## Hur vi kommer närmare FTW-admin
 
 1. **Nu (#265):** flottvy på supportpersonens egen installation via stats-URL/token.

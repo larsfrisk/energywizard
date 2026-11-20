@@ -214,6 +214,9 @@ services:
       - PYTHONUNBUFFERED=1
       - TELEMETRY_DB_PATH=/data/telemetry.sqlite3
       - STATS_TOKEN=${TELEMETRY_STATS_TOKEN:-}   # satt: statistiken kräver nyckeln (webdashboard skickar den)
+      # En egen nyckel per administratör, "namn:nyckel,namn2:nyckel2". Då kan en person spärras utan att byta de andras, och
+      # varje hämtning av ett supportutdrag loggas med namnet. STATS_TOKEN ovan gäller kvar (som "emil").
+      - STATS_TOKENS=${STATS_TOKENS:-}
       - SMTP_HOST=${SMTP_HOST:-}
       - SMTP_PORT=${SMTP_PORT:-587}
       - SMTP_USER=${SMTP_USER:-}

@@ -125,3 +125,35 @@ def test_installationer_visar_bara_fel_som_kvarstar(monkeypatch):
         db.execute("UPDATE errors SET received_at = ? WHERE module = 'forr'", (old,))
     s = c.get("/api/stats").json()
     assert s["houses"][0]["errors"] == ["nu: Kvarstar"]
+
+
+def test_en_nyckel_per_administrator_och_granskningslogg(monkeypatch):
+    monkeypatch.setenv("STATS_TOKENS", "emil:nyckel-e,lazgeo:nyckel-l")
+    monkeypatch.delenv("STATS_TOKEN", raising=False)
+    c, _ = _client(monkeypatch)
+    c.post("/ingest/error", json={"house": "a" * 16, "version": "1.2", "module": "database", "error_type": "X",
+                                  "support": "❌ fel i databasen"})
+    assert c.get("/api/support").status_code == 403
+    assert c.get("/api/support", headers={"X-Stats-Token": "fel"}).status_code == 403
+    r = c.get("/api/support", params={"module": "database", "error_type": "X"}, headers={"X-Stats-Token": "nyckel-l"})
+    assert r.status_code == 200 and r.json()["items"][0]["support"] == "❌ fel i databasen"
+    assert r.json()["items"][0]["house"] == "aaaaaaaa" and "a" * 16 not in str(r.json())       # bara 8 tecken av hashen
+    assert c.get("/api/stats", headers={"X-Stats-Token": "nyckel-e"}).status_code == 200
+    log = c.get("/api/admin-access", headers={"X-Stats-Token": "nyckel-e"}).json()["items"]
+    assert log[0]["admin"] == "lazgeo" and "database: X" in log[0]["detail"]
+    assert c.get("/api/admin-access").status_code == 403
+
+
+def test_gamla_delade_nyckeln_galler_kvar_som_emil(monkeypatch):
+    monkeypatch.setenv("STATS_TOKEN", "gammal")
+    monkeypatch.delenv("STATS_TOKENS", raising=False)
+    c, _ = _client(monkeypatch)
+    assert c.get("/api/support", headers={"X-Stats-Token": "gammal"}).status_code == 200
+    assert c.get("/api/admin-access", headers={"X-Stats-Token": "gammal"}).json()["items"][0]["admin"] == "emil"
+    monkeypatch.delenv("STATS_TOKEN")
+
+
+def test_loggsidan_innehaller_ingen_data(monkeypatch):
+    c, _ = _client(monkeypatch)
+    r = c.get("/admin/logs")
+    assert r.status_code == 200 and "api/support" in r.text and "❌" not in r.text
