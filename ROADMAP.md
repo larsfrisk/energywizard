@@ -25,9 +25,10 @@ tydligt vad som redan är beslutat och vad som väntar på mer underlag.
 - **Drivrutiner från evcc** ([evcc-io/evcc](https://github.com/evcc-io/evcc), MIT, får användas i AGPL med upphovsrättsraden
   kvar). evcc har YAML-mallar för 211 laddboxar, 251 mätare, växelriktare och batterier och 72 bilar, som pratar direkt
   med enheten via Modbus, HTTP eller MQTT. Mest värde ger det där Home Assistant bara kan läsa men inte styra:
-  batterier och växelriktare som Victron, Sigenergy, Pixii, Huawei och GoodWe. Två vägar:
-  (1) en liten tolk för evcc:s Modbus/HTTP-mallar i Python, som ger många mätare och batterier på en gång;
-  (2) en körande evcc som laddbackend via dess API eller MQTT. Börja med (1) för batterierna som betatestarna har.
+  batterier och växelriktare som Victron, Sigenergy, Pixii, Huawei och GoodWe. En generell tolk för mallarna byggs
+  inte först (#391). Märken som betatestarna har översätts för hand till egna drivrutiner, i skuggläge tills en
+  riktig installation verifierat styrningen (#395). En körande evcc läses bara med `GET /api/state`, och bara när
+  någon visar en förmåga som EnergyWizard saknar. Inga skrivningar mot evcc.
 - **Pixii (PowerShaper / Home).** Läsning fungerar nu via `driver: ftw` + FTW:s `pixii`-drivrutin (SunSpec 802, tecknet
   hanteras av drivrutinen). Styrning: Pixiis egna register + heartbeat (FTW `pixii`, overifierad på hårdvara) – slås på
   när en testare med Pixii provat (`control_unverified: true` + skuggläge först).
