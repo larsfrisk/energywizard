@@ -1,5 +1,8 @@
 # Ändringar
 
+## 1.2.121 (2026-11-20)
+- Installationer: det första loggutdraget är uppfällt direkt, så att texten syns (och går att markera och kopiera) utan extra klick.
+
 ## 1.2.120 (2026-11-20)
 - **Installationer: Logg-knapp per felgrupp** (för den som har en administratörsnyckel till telemetrisamlaren). Visar de sanerade
   loggutdragen direkt i webben. Hämtningen sker med installationens egen nyckel, så samlarens granskningslogg visar vem som tittade.

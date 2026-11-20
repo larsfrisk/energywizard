@@ -2128,7 +2128,7 @@ async function renderInstalls() {
       box.innerHTML = '<div class="note">Hämtar loggen…</div>';
       const r = await api(`api/installs/support?key=${encodeURIComponent(b.dataset.logkey)}`).catch(() => null);
       if (!r || !r.ok) { box.innerHTML = `<div class="note">${esc((r && r.error) || "Kunde inte hämta loggen")}</div>`; return; }
-      box.innerHTML = r.items.length ? r.items.map((i) => `<details style="margin:6px 0"><summary class="note" style="cursor:pointer">${esc(String(i.received_at).slice(0, 16).replace("T", " "))} UTC · hus ${esc(i.house)} · ${esc(i.version)}</summary><pre style="white-space:pre-wrap;overflow-wrap:anywhere;font-size:.8rem;margin:4px 0">${esc(i.support)}</pre></details>`).join("")
+      box.innerHTML = r.items.length ? r.items.map((i, n) => `<details${n === 0 ? " open" : ""} style="margin:6px 0"><summary class="note" style="cursor:pointer">${esc(String(i.received_at).slice(0, 16).replace("T", " "))} UTC · hus ${esc(i.house)} · ${esc(i.version)}</summary><pre style="white-space:pre-wrap;overflow-wrap:anywhere;font-size:.8rem;margin:4px 0">${esc(i.support)}</pre></details>`).join("")
         : '<div class="note">Inga loggutdrag för det här felet (användaren har stängt av felsökningsutdrag, eller äldre klient).</div>';
     });
   };
