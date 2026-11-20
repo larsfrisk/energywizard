@@ -44,6 +44,7 @@ import mpc               # Prediktiv förvärmnings-planerare (skuggläge + veck
 import house_config      # EnergyWizard Open: drivrutinsarkitektur (bil/laddare/värmepump/sol/spa)
 import smart_plugs
 import spa_filter          # #447: filtercykeln vilar på dyr el, skugga tills control är true
+import plug_presence
 import ev_handshake      # Generisk laddar-handskakning (vilken fysisk laddare hör till vilken bil)
 import decision_summary  # Vad görs nu och varför, per enhet (ur gpm.py:s logg)
 import solar_write_guard # Hur ofta exportgränsen får skrivas (flashminnet i växelriktaren)
@@ -152,11 +153,18 @@ try:
 except Exception as e:
     print(f"⚠️ Kunde inte ladda house_config.yaml från {HOUSE_CONFIG_PATH} ({e}) - fortsätter med tomt hus (bara Null-drivrutiner).")
     house_cfg = {}
+_plug_cfg = house_cfg.get('smart_plugs')
 try:
-    _smart_plugs = smart_plugs.Controller(house_cfg.get('smart_plugs'))
+    _smart_plugs = smart_plugs.Controller(_plug_cfg)
 except ValueError as e:
     print(f"Smart plugs disabled: {e}")
     _smart_plugs = smart_plugs.Controller(None)
+    _plug_cfg = None
+try:
+    _plug_presence = plug_presence.Watch(_plug_cfg)
+except ValueError as e:
+    print(f"Plug presence disabled: {e}")
+    _plug_presence = plug_presence.Watch(None)
 car_drivers = house_config.build_car_drivers(house_cfg)
 charger_drivers = house_config.build_charger_drivers(house_cfg)
 physical_charger_drivers = house_config.build_physical_charger_drivers(house_cfg)
@@ -1276,10 +1284,17 @@ while True:
             # Explicit nonessential devices only; never switch from yesterday's
             # fallback profile or a missing current interval. Prices use the
             # configured contract's complete import-price calculation.
+            cut = ()
+            if _plug_presence.active:
+                try:
+                    plug_presence.run(_plug_presence, now.timestamp())
+                    cut = _plug_presence.switches_to_cut()
+                except Exception as e:
+                    print(f"Plug presence skipped: {type(e).__name__}")
             if _smart_plugs.devices:
                 try:
                     _plug_price = smart_plugs.policy_price(current_price, strategy, now, nordpool.planning_buy_price)
-                    smart_plugs.run(_smart_plugs, _plug_price, now.timestamp())
+                    smart_plugs.run(_smart_plugs, _plug_price, now.timestamp(), cut)
                 except Exception as e:
                     print(f"Smart plug policy skipped: {type(e).__name__}")
 

@@ -106,19 +106,22 @@ class Controller:
                 else:noted=True
             self.standby[entity]={'since':since,'noted':noted}
 
-    def tick(self,price,now,read,write,shadow=False,power=None,record=None):
+    def tick(self,price,now,read,write,shadow=False,cut=(),power=None,record=None):
         """read is a fresh HA GET; write returns the changed state, never an ACK.
 
         Missing evidence, manual changes and ambiguous writes suspend that device
         until restart. Ownership is never restored from disk or inferred from off.
+        ``cut`` names plugs presence wants off. A missing price never writes.
         Standby is a log line unless standby_off is set. Shadow mode never writes.
-        A plug switched off for standby stays off when the price falls.
+        A plug switched off for standby stays off when the price falls. A presence off
+        is switched back on once presence no longer wants it off and the price is not high.
         """
         self._note_standby(now,read,power,record)
         if shadow:
             self.state.clear()
             return
         if not finite(price) or not finite(now):return
+        cutting=set(cut)
         for device in self.devices:
             entity=device['entity']
             previous=self.state.get(entity)
@@ -137,16 +140,24 @@ class Controller:
                 continue
             turn_on=None
             reason=None
-            if identity[0]=='on' and price>device['high'] and now-previous['since']>=device['on_s']:
+            if identity[0]=='on' and entity in cutting and now-previous['since']>=device['on_s']:
+                turn_on=False
+                reason='presence'
+            elif identity[0]=='on' and price>device['high'] and now-previous['since']>=device['on_s']:
                 turn_on=False
                 reason='price'
             held=self.standby.get(entity)
-            if (device.get('standby_off') and identity[0]=='on' and held and now>=held['since']
+            if (reason!='presence' and device.get('standby_off') and identity[0]=='on' and held and now>=held['since']
                     and now-held['since']>=device['standby_s'] and now-previous['since']>=device['on_s']):
                 turn_on=False
                 reason='standby'
+            elif (turn_on is None and identity[0]=='off' and previous.get('owned') and previous.get('reason')=='presence'
+                  and entity not in cutting and price<=device['high']
+                  and now-previous['since']>=device['off_s']):
+                turn_on=True
             elif (turn_on is None and identity[0]=='off' and previous.get('owned')
-                  and previous.get('reason')!='standby' and price<device['low']
+                  and previous.get('reason') not in ('standby','presence') and entity not in cutting
+                  and price<device['low']
                   and now-previous['since']>=device['off_s']):
                 turn_on=True
             if turn_on is None:continue
@@ -157,11 +168,12 @@ class Controller:
             except Exception:continue
             expected='on' if turn_on else 'off'
             if changed and changed[0]==expected and changed[1]!=identity[1]:
-                self.state[entity]={'identity':changed,'since':now,'owned':not turn_on,
-                                    'reason':None if turn_on else reason}
+                nxt={'identity':changed,'since':now,'owned':not turn_on}
+                if reason and not turn_on:nxt['reason']=reason
+                self.state[entity]=nxt
 
 
-def run(controller,price,now):
+def run(controller,price,now,cut=()):
     """Isolated opt-in adapter; shares the existing HA TLS/auth/shadow safeguards."""
     if not controller.devices:return
     import homeassistant as ha
@@ -187,7 +199,7 @@ def run(controller,price,now):
         print(f'Smart plug {entity}: {detail}')
     powered=any(device.get('power') for device in controller.devices)
     before={entity:dict(state) for entity,state in controller.state.items()}
-    controller.tick(price,now,read,write,shadow=shadow.active(),
+    controller.tick(price,now,read,write,shadow=shadow.active(),cut=cut,
                     power=read_power if powered else None,record=record if powered else None)
     for entity,state in controller.state.items():
         if state.get('paused') and not before.get(entity,{}).get('paused'):
