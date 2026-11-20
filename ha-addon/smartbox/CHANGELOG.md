@@ -1,5 +1,9 @@
 # Ändringar
 
+## 1.2.139 (2026-11-20)
+- **Ekonomisidan gav "Internal server error" (#562).** Från 1.2.118 till och med 1.2.137 kraschade `/api/economy` för alla: raden som tar fram dagens datum anropade
+  `local_sql.installation_timezone()`, men `local_sql` är en funktion, inte modulen. Rättat, med ett test som bygger hela svaret så att en sådan miss syns. Övriga 56 GET-vägar i webben svarar.
+
 ## 1.2.138 (2026-11-20)
 - **Webbens Översikt visar också "ladda nu".** Appen fick etiketten i 1.2.134, men webbens flöde skrev fortfarande "laddar" på en bil som laddar på kommandot "Ladda nu". Märkningen kommer nu från servern (en bil med fast ampere
   som faktiskt laddar), så appen och webben visar samma sak.

@@ -33,7 +33,7 @@ import discovery
 import electric_heat
 import house_config
 from public_errors import validation_message
-from local_sql import local_sql
+from local_sql import local_sql, installation_timezone
 import car_log
 import pump
 from image_updates import ImageUpdates
@@ -1570,7 +1570,7 @@ async def api_economy():
         import savings
         import nordpool
         from datetime import datetime
-        today = datetime.now(local_sql.installation_timezone()).date().isoformat()
+        today = datetime.now(installation_timezone()).date().isoformat()
         money = savings.money_rows(c, days=40)
         timing = savings.daily_rows(c, days=40)
     span = savings.price_span(today_prices)
