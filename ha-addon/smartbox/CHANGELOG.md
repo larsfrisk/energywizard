@@ -1,5 +1,9 @@
 # Ändringar
 
+## 1.2.126 (2026-11-20)
+- **Fler kort för Home Assistant:** `energywizard-heat-card` (termostatratt med inomhustemperatur och band mellan golv och tak, varmvatten, billiga och dyra pass) och
+  `energywizard-car-card` (laddnivå, status och planerade laddpass över elpriset, per bil). Kortsensorn har fått värmedata och bilarnas laddnivå och pass.
+
 ## 1.2.125 (2026-11-20)
 - **Kort för Home Assistant (förhandsversion).** Motorn publicerar nu `sensor.energywizard_kort` (flöde, pris och plan) varje minut, och mappen `ha-cards/` har ett första kort,
   `energywizard-house-card`, som ritar det i appens stil: energiflöde, planklocka eller skyline, och bilar. Samma kort fungerar för tillägget och Docker.

@@ -16,7 +16,8 @@ Schema (v1), alla fält är valfria för korten:
   why      {nyckel: förklaring}      varför motorn gör som den gör, per enhet
   slots    [[t, pris, spot, läge, sol_w, elbil_kw, batteri_kw]]  en rad per kvart, t = epoch-sekunder,
            läge "C" billigt, "E" dyrt, "" okänt
-  cars     [{id, name}]
+  cars     [{id, name, soc, w, on, win}]  laddnivå %, watt, laddar nu, planerade pass [[start, slut, kW]] (epoch-sekunder)
+  heat     {indoor, target, setpoint, outdoor, water, water_set, mode, floor, cheap, max, min, cop}  värmepump och varmvatten
   price    {now, spot, mode}         nuvarande pris (kr/kWh), spotpris och läge
   battery  true/false                finns husbatteri
 """
@@ -70,20 +71,75 @@ def _slots(planclock):
     return rows
 
 
-def build(flow, planclock, now=None, unit="kr"):
+def _soc(detail):
+    import re
+    m = re.search(r"(\d{1,3})\s?%", str(detail or ""))
+    return min(100, int(m.group(1))) if m else None
+
+
+def _windows(planclock):
+    """Planerade laddpass per bil som [[start, slut, kW]], sammanhängande kvartar med laddning slås ihop."""
+    out = {}
+    slots = (planclock or {}).get("slots", []) or []
+    for s in slots:
+        t = _epoch(s.get("t"))
+        ev = s.get("ev") or {}
+        if t is None or not isinstance(ev, dict):
+            continue
+        for car, kwv in ev.items():
+            k = _num(kwv, 2)
+            if not k or k <= 0.05:
+                continue
+            wins = out.setdefault(car, [])
+            if wins and wins[-1][1] == t:                  # fortsätter förra passet
+                wins[-1][1] = t + 900
+                wins[-1][2] = max(wins[-1][2], k)
+            else:
+                wins.append([t, t + 900, k])
+    return out
+
+
+def _cars(flow, planclock):
+    wins = _windows(planclock)
+    cars = []
+    for n in (flow or {}).get("nodes", []) or []:
+        key = str(n.get("key") or "")
+        if not key.startswith("ev_"):
+            continue
+        cid = key[3:]
+        w = _num(n.get("w"), 0)
+        cars.append({"id": cid, "name": n.get("label"), "soc": _soc(n.get("detail")), "w": None if w is None else int(w),
+                     "on": bool(n.get("active")), "win": wins.get(cid, [])[:6]})
+    return cars
+
+
+def _heat(row, cfg):
+    """Värmepump och varmvatten ur senaste raden i sensor_log och inställningarna (golv, tak, billig temp)."""
+    if not row:
+        return None
+    cfg = cfg or {}
+    return {"indoor": _num(row.get("indoor_temp"), 1), "target": _num(row.get("target_room_temp"), 1),
+            "setpoint": _num(row.get("room_temp_setpoint"), 1), "outdoor": _num(row.get("outdoor_temp"), 1),
+            "water": _num(row.get("water_temp"), 0), "water_set": _num(row.get("water_setpoint"), 0),
+            "mode": _MODE.get(str(row.get("active_mode") or "").upper(), ""), "cop": _num(row.get("cop"), 1),
+            "floor": _num(cfg.get("temp_expensive"), 1), "cheap": _num(cfg.get("temp_cheap"), 1),
+            "max": _num(cfg.get("indoor_max"), 1), "min": _num(cfg.get("indoor_min"), 1)}
+
+
+def build(flow, planclock, now=None, unit="kr", row=None, cfg=None):
     """Sensorns (tillstånd, attribut) ur flödet och planen. Rena funktioner, testas utan databas."""
     now = now or datetime.now().astimezone()
     slots = _slots(planclock)
     cur = None
     t_now = int(now.timestamp())
-    for row in slots:                       # kvarten som pågår: sista raden som börjat
-        if row[0] <= t_now:
-            cur = row
+    for q in slots:                         # kvarten som pågår: sista raden som börjat
+        if q[0] <= t_now:
+            cur = q
     price = {"now": cur[1] if cur else None, "spot": cur[2] if cur else None, "mode": cur[3] if cur else ""}
     attrs = {
         "friendly_name": "EnergyWizard kort", "icon": "mdi:flash", "v": SCHEMA, "ts": now.isoformat(timespec="seconds"),
         "unit": unit, "flow": _flow(flow), "why": {k: str(v)[:240] for k, v in ((flow or {}).get("why") or {}).items()},
-        "slots": slots, "cars": [{"id": c.get("id"), "name": c.get("name")} for c in (planclock or {}).get("cars", []) or []],
+        "slots": slots, "cars": _cars(flow, planclock), "heat": _heat(row, cfg),
         "price": price, "battery": bool((planclock or {}).get("has_battery")),
     }
     return {"E": "dyrt", "C": "billigt"}.get(price["mode"], "okänt"), attrs
@@ -117,5 +173,10 @@ def entities(engine):
             _cache.update(t=time.time(), slots=plan_clock.load(
                 c, cars=[{"id": x.get("id"), "name": x.get("name")} for x in (hc.get("evs") or [])]))
         pc = _cache["slots"]
-    state, attrs = build(flow, pc, unit=nordpool.cost_settings()["symbol"])
+    try:
+        import settings
+        cfg = settings.get_settings()
+    except Exception:
+        cfg = {}
+    state, attrs = build(flow, pc, unit=nordpool.cost_settings()["symbol"], row=row, cfg=cfg)
     return {ENTITY: (state, attrs)}

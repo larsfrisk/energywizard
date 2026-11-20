@@ -45,9 +45,29 @@ def test_planen_en_rad_per_kvart_med_elbil_summerad():
     assert a["slots"][0][3] == "E" and a["slots"][0][5] == 0
 
 
+def test_bilar_med_laddniva_och_planerade_pass():
+    flow = {"nodes": [{"key": "ev_nissan", "label": "Nissan Leaf", "w": 3700, "active": True, "detail": "Laddar 3.7 kW · 64 %", "role": "load"},
+                      {"key": "sol", "label": "Sol", "w": 0, "active": False, "detail": "0 kW", "role": "source"}]}
+    pc = {"cars": [], "slots": [_slot(0, 2.5), _slot(15, 1.2, "CHEAP", {"nissan": 3.7}), _slot(30, 1.1, "CHEAP", {"nissan": 3.7}),
+                                _slot(45, 1.0, "CHEAP"), _slot(60, 1.0, "CHEAP", {"nissan": 1.4})]}
+    _, a = ha_card_feed.build(flow, pc, now=NOW)
+    car = a["cars"][0]
+    assert car["id"] == "nissan" and car["soc"] == 64 and car["w"] == 3700 and car["on"] is True
+    assert len(car["win"]) == 2 and car["win"][0][1] - car["win"][0][0] == 1800 and car["win"][0][2] == 3.7 and car["win"][1][2] == 1.4
+
+
+def test_varme_ur_senaste_raden_och_installningar():
+    row = {"indoor_temp": 21.44, "target_room_temp": 20.0, "room_temp_setpoint": 21.0, "outdoor_temp": -2.0, "water_temp": 59.4,
+           "water_setpoint": 60, "active_mode": "EXPENSIVE", "cop": 3.26}
+    _, a = ha_card_feed.build(FLOW, PC, now=NOW, row=row, cfg={"temp_expensive": 20.5, "temp_cheap": 22.5, "indoor_max": 22.0, "indoor_min": 19.0})
+    h = a["heat"]
+    assert h["indoor"] == 21.4 and h["setpoint"] == 21.0 and h["mode"] == "E" and h["water"] == 59 and h["floor"] == 20.5 and h["max"] == 22.0
+    assert ha_card_feed.build(FLOW, PC, now=NOW)[1]["heat"] is None
+
+
 def test_tom_data_kraschar_inte():
     state, a = ha_card_feed.build({}, {}, now=NOW)
-    assert state == "okänt" and a["flow"] == [] and a["slots"] == [] and a["price"]["now"] is None
+    assert state == "okänt" and a["flow"] == [] and a["slots"] == [] and a["price"]["now"] is None and a["cars"] == []
 
 
 def test_attributen_ryms_i_havets_grans_med_en_hel_dag():

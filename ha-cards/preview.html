@@ -6,7 +6,7 @@
   body.light { background:#f2f2f2; --primary-text-color:#212121; --secondary-text-color:#727272; --card-background-color:#fff; --divider-color:rgba(0,0,0,.12); --primary-color:#03a9f4; }
   .wrap { max-width:420px; margin:0 auto 20px; }
   ha-card { display:block; background:var(--card-background-color); border-radius:12px; box-shadow:0 2px 6px rgba(0,0,0,.25); color:var(--primary-text-color); }
-</style></head><body class="dark"><div class="wrap"><energywizard-house-card id="c"></energywizard-house-card></div>
+</style></head><body class="dark"><div class="wrap" id="w"></div>
 <script src="energywizard-cards.js"></script>
 <script>
 const q = new URLSearchParams(location.search);
@@ -33,8 +33,13 @@ const cur = slots[0];
 const attrs = { v: 1, ts: new Date().toISOString(), unit: q.get("unit") || "kr", flow: q.get("empty") ? [] : flow,
   why: { varmepump: "Rumsåterkoppling sätter börvärdet till 18.0 °C. ML: lägsta börvärde som håller de två kallaste rummen över 20.7 °C.", ev_tesla: "Laddar enligt schema." },
   slots: q.get("empty") ? [] : slots, cars: [{ id: "nissan", name: "Nissan Leaf" }, { id: "tesla", name: "Tesla Model Y" }],
-  price: { now: cur[1], spot: cur[2], mode: cur[3] }, battery: false };
-const el = document.getElementById("c");
+  price: { now: cur[1], spot: cur[2], mode: cur[3] }, battery: false,
+  heat: { indoor: 21.4, target: 20, setpoint: 21, outdoor: -2, water: 59, water_set: 60, mode: cur[3], cop: 3.3, floor: 20.5, cheap: 22.5, max: 22, min: 19 } };
+const win = (a, b, k) => [start + a * 900, start + b * 900, k];
+attrs.cars = [{ id: "nissan", name: "Nissan Leaf", soc: 64, w: 0, on: false, win: [win(48, 56, 3.7)] },
+              { id: "tesla", name: "Tesla Model Y", soc: 52, w: 2100, on: true, win: [win(0, 4, 2.1), win(52, 60, 7.4)] }];
+const kind = q.get("card") || "house";
+const el = document.createElement("energywizard-" + kind + "-card"); el.id = "c"; document.getElementById("w").appendChild(el);
 el.setConfig({ tab: q.get("tab") || "now", language: q.get("lang") || "sv", title: q.get("title") || undefined });
 el.hass = { language: q.get("lang") || "sv", states: q.get("missing") ? {} : { "sensor.energywizard_kort": { state: "billigt", last_updated: "x", attributes: attrs } } };
 </script></body></html>

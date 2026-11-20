@@ -17,10 +17,12 @@ const EW_VERSION = "0.1.0";
 const EW_TEXT = {
   sv: { now: "Nu", plan: "Plan", cars: "Bilar", cheap: "billigt", dear: "dyrt", unknown: "okänt", noData: "Ingen data från EnergyWizard än.",
         missing: (e) => `Hittar inte ${e}. Är EnergyWizard uppdaterad och kopplad till Home Assistant?`, stale: "Gammal data", clock: "Klocka", skyline: "Skyline",
+        heat: "Värme", water: "Varmvatten", outdoor: "Ute", setpoint: "Börvärde", within: "inom", cheapUntil: (h) => `Billigt till ${h}`, dearUntil: (h) => `Dyrt till ${h}`, thenCheap: "sedan billigt", thenDear: "sedan dyrt", noHeat: "Ingen värmedata än.", noPlan: "Inget planerat pass", plannedAt: "Planerad laddning", battery: "Laddnivå", notCharging: "Laddar inte",
         perKwh: "kWh", price: "Pris nu", cheapest: "Billigast", dearest: "Dyrast", sun: "Sol", charging: "Laddar", noCars: "Inga elbilar i installationen.",
         why: "Varför", house: "Hemmet", ago: (m) => `${m} min sedan` },
   en: { now: "Now", plan: "Plan", cars: "Cars", cheap: "cheap", dear: "expensive", unknown: "unknown", noData: "No data from EnergyWizard yet.",
         missing: (e) => `Cannot find ${e}. Is EnergyWizard updated and connected to Home Assistant?`, stale: "Old data", clock: "Clock", skyline: "Skyline",
+        heat: "Heating", water: "Hot water", outdoor: "Outdoors", setpoint: "Setpoint", within: "within", cheapUntil: (h) => `Cheap until ${h}`, dearUntil: (h) => `Expensive until ${h}`, thenCheap: "then cheap", thenDear: "then expensive", noHeat: "No heating data yet.", noPlan: "No planned session", plannedAt: "Planned charging", battery: "Charge level", notCharging: "Not charging",
         perKwh: "kWh", price: "Price now", cheapest: "Cheapest", dearest: "Most expensive", sun: "Sun", charging: "Charging", noCars: "No EVs in the installation.",
         why: "Why", house: "House", ago: (m) => `${m} min ago` },
 };
@@ -261,10 +263,136 @@ class EnergyWizardHouseCard extends HTMLElement {
   }
 }
 
+
+// Gemensam bas för korten: läser sensorn, ritar om vid ny data och visar tydliga fel i stället för ett tomt kort.
+class EnergyWizardBase extends HTMLElement {
+  setConfig(config) {
+    this._config = { entity: "sensor.energywizard_kort", ...(config || {}) };
+    if (!this.shadowRoot) this.attachShadow({ mode: "open" });
+    this._render();
+  }
+  set hass(hass) {
+    this._hass = hass;
+    const st = hass && hass.states ? hass.states[this._config.entity] : null;
+    const key = st ? st.last_updated + "|" + (st.attributes && st.attributes.ts) : "missing";
+    if (key !== this._key) { this._key = key; this._render(); }
+  }
+  getCardSize() { return 5; }
+  _t() {
+    const lang = (this._config.language || (this._hass && (this._hass.language || (this._hass.locale && this._hass.locale.language))) || "sv").slice(0, 2);
+    return EW_TEXT[lang] || EW_TEXT.sv;
+  }
+  _render() {
+    if (!this.shadowRoot || !this._config) return;
+    const t = this._t(), st = this._hass && this._hass.states ? this._hass.states[this._config.entity] : null;
+    let inner;
+    if (!this._hass) inner = `<div class="msg">…</div>`;
+    else if (!st) inner = `<div class="msg">${esc(t.missing(this._config.entity))}</div>`;
+    else {
+      const a = st.attributes || {}, p = a.price || {}, unit = a.unit || "kr";
+      const cls = p.mode === "C" ? "cheap" : p.mode === "E" ? "dear" : "";
+      const label = p.mode === "C" ? t.cheap : p.mode === "E" ? t.dear : t.unknown;
+      const age = a.ts ? Math.round((Date.now() - new Date(a.ts).getTime()) / 60000) : 0;
+      const stale = age > 10 ? `<div class="msg" style="padding:6px 16px 0;color:#e0443f">${esc(t.stale)}: ${esc(t.ago(age))}</div>` : "";
+      inner = `<div class="head"><svg class="bolt" viewBox="0 0 24 24"><path fill="#f5b301" d="M13 2 4 14h6l-1 8 9-12h-6z"/></svg>
+        <span class="title">${esc(this._config.title || this._title(t))}</span><span class="spacer"></span>
+        <span class="chip ${cls}">${esc(fmtPrice(p.now, unit))} · ${esc(label)}</span></div>${stale}<div class="body">${this._body(a, t, unit)}</div>`;
+    }
+    this.shadowRoot.innerHTML = `<style>${STYLE}</style><ha-card>${inner}</ha-card>`;
+  }
+}
+
+// Ett pass-streck per kvart över kommande dygn: pris som staplar, planerade pass som fält, "nu" som linje.
+function priceStrip(slots, wins, unit, t, H = 120) {
+  const rows = slots.filter((s) => s && s[1] != null), now = Math.floor(Date.now() / 1000);
+  if (!rows.length) return "";
+  const first = Math.max(rows.findIndex((s, i) => s[0] + 900 > now || i === rows.length - 1), 0), r = rows.slice(first, first + 96);
+  const W = 360, L = 26, Rr = 6, T = 8, B = 20, w = W - L - Rr, h = H - T - B, max = Math.max(...r.map((x) => x[1]), 0.5) * 1.08, bw = w / r.length;
+  const y = (v) => T + h - (Math.max(v, 0) / max) * h, t0 = r[0][0], t1 = r[r.length - 1][0] + 900, xOf = (e) => L + ((e - t0) / (t1 - t0)) * w;
+  let g = "";
+  (wins || []).forEach(([a, b]) => { if (b > t0 && a < t1) g += `<rect x="${xOf(Math.max(a, t0)).toFixed(1)}" y="${T}" width="${(xOf(Math.min(b, t1)) - xOf(Math.max(a, t0))).toFixed(1)}" height="${h}" fill="#a78bfa" fill-opacity=".28"/>`; });
+  r.forEach((x, i) => { const c = x[3] === "C" ? "#3fb68b" : x[3] === "E" ? "#e0675e" : "#9aa0a6";
+    g += `<rect x="${(L + i * bw).toFixed(1)}" y="${y(x[1]).toFixed(1)}" width="${Math.max(bw - 0.6, 0.6).toFixed(1)}" height="${(T + h - y(x[1])).toFixed(1)}" fill="${c}" fill-opacity=".8"/>`; });
+  const top = max / 1.08, step = [0.25, 0.5, 1, 2, 5, 10].find((q) => top / q <= 3) || 10;
+  for (let v = 0; v <= top + 1e-6; v += step) g += `<line x1="${L}" x2="${W - Rr}" y1="${y(v).toFixed(1)}" y2="${y(v).toFixed(1)}" stroke="currentColor" stroke-opacity=".1"/><text class="m" x="${L - 4}" y="${(y(v) + 3).toFixed(1)}" text-anchor="end" font-size="9">${Number.isInteger(v) ? v : v.toFixed(2).replace(/0$/, "")}</text>`;
+  r.forEach((x, i) => { const d = new Date(x[0] * 1000); if (d.getMinutes() === 0 && d.getHours() % 6 === 0) g += `<text class="m" x="${(L + i * bw).toFixed(1)}" y="${H - 6}" text-anchor="middle" font-size="9">${String(d.getHours()).padStart(2, "0")}:00</text>`; });
+  g += `<line x1="${L}" x2="${L}" y1="${T}" y2="${T + h}" stroke="var(--primary-text-color)" stroke-width="2"/>`;
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Elpris">${g}</svg>`;
+}
+
+// Värme: termostatratt (inomhus, bandet mellan golv och tak) och dygnets billiga/dyra pass. Läser bara; styrning sker i EnergyWizard.
+class EnergyWizardHeatCard extends EnergyWizardBase {
+  static getStubConfig() { return { entity: "sensor.energywizard_kort" }; }
+  _title(t) { return t.heat; }
+  _body(a, t, unit) {
+    const h = a.heat;
+    if (!h || h.indoor == null) return `<div class="msg">${esc(t.noHeat)}</div>`;
+    const lo = Math.min(15, (h.floor == null ? 15 : h.floor) - 2), hi = Math.max(25, (h.max == null ? 25 : h.max) + 2);
+    const A0 = 135, SW = 270, cx = 150, cy = 140, R = 104;
+    const ang = (v) => A0 + SW * ((Math.min(Math.max(v, lo), hi) - lo) / (hi - lo));
+    const xy = (deg, r) => [cx + r * Math.cos((deg * Math.PI) / 180), cy + r * Math.sin((deg * Math.PI) / 180)];
+    const arc = (v0, v1, r) => { const [x0, y0] = xy(ang(v0), r), [x1, y1] = xy(ang(v1), r), big = ang(v1) - ang(v0) > 180 ? 1 : 0;
+      return `M${x0.toFixed(1)},${y0.toFixed(1)} A${r},${r} 0 ${big} 1 ${x1.toFixed(1)},${y1.toFixed(1)}`; };
+    const f1 = (n) => (n == null ? "–" : n.toFixed(1).replace(".", ","));
+    const hasBand = h.floor != null && h.max != null && h.max > h.floor;
+    const [kx, ky] = xy(ang(h.indoor), R);
+    const col = h.mode === "C" ? "#3fb68b" : h.mode === "E" ? "#ef5350" : "#ff9f1a";
+    let g = `<path d="${arc(lo, hi, R)}" fill="none" stroke="currentColor" stroke-opacity=".12" stroke-width="16" stroke-linecap="round"/>`;
+    if (hasBand) g += `<path d="${arc(h.floor, h.max, R)}" fill="none" stroke="#3fb68b" stroke-opacity=".28" stroke-width="16"/>`;
+    g += `<path d="${arc(lo, Math.max(h.indoor, lo + 0.01), R)}" fill="none" stroke="${col}" stroke-width="8" stroke-linecap="round"/>`
+      + `<circle cx="${kx.toFixed(1)}" cy="${ky.toFixed(1)}" r="9" fill="var(--card-background-color, #1c1c1c)" stroke="var(--primary-text-color)" stroke-width="3"/>`;
+    if (h.setpoint != null) { const [sx, sy] = xy(ang(h.setpoint), R + 14); g += `<circle cx="${sx.toFixed(1)}" cy="${sy.toFixed(1)}" r="3" fill="var(--primary-text-color)" opacity=".6"/>`; }
+    g += `<text x="${cx}" y="${cy + 12}" text-anchor="middle" font-size="46" font-weight="300">${f1(h.indoor)}°</text>`
+      + `<text class="m" x="${cx}" y="${cy + 38}" text-anchor="middle" font-size="12">${hasBand ? esc(t.within) + " " + f1(h.floor) + "–" + f1(h.max) + " °C" : ""}</text>`;
+    const dial = `<svg viewBox="0 0 300 250" role="img" aria-label="${esc(t.heat)}">${g}</svg>`;
+    const facts = [h.outdoor != null ? `${esc(t.outdoor)} ${f1(h.outdoor)} °C` : "", h.setpoint != null ? `${esc(t.setpoint)} ${f1(h.setpoint)} °C` : "",
+      h.cop ? `COP ${f1(h.cop)}` : ""].filter(Boolean).join(" · ");
+    const water = h.water != null ? `<div class="row"><span class="dot ${h.water >= (h.water_set || 99) - 3 ? "on" : ""}"></span><div style="flex:1"><div class="n">💧 ${esc(t.water)}</div></div><div class="n">${h.water} °C${h.water_set ? ` <span class="d">/ ${h.water_set}</span>` : ""}</div></div>` : "";
+    // Kommande pass: var läget byter
+    const now = Math.floor(Date.now() / 1000), rows = (a.slots || []).filter((s) => s && s[3]);
+    const cur = rows.find((s) => s[0] + 900 > now) || rows[0];
+    let nextTxt = "";
+    if (cur) { const sw = rows.find((s) => s[0] > cur[0] && s[3] !== cur[3]);
+      if (sw) nextTxt = (cur[3] === "E" ? t.dearUntil : t.cheapUntil)(hhmm(sw[0])) + ", " + (cur[3] === "E" ? t.thenCheap : t.thenDear); }
+    const strip = priceStrip(a.slots || [], [], unit, t, 110);
+    return `${dial}<div class="why" style="text-align:center">${facts}</div>${water}${strip}${nextTxt ? `<div class="why">${esc(nextTxt)}</div>` : ""}`;
+  }
+}
+
+// Bil: per bil laddnivå, status och planerade pass över elpriset. config.car = bilens id (valfritt, annars alla bilar).
+class EnergyWizardCarCard extends EnergyWizardBase {
+  static getStubConfig() { return { entity: "sensor.energywizard_kort" }; }
+  _title(t) { return t.cars; }
+  _body(a, t, unit) {
+    let cars = a.cars || [];
+    if (this._config.car) cars = cars.filter((c) => c.id === this._config.car);
+    if (!cars.length) return `<div class="msg">${esc(t.noCars)}</div>`;
+    return cars.map((c) => {
+      const soc = c.soc, status = c.on ? `${esc(t.charging)} ${c.w ? esc(kw(c.w)) : ""}` : esc(t.notCharging);
+      const bar = soc == null ? "" : `<div class="soc"><div style="width:${soc}%;background:${c.on ? "#2ec4a6" : "#9aa0a6"}"></div></div>`;
+      const wins = (c.win || []).map(([x, y, k]) => `${hhmm(x)}–${hhmm(y)} · ${k.toFixed(1).replace(".", ",")} kW`);
+      const planned = wins.length ? `<div class="why"><b>${esc(t.plannedAt)}:</b> ${esc(wins.slice(0, 3).join("  ·  "))}${wins.length > 3 ? " …" : ""}</div>` : `<div class="why">${esc(t.noPlan)}</div>`;
+      const reason = a.why && a.why["ev_" + c.id] ? `<div class="why">${esc(a.why["ev_" + c.id])}</div>` : "";
+      return `<div style="padding:6px 4px 14px"><div class="row" style="border:0;padding:4px 0"><span class="dot ${c.on ? "on" : ""}"></span>
+          <div style="flex:1;min-width:0"><div class="n">🚗 ${esc(c.name || c.id)}</div><div class="d">${status}</div></div>
+          <div class="n" style="font-size:1.6rem;font-weight:300">${soc == null ? "–" : soc + " %"}</div></div>${bar}
+        ${priceStrip(a.slots || [], c.win, unit, t, 110)}${planned}${reason}</div>`;
+    }).join("");
+  }
+}
+
 if (!customElements.get("energywizard-house-card")) customElements.define("energywizard-house-card", EnergyWizardHouseCard);
+if (!customElements.get("energywizard-heat-card")) customElements.define("energywizard-heat-card", EnergyWizardHeatCard);
+if (!customElements.get("energywizard-car-card")) customElements.define("energywizard-car-card", EnergyWizardCarCard);
 window.customCards = window.customCards || [];
 if (!window.customCards.some((c) => c.type === "energywizard-house-card")) {
   window.customCards.push({ type: "energywizard-house-card", name: "EnergyWizard: Hemmet", preview: true,
     description: "Energiflöde, elpris med plan och bilar. Läser sensor.energywizard_kort." });
 }
 console.info(`%c EnergyWizard %c ${EW_VERSION} `, "background:#f5b301;color:#000;font-weight:700;border-radius:3px 0 0 3px", "background:#333;color:#fff;border-radius:0 3px 3px 0");
+
+for (const [type, name, description] of [
+  ["energywizard-heat-card", "EnergyWizard: Värme", "Termostatratt med inomhustemperatur och band, varmvatten och dygnets billiga och dyra pass."],
+  ["energywizard-car-card", "EnergyWizard: Bil", "Laddnivå, status och planerade laddpass över elpriset, per bil."]]) {
+  if (!window.customCards.some((c) => c.type === type)) window.customCards.push({ type, name, preview: true, description });
+}
