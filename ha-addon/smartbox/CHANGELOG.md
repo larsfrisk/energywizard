@@ -1,5 +1,9 @@
 # Ändringar
 
+## 1.2.134 (2026-11-20)
+- **Appens "Just nu" visar "ladda nu" när du själv startat laddningen.** En bil som laddade på kommandot "Ladda nu" visade bara "laddar", medan sidhuvudet sa "Dyrt just nu" och planen ville pausa. Det såg ut som att
+  systemet laddade dyrt av misstag. Nu står det "ladda nu" på bilens ruta så länge laddningen är manuell.
+
 ## 1.2.133 (2026-11-20)
 - **Appens Hem-flik: inget stort tomrum längst ner vid stor text.** När texten är stor eller skärmen liten döljer appen detaljer steg för steg tills allt får plats. Sista steget dolde hela rutan "vad görs nu", som sedan
   rumsåterkopplingen har långa beslutstexter och blivit hög, och det lämnade 150-270 px tomt under knapparna. Nu krymper rutan till en beslutsrad på högst två rader i stället för att försvinna. Mätt i en emulerad
