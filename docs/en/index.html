@@ -64,6 +64,27 @@
     <h2>New in November 2026</h2>
     <div class="grid">
       <div class="card">
+        <h3>🌡️ The house follows the room sensors</h3>
+        <div class="note">Optional mode (Off / Shadow / On): a model trained on the house's own log picks the lowest setpoint that keeps the
+          two coldest rooms above the floor until the next cheap period. Shadow mode only logs what it would do, so you can
+          compare before switching it on.</div>
+      </div>
+      <div class="card">
+        <h3>💧 ML-controlled hot water</h3>
+        <div class="note">The pump waits through expensive hours when no draw is expected and refills the tank in the cheapest quarters before the
+          next likely draw. Legionella protection, fault protection, negative prices and solar surplus always come first. Off / Shadow / On.</div>
+      </div>
+      <div class="card">
+        <h3>🚗 Charging rules per car</h3>
+        <div class="note">Goals without a ready-by time, solar only, maximum price and a solar target per car. A warning arrives straight away when the
+          car cannot reach its goal, with how far it is expected to get.</div>
+      </div>
+      <div class="card">
+        <h3>☀️ Solar surplus order</h3>
+        <div class="note">Home battery, EV, hot tub, hot water and the house in the order you want. A load further down only starts when nobody
+          above wants the surplus.</div>
+      </div>
+      <div class="card">
         <h3>🛁 Bathing times for the hot tub</h3>
         <div class="note">Pick when you usually bathe. Outside bathing times the tub cools down to the eco floor and is heated
           back up in time, in the cheapest hours. Run against 60 days of history: weekend bathing saved 25–34% of the
@@ -104,6 +125,42 @@
           language in the setup wizard. Want your own language? The translations are plain text files on GitHub.</div>
       </div>
     </div>
+  </section>
+
+  <section id="utrustning">
+    <h2>Supported and running equipment</h2>
+    <p class="note">Everything goes through the device's own Home Assistant integration or a local API, never through our own protocol
+      code against unknown registers. Three levels, so you know what to rely on:</p>
+    <div class="legend"><span>✅ <b>Running in real homes</b></span><span><b>Controls</b>: built against the integration's source, waiting for a beta tester</span><span><b>Reads</b>: shows and plans, does not control</span></div>
+    <div class="grid">
+      <div class="card"><h3>🌡️ Heat pump</h3><div class="tier">
+        <b>✅ Controls</b><span>Thermia via Husdata · anything with a <code>climate</code> entity in HA</span>
+        <b>Controls</b><span>NIBE S series (local) · NIBE, Bosch, Atlantic, Daikin via myUplink · Panasonic Aquarea via HeishaMon · Thermia via ThermIQ · NIBE via nibegw</span></div></div>
+      <div class="card"><h3>🔋 Home battery</h3><div class="tier">
+        <b>Controls</b><span>Solax Gen4–6 · Growatt · FoxESS · Solis · Fronius Gen24 · HomeWizard Plug-In Battery</span>
+        <b>Reads</b><span>Felicity · SolarEdge · GivEnergy · Huawei Luna · Sonnen · Victron · Ferroamp · Sungrow, Deye, Sigenergy, Solinteg etc. via FTW drivers</span></div>
+        <div class="note" style="margin-top:8px"><b>The battery behind the inverter</b> (Pylontech, BYD, Dyness …) is controlled through the inverter or the integration,
+          not through the battery brand. With Pylontech on a Solis, Victron or Deye, look for the inverter's row.
+          <a href="kunskapsbank/home-battery.html">Full table</a>.</div></div>
+      <div class="card"><h3>☀️ Solar</h3><div class="tier">
+        <b>✅ Reads</b><span>SolarEdge</span>
+        <b>Reads</b><span>Huawei SUN2000 · Growatt · Sungrow · Fronius · generic export limit (Solis, Solplanet, Sigenergy etc.)</span></div></div>
+      <div class="card"><h3>⚡ Energy meter</h3><div class="tier">
+        <b>✅ Reads</b><span>Tibber Pulse · HomeWizard P1 · P1/HAN meters with power in HA</span></div></div>
+      <div class="card"><h3>🚗 EV</h3><div class="tier">
+        <b>✅ Controls</b><span>Tesla · Nissan</span>
+        <b>Controls</b><span>any car with entities in HA (Volvo, VW, Škoda, Kia …)</span></div></div>
+      <div class="card"><h3>🔌 EV charger</h3><div class="tier">
+        <b>✅ Controls</b><span>Easee</span>
+        <b>Controls</b><span>OCPP (Charge Amps, cFos, FoxESS …) · generic <code>switch</code>/<code>number</code></span></div></div>
+      <div class="card"><h3>🛁 Hot tub</h3><div class="tier">
+        <b>✅ Controls</b><span>Gecko</span>
+        <b>Controls</b><span>Balboa · Shelly relay</span></div></div>
+    </div>
+    <h3 style="margin-top:28px">What is actually running</h3>
+    <p class="note" id="equipnote">Brands in the installations, from the anonymous telemetry (manufacturer and count only, never model or who).
+      The brand comes from Home Assistant's device registry: it shows what is in the homes, not that everything is controlled.</p>
+    <div id="equip"></div>
   </section>
 
   <section>
