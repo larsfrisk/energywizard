@@ -7,6 +7,8 @@
 - **Spabadets plan jämför inte längre med ett påhittat pris.** Tider efter sista kända elpris (morgondagens publiceras
   först vid ca 13) fylldes med det sista priset; de får nu genomsnittet av de kända priserna. Tidstillägget på
   0,05 kr/h före badtiden är borttaget, så valet av uppvärmningstimmar går på pris och sol.
+- **Telemetrisidan grupperar utrustning per märke.** Alla NIBE-varianter (NIBE Energy Systems, Nibe, F750, S1256, VVM ...)
+  blir en rad med modellerna bakom en klickbar rad, och samma sak gäller Easee, Tesla och övriga märken.
 
 ## 1.2.116 (2026-11-16)
 - **Startfel vid saknat värmestopp (#449, #464, #470).** Saknade värden för pumpens värmestopp eller

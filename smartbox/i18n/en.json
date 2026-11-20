@@ -3021,5 +3021,9 @@
  "Enphase: 'charge' = Full backup. Ingen tvingad urladdning via integrationen.": "Enphase: 'charge' = Full backup. The integration cannot force discharging.",
  "Vid billig el / Auto: {cheap} · Vid dyr el: {expensive}": "On cheap power / Auto: {cheap} · On expensive power: {expensive}",
  "Med MQTT blir EnergyWizard en riktig enhet i Home Assistant: sensorerna behåller sina namn, går att redigera och finns kvar när HA startar om, och du kan slå på/av skuggläget och den automatiska exportstyrningen från HA.": "With MQTT, EnergyWizard becomes a real device in Home Assistant: sensors keep their names, can be edited and remain after HA restarts, and you can toggle shadow mode and automatic export control from HA.",
- "Använd samma broker som Home Assistant (oftast Mosquitto-tillägget).": "Use the same broker as Home Assistant (usually the Mosquitto add-on)."
+ "Använd samma broker som Home Assistant (oftast Mosquitto-tillägget).": "Use the same broker as Home Assistant (usually the Mosquitto add-on).",
+ "Rumsåterkoppling sätter börvärdet till # °C": "Room feedback sets the setpoint to # °C",
+ "Värmepump: Rumsåterkoppling sätter börvärdet till # °C": "Heat pump: Room feedback sets the setpoint to # °C",
+ "Rumsåterkoppling i skugga skulle sätta # °C, nu # °C": "Room feedback in shadow mode would set # °C, now # °C",
+ "Värmepump: Rumsåterkoppling i skugga skulle sätta # °C, nu # °C": "Heat pump: Room feedback in shadow mode would set # °C, now # °C"
 }

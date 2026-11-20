@@ -2127,12 +2127,40 @@ const DRIVER_NAMES = { thermia_husdata: "Thermia (Husdata)", generic_climate: "c
   ha: "via HA", elprisetjustnu: "elprisetjustnu.se", ha_nordpool: "prissensor i HA", nordpool_api: "Nord Pool", shadow: "skuggläge",
   tou_tariff: "tidstariff", battery_styr: "styr batteriet", battery_samarbete: "läser batteriet", battery_av: "batteri av",
   SE: "Sverige", NO: "Norge", DK: "Danmark", FI: "Finland", DE: "Tyskland", GB: "Storbritannien", NL: "Nederländerna" };
+// Samma märke ska bli EN rad (NIBE, Nibe Energy Systems, F750, S1256 ... är alla NIBE) med modellerna bakom en klickbar rad.
+const MAKER_ALIASES = [[/^nibe/, "NIBE"], [/^(f|s|vvm|smo)\s?\d/, "NIBE"], [/^gecko/, "Gecko"], [/^ftw-(.+)$/, null]];
+const MAKER_SUFFIX = /\s+(energy systems|energy|technologies|technology|power|alliance|ab|gmbh|inc|ltd|co)\b.*$/;
+function makerFamily(maker) {
+  let m = String(maker || "").trim().toLowerCase();
+  for (const [re, name] of MAKER_ALIASES) { const x = re.exec(m); if (x) { if (name) return [name.toLowerCase(), name]; m = x[1]; break; } }
+  m = m.replace(MAKER_SUFFIX, "").trim();
+  return [m, null];
+}
+function groupEquipment(items) {   // [[nyckel, antal]] -> [{name, total, subs:[{model, drv, n}]}]
+  const fam = new Map();
+  for (const [k, n] of items) {
+    const [drv, rest] = k.split("@");
+    const maker = rest !== undefined ? rest.split("#")[0] : (DRIVER_NAMES[drv] || drv);
+    let model = rest !== undefined && rest.includes("#") ? rest.slice(rest.indexOf("#") + 1) : "";
+    const [id, fixed] = makerFamily(maker);
+    if (fixed && rest !== undefined && !maker.toLowerCase().startsWith(fixed.toLowerCase())) model = `${maker} ${model}`.trim();   // "F750#Cu" -> modell "F750 Cu"
+    let g = fam.get(id);
+    if (!g) { g = { name: fixed || maker.replace(/^ftw-/i, "").replace(/^./, (c) => c.toUpperCase()), total: 0, top: 0, subs: [] }; fam.set(id, g); }
+    g.total += n; g.subs.push({ model, drv, n, hasBrand: rest !== undefined });
+    if (!fixed && n > g.top) { g.top = n; g.name = maker.replace(/^ftw-/i, "").replace(/^./, (c) => c.toUpperCase()); }
+  }
+  return [...fam.values()].sort((a, b) => b.total - a.total);
+}
 function installsCard(d) {
   if (!d.ok) return `<div class="card" style="margin-bottom:16px">👥 ${esc(d.error || "")}</div>`;
-  const label = (k) => { const [drv, brand] = k.split("@"); return brand ? `${esc(brand)} <span class="note">(${esc(DRIVER_NAMES[drv] || drv)})</span>` : esc(DRIVER_NAMES[drv] || drv); };
+  const row = (l, n) => `<div style="display:flex;justify-content:space-between;gap:10px;padding:3px 0"><span>${l}</span><b>${n}</b></div>`;
   const cats = INSTALL_CATS.map(([key, ico, name]) => {
-    const items = Object.entries((d.equipment || {})[key] || {});
-    const body = items.length ? items.map(([k, n]) => `<div style="display:flex;justify-content:space-between;gap:10px;padding:3px 0"><span>${label(k)}</span><b>${n}</b></div>`).join("")
+    const groups = groupEquipment(Object.entries((d.equipment || {})[key] || {}));
+    const body = groups.length ? groups.map((g) => {
+      if (g.subs.length === 1 && !g.subs[0].model) return row(esc(g.name) + (g.subs[0].hasBrand ? ` <span class="note">(${esc(DRIVER_NAMES[g.subs[0].drv] || g.subs[0].drv)})</span>` : ""), g.total);
+      const subs = g.subs.sort((a, b) => b.n - a.n).map((x) => row(`${esc(x.model || "–")} <span class="note">(${esc(DRIVER_NAMES[x.drv] || x.drv)})</span>`, x.n)).join("");
+      return `<details style="padding:3px 0"><summary style="cursor:pointer;display:flex;justify-content:space-between;gap:10px;list-style:none"><span>▸ ${esc(g.name)} <span class="note">(${g.subs.length})</span></span><b>${g.total}</b></summary><div style="padding:2px 0 4px 14px">${subs}</div></details>`;
+    }).join("")
       : `<div class="note">–</div>`;
     return `<div class="card" style="padding:12px"><div style="font-weight:700;margin-bottom:6px">${ico} ${name}</div>${body}</div>`;
   }).join("");
