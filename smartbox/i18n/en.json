@@ -2388,7 +2388,7 @@
  "Ny (standard)": "New (default)",
  "Klassisk": "Classic",
   "Radiatorer i Home Assistant": "Radiators in Home Assistant",
-  "Upptäckta radiatorer visas endast som inventering. Styr dem i Home Assistant; separat zonschemaläggning stöds ännu inte.": "Discovered radiators are shown as inventory only. Control them in Home Assistant; separate zone scheduling is not supported yet.",
+  "Upptäckta element visas här. I den nedladdade filen finns en avstängd lista. Sätt electric_heat.enabled: true för att se börvärdet i besluten. Ingenting skrivs till elementen.": "Discovered heaters are listed here. The downloaded file contains a disabled list. Set electric_heat.enabled: true to see the setpoint in the decisions. Nothing is written to the heaters.",
  "EnergyWizard visar vad den hade gjort men styr ingenting.": "EnergyWizard shows what it would have done but controls nothing.",
  "Härnäst": "Next",
  "Ute #°C": "Outside #°C",

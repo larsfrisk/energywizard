@@ -9,6 +9,9 @@
   De automatiska felärendena på GitHub har ingen loggtext längre, bara en länk till samlarens loggsida (ärendena är publika).
 
 ## 1.2.119 (2026-11-20)
+- **Elvärme räknas i skugga (#431, #221).** Adax, golvvärme och andra element med egen termostat kan listas under
+  `electric_heat`. När värmepumpen är i billigt läge visas elementets tak, och i dyrt läge dess golv, i besluten.
+  Ingenting skrivs till elementen. Startguiden lägger listan avstängd i den nedladdade konfigurationen.
 - **HeishaMon nollställer inte kurvförskjutningen i onödan (#491).** FTW-drivrutinen skrev 0 °C till
   `Z1_Heat_Request_Temp` vid varje vakthund och omstart, även när Home Assistant styrde förskjutningen.
   Nu skrivs det neutrala värdet bara efter att drivrutinen själv har ändrat förskjutningen. `control: false`

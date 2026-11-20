@@ -30,6 +30,7 @@ from sqlalchemy import create_engine, text
 
 import webauth
 import discovery
+import electric_heat
 import house_config
 from public_errors import validation_message
 from local_sql import local_sql
@@ -2268,6 +2269,9 @@ def _build_house_config_yaml(sel: dict) -> str:
     else:
         lines += ["heat_pump:", "  enabled: false"]
     lines.append("")
+    lines += electric_heat.comment_block(sel.get("radiators"))
+    if sel.get("radiators"):
+        lines.append("")
 
     solar = sel.get("solar")
     _ftw = sel.get("ftw") if isinstance(sel.get("ftw"), dict) and re.fullmatch(r"[a-z0-9_\-]{1,40}", str((sel.get("ftw") or {}).get("driver") or "")) else None

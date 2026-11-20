@@ -2388,7 +2388,7 @@
   "Ny (standard)": "Nový (výchozí)",
   "Klassisk": "Klasický",
   "Radiatorer i Home Assistant": "Radiátory v Home Assistant",
-  "Upptäckta radiatorer visas endast som inventering. Styr dem i Home Assistant; separat zonschemaläggning stöds ännu inte.": "Nalezené radiátory se zobrazují pouze jako přehled zařízení. Ovládejte je v Home Assistant; samostatné plánování zón zatím není podporováno.",
+  "Upptäckta element visas här. I den nedladdade filen finns en avstängd lista. Sätt electric_heat.enabled: true för att se börvärdet i besluten. Ingenting skrivs till elementen.": "Nalezené radiátory se zobrazují zde. Stažený soubor obsahuje vypnutý seznam. Nastavte electric_heat.enabled: true, aby se žádaná teplota ukázala v rozhodnutích. Na radiátory se nic nezapisuje.",
   "EnergyWizard visar vad den hade gjort men styr ingenting.": "EnergyWizard ukazuje, co by udělal, ale nic neovládá.",
   "Härnäst": "Dále",
   "Ute #°C": "Venku #°C",
