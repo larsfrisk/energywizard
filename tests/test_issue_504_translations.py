@@ -45,11 +45,11 @@ def test_displayed_decision_forms_have_complete_translations(lang):
         '💧 Prio 6 (VV-FAILSAFE): Vattnet är kritiskt svalt (37.9°C). Tvingar varmvatten oavsett elpris och effekttak!',
         '🛑 Prio 5 (HUS): För varmt inne (22.6°C >= 22.5°C). Mjukt kompressor-stopp aktiverat (-3.5°C).',
         '🚗 Prio 3 (EV Plan): Laddar enligt schema. Husets säkring tillåter 14A. Sätter Auto <1>: 0A, Moje auto: 14A.',
-        '⚙️ Prio 8 (KOMPRESSOR): Byter läge till CHEAP, låser i 60 minuter.',
+        '⚙️ Prio 8 (KOMPRESSOR): Anti-Short-Cycle – Låst i läge CHEAP till 03:52, börvärde 22.0 °C.',
         '☀️ Prio 2 (SOL-PI): Minuspris. Netto: -500W. Fel: 500. Justering: -0.25%. Ny gräns: 85%.',
         '🛁 Prio 4 (SPA): Minuspris -> Värmer bad till max för termisk lagring.',
     ]
-    forbidden = ('Vattnet', 'Tvingar', 'För varmt', 'Mjukt', 'Husets', 'Sätter', 'Byter', 'låser', 'Minuspris', 'Värmer', 'Ny gräns')
+    forbidden = ('Vattnet', 'Tvingar', 'För varmt', 'Mjukt', 'Husets', 'Sätter', 'Byter', 'Låst', 'Minuspris', 'Värmer', 'Ny gräns')
     for log in logs:
         item = decision_summary.summarize([log])['items'][0]
         translated = i18n_py.tr(item['text'], lang)

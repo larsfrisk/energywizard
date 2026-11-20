@@ -51,6 +51,17 @@ def _okänt_fasläge_först(states, k, diff):
     return "tesla_set_phases" in diff and diff["tesla_set_phases"][1] is None and not st.get("tesla_phases")
 
 
+def _utan_borvarde(step):
+    """#517 (2026-11-20, avsiktlig ändring): kompressorlåsets loggrad bär nu börvärdet som beställdes ("…, börvärde 22.0 °C").
+    Facit gjordes före det, så den tillagda delen jämförs inte; resten av raden och allt annat måste stämma exakt."""
+    import re
+    if not isinstance(step.get("log"), list):
+        return step
+    out = dict(step)
+    out["log"] = [re.sub(r", börvärde -?[\d.]+ °C\.$", ".", l) if isinstance(l, str) and "Anti-Short-Cycle" in l else l for l in step["log"]]
+    return out
+
+
 def test_samma_beslut_som_fore_ombyggnaden(monkeypatch):
     # Facit skrevs med låstider i UTC. Testet gäller besluten, så visningstiden låses till UTC (1.2.100 visar husets tid).
     import zoneinfo
@@ -67,6 +78,7 @@ def test_samma_beslut_som_fore_ombyggnaden(monkeypatch):
         compared += 1
         for k, (g, e) in enumerate(zip(g_seq, e_seq)):
             g = {kk: vv for kk, vv in g.items() if kk in e}         # nya nycklar får finnas, gamla måste stämma
+            g, e = _utan_borvarde(g), _utan_borvarde(e)
             if g != e:
                 diff = {kk: (g.get(kk), e.get(kk)) for kk in set(g) | set(e) if g.get(kk) != e.get(kk)}
                 if _okänt_fasläge_först(states[i], k, diff):
