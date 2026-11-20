@@ -122,11 +122,14 @@ def test_power_units_and_invalid_limits():
         assert watts({'state': raw, 'attributes': {'unit_of_measurement': 'W'}}) is None
     assert watts({'state': '3', 'attributes': {'unit_of_measurement': 'A'}}) is None
     for extra in (dict(power='switch.tv'), dict(power='sensor.tv_power', standby_below_w=0),
-                  dict(power='sensor.tv_power', standby_minutes=4), dict(standby_below_w=5)):
+                  dict(power='sensor.tv_power', standby_minutes=4), dict(standby_below_w=5),
+                  dict(standby_off=True), dict(standby_off='true'),
+                  dict(power='sensor.tv_power', standby_off=1)):
         with pytest.raises(ValueError):
             Controller(config(**extra))
     device = Controller(config(power='sensor.tv_power')).devices[0]
-    assert device['standby_w'] == 5 and device['standby_s'] == 30 * 60
+    assert device['standby_w'] == 5 and device['standby_s'] == 30 * 60 and device['standby_off'] is False
+    assert Controller(config(power='sensor.tv_power', standby_off=False)).devices[0]['standby_off'] is False
 
 
 def test_standby_is_reported_once_and_never_switches():
@@ -233,3 +236,147 @@ def test_adapter_reads_the_power_sensor_and_does_not_post(monkeypatch):
     assert any(url.endswith('/sensor.tv_power') for url in urls)
     assert any(url.endswith('/switch.tv') for url in urls)
     post.assert_not_called()
+
+
+def test_standby_off_switches_once_and_cheap_price_does_not_restore():
+    notes = []
+    c = Controller(config(power='sensor.tv_power', standby_off=True, standby_below_w=5, standby_minutes=5))
+    read = Mock(return_value=snapshot())
+    write = Mock(return_value=snapshot('off', 'ew-off'))
+    c.tick(0.2, T, read, write, power=lambda _e: 3, record=lambda *a: notes.append(a))
+    c.tick(0.2, T + 299, read, write, power=lambda _e: 3, record=lambda *a: notes.append(a))
+    write.assert_not_called()
+    c.tick(0.2, T + 300, read, write, power=lambda _e: 3, record=lambda *a: notes.append(a))
+    assert write.call_args_list == [(('switch.tv', False),)]
+    assert c.state['switch.tv']['reason'] == 'standby' and c.state['switch.tv']['owned'] is True
+    assert notes == [('switch.tv', 'standby about 3 W')]
+    read.return_value = snapshot('off', 'ew-off')
+    write.reset_mock()
+    c.tick(0.2, T + 900, read, write, power=lambda _e: 0, record=lambda *a: notes.append(a))
+    c.tick(0.2, T + 1800, read, write, power=lambda _e: 0, record=lambda *a: notes.append(a))
+    write.assert_not_called()
+
+
+def test_standby_off_waits_for_minimum_on_and_ignores_unknown_power():
+    cfg = config(power='sensor.tv_power', standby_off=True, standby_minutes=5)
+    cfg['devices'][0]['min_on_minutes'] = 10
+    c = Controller(cfg)
+    read = Mock(return_value=snapshot())
+    write = Mock(return_value=snapshot('off', 'ew-off'))
+    c.tick(0.2, T, read, write, power=lambda _e: 1)
+    c.tick(0.2, T + 300, read, write, power=lambda _e: 1)
+    write.assert_not_called()
+    c.tick(0.2, T + 600, read, write, power=lambda _e: 1)
+    write.assert_called_once_with('switch.tv', False)
+    unknown = Controller(config(power='sensor.tv_power', standby_off=True, standby_minutes=5))
+    skipped = Mock()
+    unknown.tick(0.2, T, Mock(return_value=snapshot()), skipped, power=lambda _e: None)
+    unknown.tick(0.2, T + 1000, Mock(return_value=snapshot()), skipped, power=lambda _e: None)
+    skipped.assert_not_called()
+
+
+def test_power_above_the_limit_cancels_standby_off():
+    c = Controller(config(power='sensor.tv_power', standby_off=True, standby_minutes=5))
+    read = Mock(return_value=snapshot())
+    write = Mock(return_value=snapshot('off', 'ew-off'))
+    power = Mock(return_value=1)
+    c.tick(0.2, T, read, write, power=power)
+    power.return_value = 40
+    c.tick(0.2, T + 300, read, write, power=power)
+    power.return_value = 1
+    c.tick(0.2, T + 301, read, write, power=power)
+    c.tick(0.2, T + 600, read, write, power=power)
+    write.assert_not_called()
+    c.tick(0.2, T + 601, read, write, power=power)
+    write.assert_called_once_with('switch.tv', False)
+
+
+def test_missing_price_does_not_switch_off_standby():
+    c = Controller(config(power='sensor.tv_power', standby_off=True, standby_minutes=5))
+    read = Mock(return_value=snapshot())
+    write = Mock()
+    c.tick(None, T, read, write, power=lambda _e: 1)
+    c.tick(None, T + 1000, read, write, power=lambda _e: 1)
+    write.assert_not_called()
+    assert c.state == {}
+
+
+def test_shadow_does_not_switch_off_standby():
+    c = Controller(config(power='sensor.tv_power', standby_off=True, standby_minutes=5))
+    read = Mock(return_value=snapshot())
+    write = Mock(return_value=snapshot('off', 'ew-off'))
+    c.tick(0.2, T, read, write, shadow=True, power=lambda _e: 1)
+    c.tick(0.2, T + 300, read, write, shadow=True, power=lambda _e: 1)
+    assert c.state == {} and write.call_count == 0
+
+
+def test_price_restore_still_happens_when_the_plug_is_in_use():
+    c = Controller(config(power='sensor.tv_power', standby_off=True, standby_minutes=5))
+    read = Mock(return_value=snapshot())
+    write = Mock(return_value=snapshot('off', 'ew-off'))
+    power = Mock(return_value=80)
+    c.tick(3, T, read, write, power=power)
+    c.tick(3, T + 300, read, write, power=power)
+    assert write.call_args_list == [(('switch.tv', False),)]
+    assert c.state['switch.tv']['reason'] == 'price'
+    read.return_value = snapshot('off', 'ew-off')
+    write.return_value = snapshot('on', 'ew-on')
+    write.reset_mock()
+    c.tick(0.5, T + 600, read, write, power=power)
+    write.assert_called_once_with('switch.tv', True)
+
+
+def test_standby_off_wins_over_a_later_cheap_price():
+    c = Controller(config(power='sensor.tv_power', standby_off=True, standby_minutes=5))
+    read = Mock(return_value=snapshot())
+    write = Mock(return_value=snapshot('off', 'ew-off'))
+    c.tick(3, T, read, write, power=lambda _e: 1)
+    c.tick(3, T + 300, read, write, power=lambda _e: 1)
+    assert write.call_count == 1 and c.state['switch.tv']['reason'] == 'standby'
+    read.return_value = snapshot('off', 'ew-off')
+    write.return_value = snapshot('on', 'ew-on')
+    write.reset_mock()
+    c.tick(0.2, T + 900, read, write, power=lambda _e: 0)
+    write.assert_not_called()
+
+
+def test_standby_off_does_not_need_the_log_line():
+    c = Controller(config(power='sensor.tv_power', standby_off=True, standby_minutes=5))
+    read = Mock(return_value=snapshot())
+    write = Mock(return_value=snapshot('off', 'ew-off'))
+
+    def boom(*_args):
+        raise RuntimeError('log')
+
+    c.tick(0.2, T, read, write, power=lambda _e: 1, record=boom)
+    c.tick(0.2, T + 300, read, write, power=lambda _e: 1, record=boom)
+    write.assert_called_once_with('switch.tv', False)
+    assert c.state['switch.tv']['reason'] == 'standby'
+
+
+def test_adapter_standby_off_posts_turn_off_once(monkeypatch):
+    import homeassistant as ha
+    import shadow
+    monkeypatch.setattr(shadow, 'active', lambda: False)
+
+    def get(url, **kwargs):
+        assert kwargs['verify'] == ha._VERIFY and kwargs['timeout'] == 5
+        if url.endswith('/sensor.tv_power'):
+            body = {'entity_id': 'sensor.tv_power', 'state': '2.2',
+                    'attributes': {'unit_of_measurement': 'W'}}
+        else:
+            body = snapshot()
+        return Mock(json=Mock(return_value=body))
+
+    post = Mock(return_value=Mock(json=Mock(return_value=[snapshot('off', 'ew-off')])))
+    monkeypatch.setattr(ha.requests, 'get', Mock(side_effect=get))
+    monkeypatch.setattr(ha.requests, 'post', post)
+    c = Controller(config(power='sensor.tv_power', standby_minutes=5, standby_off=True))
+    run(c, 1.5, T)
+    post.assert_not_called()
+    run(c, 1.5, T + 300)
+    run(c, 1.5, T + 600)
+    assert post.call_count == 1
+    assert post.call_args.args[0].endswith('/services/switch/turn_off')
+    assert post.call_args.kwargs['json'] == {'entity_id': 'switch.tv'}
+    assert c.state['switch.tv']['paused']
