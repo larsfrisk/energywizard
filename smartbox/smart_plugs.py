@@ -1,6 +1,7 @@
 """Explicit nonessential plug price policy. No discovery enrollment.
 
-A configured power sensor can report standby. That reading never switches the plug.
+A configured power sensor can report standby. ``standby_off: true`` may switch
+that plug off. Otherwise the reading never switches the plug.
 """
 from datetime import datetime
 import math
@@ -49,9 +50,12 @@ class Controller:
                     or entity in seen or not all(finite(v) for v in (high,low,on,off))
                     or low>=high or not 5<=on<=1440 or not 5<=off<=1440):
                 raise ValueError('Invalid smart plug thresholds, dwell or switch')
+            standby_off=item.get('standby_off',False)
+            if standby_off is not True and standby_off is not False:
+                raise ValueError('Invalid smart plug power sensor or standby limits')
             sensor=item.get('power')
             standby_w=item.get('standby_below_w',5);standby_m=item.get('standby_minutes',30)
-            if sensor is not None or 'standby_below_w' in item or 'standby_minutes' in item:
+            if sensor is not None or 'standby_below_w' in item or 'standby_minutes' in item or standby_off is True:
                 if (not isinstance(sensor,str) or not re.fullmatch(r'sensor\.[a-z0-9_]+',sensor)
                         or not finite(standby_w) or not finite(standby_m)
                         or not 0<standby_w<=100 or not 5<=standby_m<=1440):
@@ -60,7 +64,8 @@ class Controller:
                 sensor=None
             seen.add(entity)
             self.devices.append(dict(entity=entity,high=high,low=low,on_s=on*60,off_s=off*60,
-                                     power=sensor,standby_w=standby_w,standby_s=standby_m*60))
+                                     power=sensor,standby_w=standby_w,standby_s=standby_m*60,
+                                     standby_off=standby_off))
 
     @staticmethod
     def identity(snapshot):
@@ -106,7 +111,8 @@ class Controller:
 
         Missing evidence, manual changes and ambiguous writes suspend that device
         until restart. Ownership is never restored from disk or inferred from off.
-        Standby is a log line only, including while shadow mode blocks writes.
+        Standby is a log line unless standby_off is set. Shadow mode never writes.
+        A plug switched off for standby stays off when the price falls.
         """
         self._note_standby(now,read,power,record)
         if shadow:
@@ -130,9 +136,17 @@ class Controller:
                 self.state[entity]={'paused':True}
                 continue
             turn_on=None
+            reason=None
             if identity[0]=='on' and price>device['high'] and now-previous['since']>=device['on_s']:
                 turn_on=False
-            elif (identity[0]=='off' and previous['owned'] and price<device['low']
+                reason='price'
+            held=self.standby.get(entity)
+            if (device.get('standby_off') and identity[0]=='on' and held and now>=held['since']
+                    and now-held['since']>=device['standby_s'] and now-previous['since']>=device['on_s']):
+                turn_on=False
+                reason='standby'
+            elif (turn_on is None and identity[0]=='off' and previous.get('owned')
+                  and previous.get('reason')!='standby' and price<device['low']
                   and now-previous['since']>=device['off_s']):
                 turn_on=True
             if turn_on is None:continue
@@ -143,7 +157,8 @@ class Controller:
             except Exception:continue
             expected='on' if turn_on else 'off'
             if changed and changed[0]==expected and changed[1]!=identity[1]:
-                self.state[entity]={'identity':changed,'since':now,'owned':not turn_on}
+                self.state[entity]={'identity':changed,'since':now,'owned':not turn_on,
+                                    'reason':None if turn_on else reason}
 
 
 def run(controller,price,now):
@@ -178,4 +193,6 @@ def run(controller,price,now):
         if state.get('paused') and not before.get(entity,{}).get('paused'):
             print(f'Smart plug {entity}: suspended until restart; state or command ownership is uncertain')
         elif state.get('identity')!=before.get(entity,{}).get('identity'):
-            print(f"Smart plug {entity}: observed {state.get('identity',('unknown',))[0]}")
+            observed=state.get('identity',('unknown',))[0]
+            why=f" for {state['reason']}" if state.get('reason') else ''
+            print(f"Smart plug {entity}: observed {observed}{why}")
