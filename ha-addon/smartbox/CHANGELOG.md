@@ -1,5 +1,8 @@
 # Ändringar
 
+## 1.2.124 (2026-11-20)
+- **Ekonomi: snittpris på såld el (#549).** Rutan Såld el visar nu även vad man i snitt fick betalat per såld kWh, som Köpt el gör. Förslag och kod av larsfrisk.
+
 ## 1.2.123 (2026-11-20)
 - **Prisstyrning av elvärme per zon (#431, #528).** Element, golvvärme och Adax med egen termostat kan listas som `zones` under
   `electric_heat`: dyrt sätter lägsta börvärde, billigt och kraftigt solöverskott sätter högsta, ett schema går före priset och bortaläge sätter
