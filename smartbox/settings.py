@@ -15,7 +15,10 @@ _pool = None
 def get_db_pool():
     global _pool
     if _pool is None:
-        _pool = ConnectionPool(f"host={DB_HOST} user={DB_USER} password={DB_PASS} dbname={DB_NAME}", min_size=1, max_size=20)
+        # #457: en anslutning som Postgres redan stängt (omstart, avbruten session) slängs innan frågan.
+        _pool = ConnectionPool(
+            f"host={DB_HOST} user={DB_USER} password={DB_PASS} dbname={DB_NAME}",
+            min_size=1, max_size=20, open=True, check=ConnectionPool.check_connection)
     return _pool
 
 @contextmanager
