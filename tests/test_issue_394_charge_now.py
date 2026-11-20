@@ -30,8 +30,23 @@ def test_okänd_laddnivå_laddar_vidare_till_tidsgränsen():
     assert cn.should_end(ov(), "tesla", None, True, T) == (False, None)
 
 
-def test_utan_mål_som_förut():
-    assert cn.should_end(ov(target=""), "tesla", 100, False, T) == (False, None)
+def test_utan_mål_laddar_tills_fullt_eller_kabeln_dras_ur():
+    """Emil 2026-11-20: Ladda nu ska ladda tills fullt eller att kabeln tas ur, även utan mål."""
+    assert cn.should_end(ov(target=""), "tesla", 60, True, T) == (False, None)                     # laddar vidare
+    assert cn.should_end(ov(target=""), "tesla", 60, False, T) == (True, "unplugged")              # kabeln ur
+    assert cn.should_end(ov(target=""), "tesla", 80, True, T, completed=True) == (True, "full")    # bilen slutade själv
+    assert cn.should_end(ov(target=""), "tesla", 100, True, T) == (False, None)                    # 100 % utan signal: väntar på bilen
+    assert cn.should_end(ov(target="", until=None), "tesla", 60, True, T + 10**7) == (False, None)  # ingen 24 h-gräns utan mål
+
+
+def test_inget_ladda_nu_pagar_rensas_inte():
+    o = ov(target="")
+    o["tesla_force_amps"] = "0"
+    assert cn.should_end(o, "tesla", 60, False, T, completed=True) == (False, None)
+
+
+def test_med_mal_slutar_ocksa_nar_bilen_ar_full_for_sin_egen_gräns():
+    assert cn.should_end(ov(), "tesla", 80, True, T, completed=True)[0] is True
 
 
 def test_stoppad_på_annat_sätt_städas_upp():

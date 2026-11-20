@@ -1,5 +1,10 @@
 # Ändringar
 
+## 1.2.129 (2026-11-20)
+- **"Ladda nu" laddar tills bilen är full eller kabeln dras ur, även "Tills jag stoppar".** Utan mål låg tvånget kvar när kabeln drogs ur och slog till igen nästa gång bilen kopplades in,
+  vid vilket pris som helst. Nu avslutas Ladda nu när bilen slutat ladda själv (full eller vid sin egen gräns) eller kabeln dras ur, och planen tar över. Med mål (X %) gäller dessutom målet och 24 timmar.
+  Urdragen kabel räknas först några minuter efter att motorn startat, så en omstart rensar inte en pågående Ladda nu.
+
 ## 1.2.128 (2026-11-20)
 - **Värmepumpens effekt i appens och webbens "Just nu" är elförbrukningen.** Flödet visade kompressorns värmeeffekt (11,5 kW) i stället för det pumpen drar ur nätet (2,7 kW), så värmepumpen
   såg ungefär fyra gånger för stor ut och det syntes inte vad som drog resten av huset. Nu går den uppmätta elförbrukningen före när den är färsk; utan mätvärde är det som förut.

@@ -66,6 +66,7 @@ import car_log
 import timed_override  # #397: överstyrningar med tid går tillbaka till Auto
 import charger_limit # #385: förklara när laddboxen ger bilen mindre än vi bad om
 import charge_now    # #394: "Ladda nu till X %" som avslutas av sig själv
+_CN_STARTED = time.time()   # urdragen kabel räknas först när motorn hunnit läsa av laddarna (annars rensas Ladda nu vid varje omstart)
 import ramp_budget     # #399: beviljade ökningar som ännu inte syns i mätningen
 import water_setpoints  # Varmvattnets start/stopp: stoppet aldrig under normal, kontroll efter skrivning
 import hot_water_monitor  # Default-off advisory shadow monitor; no device writes
@@ -938,6 +939,7 @@ def update_soc_tracker(car_id, car_data, charger_data, now, schedule):
         state['connected'] = False
         state['time'], state['soc_start'], state['soc_5min'] = None, None, None
         state['charge_completed'] = False
+        state['stopped_self'] = False
         print(f"🚗 {car_id.capitalize()} frånkopplad.")
         gpm_engine.ev_charging_since[car_id] = None
 
@@ -951,9 +953,12 @@ def update_soc_tracker(car_id, car_data, charger_data, now, schedule):
             state['charge_completed'] = False
             print(f"🚗 {car_id.capitalize()} SOC sjönk till {soc}%. Återställer laddningsstatus.")
 
+    if current_status == 'charging':
+        state['stopped_self'] = False
     if state['last_status'] == 'charging' and current_status != 'charging' and is_connected:
         last_sent_limit_for_car = last_sent_ev_limit.get(car_id)
         if last_sent_limit_for_car is None or last_sent_limit_for_car > 0:
+             state['stopped_self'] = True           # bilen slutade ladda själv trots ström: full eller vid sin egen gräns (Ladda nu, #394)
              soc = car_data.get("soc") if car_data else 0
              if soc is not None and soc >= 98:
                  state['charge_completed'] = True
@@ -2187,8 +2192,10 @@ while True:
             }
             for _c in car_ids:      # #394: "Ladda nu till X %" - avsluta vid målet, urdragen kabel eller efter 24 h
                 try:
+                    _cn_known = time.time() - _CN_STARTED > 180          # laddarnas läge är känt först efter ett par varv
                     _cn_end, _cn_why = charge_now.should_end(all_overrides, _c, car_soc.get(_c),
-                                                             bool(ev_connection_state[_c]['connected']), time.time())
+                        bool(ev_connection_state[_c]['connected']) or not _cn_known, time.time(),
+                        completed=bool(ev_connection_state[_c].get('charge_completed') or ev_connection_state[_c].get('stopped_self')))
                     if _cn_end:
                         _cn_t = charge_now.target(all_overrides, _c)
                         for _k, _v in charge_now.clear_keys(_c).items():
@@ -2197,10 +2204,11 @@ while True:
                         _cn_name = (CAR_SPECS.get(_c) or {}).get("name") or _c
                         _cn_txt = {"target": f"🔌 {_cn_name} har nått {_cn_t} % - Ladda nu är klart och planen tar över.",
                                    "unplugged": f"🔌 {_cn_name}: kabeln drogs ur - Ladda nu avslutades.",
-                                   "timeout": f"🔌 {_cn_name}: Ladda nu avslutades efter 24 timmar - planen tar över."}.get(_cn_why)
+                                   "timeout": f"🔌 {_cn_name}: Ladda nu avslutades efter 24 timmar - planen tar över.",
+                                   "full": f"🔌 {_cn_name} är fulladdad - Ladda nu är klart och planen tar över."}.get(_cn_why)
                         if _cn_txt:
                             print(_cn_txt)
-                            if _cn_why == "target":
+                            if _cn_why in ("target", "full"):
                                 notifier.send_emil("🔌 Ladda nu klart", _cn_txt.split(" ", 1)[1])
                 except Exception as _cne:
                     print(f"⚠️ Ladda nu-kontrollen ({_c}): {_cne}")
