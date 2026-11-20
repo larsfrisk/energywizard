@@ -45,6 +45,12 @@ body:
         - "Ja · Yes"
         - "Nej, EnergyWizard styr · No, EnergyWizard controls"
         - "Vet inte · Don't know"
+  - type: input
+    id: referens
+    attributes:
+      label: Felsökningsreferens (valfritt) · Support reference (optional)
+      description: Inställningar → Logg → *Skicka felsökningsinfo* ger en kod som EW-XXXXX. Då syns loggen bara för utvecklarna, inte här. · Settings → Log → *Send debug info* gives a code like EW-XXXXX. Only the developers can read the log, not this public page.
+      placeholder: "EW-XXXXX"
   - type: textarea
     id: logg
     attributes:

@@ -157,3 +157,30 @@ def test_loggsidan_innehaller_ingen_data(monkeypatch):
     c, _ = _client(monkeypatch)
     r = c.get("/admin/logs")
     assert r.status_code == 200 and "api/support" in r.text and "❌" not in r.text
+
+
+def test_felsokningsinfo_far_en_referens_och_bara_administratorer_kan_lasa_den(monkeypatch):
+    monkeypatch.setenv("STATS_TOKENS", "emil:nyckel-e,lazgeo:nyckel-l")
+    monkeypatch.delenv("STATS_TOKEN", raising=False)
+    c, _ = _client(monkeypatch)
+    r = c.post("/ingest/support-bundle", json={"house": "a" * 16, "version": "1.2", "text": "❌ fel i databasen\nip 192.168.1.50"})
+    ref = r.json()["ref"]
+    import re
+    assert r.status_code == 200 and re.fullmatch(r"EW-[A-HJ-KM-NP-Z2-9]{5}", ref) and r.json()["expires_days"] == 7
+    assert c.get("/api/bundle", params={"ref": ref}).status_code == 403                                      # utan nyckel
+    g = c.get("/api/bundle", params={"ref": ref.lower()}, headers={"X-Stats-Token": "nyckel-l"})               # gemener går bra
+    assert g.status_code == 200 and "fel i databasen" in g.json()["text"] and g.json()["house"] == "aaaaaaaa"
+    assert "192.168.1.50" not in g.json()["text"]                                                              # saneras igen i samlaren
+    log = c.get("/api/admin-access", headers={"X-Stats-Token": "nyckel-e"}).json()["items"]
+    assert log[0]["admin"] == "lazgeo" and log[0]["what"] == "bundle" and ref in log[0]["detail"]
+    assert c.get("/api/bundle", params={"ref": "EW-ZZZZZ"}, headers={"X-Stats-Token": "nyckel-l"}).status_code == 404
+
+
+def test_tom_logg_nekas_och_gamla_raderas_efter_sju_dagar(monkeypatch):
+    c, mod = _client(monkeypatch)
+    assert c.post("/ingest/support-bundle", json={"house": "a" * 16, "text": "  \n "}).status_code == 400
+    ref = c.post("/ingest/support-bundle", json={"house": "a" * 16, "text": "gammal"}).json()["ref"]
+    with mod._db() as conn:
+        conn.execute("UPDATE support_bundles SET received_at = '2020-01-01T00:00:00+00:00' WHERE ref = ?", (ref,))
+    c.post("/ingest/support-bundle", json={"house": "b" * 16, "text": "ny"})                                    # raderar de gamla
+    assert c.get("/api/bundle", params={"ref": ref}).status_code == 404

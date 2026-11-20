@@ -75,6 +75,9 @@ def _db():
         conn.execute("""CREATE TABLE IF NOT EXISTS error_support (
             id INTEGER PRIMARY KEY AUTOINCREMENT, received_at TEXT, house TEXT,
             version TEXT, module TEXT, error_type TEXT, support TEXT)""")
+        # #559: felsökningsinfo som användaren skickat med ett tryck, med en kort referens att nämna i ett ärende
+        conn.execute("""CREATE TABLE IF NOT EXISTS support_bundles (
+            ref TEXT PRIMARY KEY, received_at TEXT, house TEXT, version TEXT, text TEXT)""")
         # Vem som hämtat supportutdrag (granskningslogg)
         conn.execute("""CREATE TABLE IF NOT EXISTS admin_access (
             id INTEGER PRIMARY KEY AUTOINCREMENT, at TEXT, admin TEXT, what TEXT, detail TEXT)""")
@@ -384,6 +387,53 @@ async def error_groups(request: Request, days: int = 14):
     return {"groups": sorted(out, key=lambda x: (-x["houses"], x["key"]))}
 
 
+BUNDLE_TTL_DAYS = 7
+_REF_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"        # utan 0/O/1/I/L som går att blanda ihop
+
+
+def _new_ref(conn) -> str:
+    import secrets
+    for _ in range(20):
+        ref = "EW-" + "".join(secrets.choice(_REF_ALPHABET) for _ in range(5))
+        if not conn.execute("SELECT 1 FROM support_bundles WHERE ref = ?", (ref,)).fetchone():
+            return ref
+    raise RuntimeError("kunde inte skapa en unik referens")
+
+
+@app.post("/ingest/support-bundle")
+async def ingest_support_bundle(request: Request):
+    """Felsökningsinfo som användaren själv skickat (knappen Skicka felsökningsinfo). Saneras igen här (skydd i två lager),
+    sparas i 7 dagar och får en referens som användaren skriver i ärendet. Ingen annan än administratörerna kan läsa den."""
+    from datetime import timedelta
+    body = await request.json()
+    text = log_scrub.scrub(str(body.get("text") or "")[:400000])
+    if not text.strip():
+        return JSONResponse({"error": "tom logg"}, status_code=400)
+    now = datetime.now(timezone.utc)
+    with _db() as c:
+        c.execute("DELETE FROM support_bundles WHERE received_at < ?", ((now - timedelta(days=BUNDLE_TTL_DAYS)).isoformat(),))
+        ref = _new_ref(c)
+        c.execute("INSERT INTO support_bundles (ref, received_at, house, version, text) VALUES (?, ?, ?, ?, ?)",
+                  (ref, now.isoformat(), _str_field(body, "house", 64), _str_field(body, "version", 64), text))
+    return {"ok": True, "ref": ref, "expires_days": BUNDLE_TTL_DAYS}
+
+
+@app.get("/api/bundle")
+async def bundle(request: Request, ref: str = ""):
+    """En skickad felsökningslogg via referensen, för administratörerna. Varje uppslag loggas med vem som tittade."""
+    admin = _admin_name(request)
+    if ADMINS and admin is None:
+        return JSONResponse({"error": "forbidden"}, status_code=403)
+    ref = ref.strip().upper()
+    with _db() as c:
+        row = c.execute("SELECT received_at, house, version, text FROM support_bundles WHERE ref = ?", (ref,)).fetchone()
+        c.execute("INSERT INTO admin_access (at, admin, what, detail) VALUES (?, ?, ?, ?)",
+                  (datetime.now(timezone.utc).isoformat(), admin or "(utan nyckel)", "bundle", f"{ref} ({'hittad' if row else 'saknas'})"[:200]))
+    if not row:
+        return JSONResponse({"error": "finns inte (eller har gått ut efter 7 dagar)"}, status_code=404)
+    return {"ref": ref, "received_at": row[0], "house": (row[1] or "")[:8], "version": row[2], "text": row[3]}
+
+
 @app.get("/api/support")
 async def support(request: Request, module: str = "", error_type: str = "", days: int = 14, limit: int = 20):
     """Sanerade supportutdrag (#227) per felgrupp, för administratörerna. Bara med egen nyckel, och varje hämtning loggas.
@@ -432,6 +482,14 @@ const out = document.getElementById("out"), tok = document.getElementById("t");
 tok.value = sessionStorage.getItem("ewk") || "";
 async function go() {
   out.textContent = "Hämtar…";
+  if (q.get("ref")) {
+    const rr = await fetch("api/bundle?" + new URLSearchParams({ref: q.get("ref")}), {headers: {"X-Stats-Token": tok.value}});
+    if (!rr.ok) { out.textContent = rr.status === 403 ? "Fel nyckel." : rr.status === 404 ? "Referensen finns inte (eller har gått ut efter 7 dagar)." : "Fel " + rr.status; return; }
+    sessionStorage.setItem("ewk", tok.value);
+    const b = await rr.json(); out.textContent = "";
+    const h = document.createElement("p"); h.textContent = b.ref + " · " + b.received_at.slice(0, 16).replace("T", " ") + " UTC · hus " + b.house + " · " + b.version;
+    const pre = document.createElement("pre"); pre.textContent = b.text; out.append(h, pre); return;
+  }
   const u = "api/support?" + new URLSearchParams({module: q.get("module") || "", error_type: q.get("error_type") || ""});
   const r = await fetch(u, {headers: {"X-Stats-Token": tok.value}});
   if (!r.ok) { out.textContent = r.status === 403 ? "Fel nyckel." : "Fel " + r.status; return; }

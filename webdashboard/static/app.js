@@ -941,6 +941,7 @@ async function renderLogg() {
         <input id="lgq" type="search" placeholder="Sök (t.ex. batteri, Easee, ❌)" value="${esc(loggF.q)}" style="flex:1 1 180px;min-width:0">
         <label style="display:flex;gap:6px;align-items:center;font-size:.85rem;white-space:nowrap"><input type="checkbox" id="lglive"${loggLive() ? " checked" : ""}> Live (10 s)</label>
         <button class="icobtn" id="lgdl">⬇️ Ladda ner (2 dygn)</button>
+        <button class="icobtn" id="lgsend">📨 Skicka felsökningsinfo</button><div class="note" id="lgref" style="width:100%"></div>
       </div>
       <div class="note" id="lgts" style="margin-top:6px;font-size:.8rem"></div></div>
     <div class="card"><div id="lgrows" class="note">Laddar…</div></div>`;
@@ -963,6 +964,13 @@ async function renderLogg() {
   ["lgh", "lgl", "lgs"].forEach((id) => document.getElementById(id).onchange = load);
   let t = null; document.getElementById("lgq").oninput = () => { clearTimeout(t); t = setTimeout(load, 350); };
   document.getElementById("lgdl").onclick = () => { location.href = "api/journal/download?days=2"; };
+  // #559: skickar den sanerade loggen till utvecklarna och visar en referens att skriva i ärendet (loggen läggs aldrig publikt)
+  document.getElementById("lgsend").onclick = async () => {
+    if (!confirm("Skickar loggen (2 dygn, sanerad) till EnergyWizards utvecklare. Den raderas efter 7 dagar och kan bara läsas av dem. Du får en referens att skriva i ärendet. Fortsätta?")) return;
+    toast("Skickar…");
+    try { const r = await postJSON("api/support/send", {}); document.getElementById("lgref").innerHTML = `Skickat. Din referens: <b data-noi18n>${esc(r.ref)}</b> (skriv den i ärendet).`; }
+    catch (e) { toast("Kunde inte skicka felsökningsinfon"); }
+  };
   // Live: hämta om var 10:e sekund så länge Logg-fliken är öppen, webbläsarfliken syns och Live är ikryssat
   document.getElementById("lglive").onchange = (e) => { try { localStorage.setItem("ewLoggLive", e.target.checked ? "1" : "0"); } catch (_) {} if (e.target.checked) load(); };
   clearInterval(loggTimer);

@@ -1,5 +1,10 @@
 # Ändringar
 
+## 1.2.137 (2026-11-20)
+- **Skicka felsökningsinfo (#559).** Under Logg i webben och appen finns en knapp som skickar den sanerade loggen (2 dygn) till utvecklarna och ger en referens, t.ex. `EW-7K3F2`, att skriva i
+  ärendet. Loggen läggs aldrig publikt: den saneras i huset och igen i samlaren, sparas i 7 dagar och kan bara läsas av administratörerna med deras nyckel (`/admin/logs?ref=EW-…`, med granskningslogg).
+  Felmallen har ett nytt fält *Felsökningsreferens*. Det är samtycke genom att man trycker på knappen; fullständig logg på begäran (med inställningen Kräv mitt godkännande) är inte byggd än.
+
 ## 1.2.136 (2026-11-20)
 - **Knappar i Bil-kortet i Home Assistant (#557): Auto, Ladda nu, Pausa.** Med MQTT påslaget (Inställningar → Home Assistant via MQTT) får varje bil en väljare, `select.energywizard_ev_<bil>_mode`,
   och kortet visar den som knappar. De sätter samma överstyrningar som appens knappar. Ladda nu laddar tills bilen är full eller kabeln dras ur, och Auto ger tillbaka AI-schemat. Utan MQTT finns

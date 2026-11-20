@@ -723,6 +723,25 @@ async def api_journal(request: Request, hours: float = 24, lvl: str = "", q: str
     return {"ok": True, "rows": rows, "keep_days": ew_journal.KEEP_DAYS}
 
 
+@app.post("/api/support/send")
+async def api_support_send(request: Request):
+    """Knappen Skicka felsökningsinfo (#559): den sanerade loggen (2 dygn) till utvecklarna, och en referens att skriva i ärendet."""
+    if AUTH.session(request)[0] != "owner":
+        return JSONResponse({"error": "Bara ägaren kan skicka loggen"}, status_code=403)
+    import ew_journal
+    import telemetry
+    try:
+        cfg = house_config.load_house_config(HOUSE_CONFIG_FILE)
+    except Exception:
+        cfg = {}
+    try:
+        with ENGINE.connect() as c:
+            text = ew_journal.export_text(c, 2)
+        return {"ok": True, "ref": telemetry.send_support_bundle(text, cfg)}
+    except Exception as e:
+        return JSONResponse({"error": f"Kunde inte skicka felsökningsinfon: {e}"[:300]}, status_code=502)
+
+
 @app.get("/api/journal/download")
 async def api_journal_download(request: Request, days: float = 2):
     """Supportfil: hela loggen de senaste dygnen som text - att bifoga i en issue (granska den först)."""

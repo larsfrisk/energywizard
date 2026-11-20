@@ -1226,6 +1226,25 @@ def journal_api(request: Request, hours: float = 6, lvl: str = "", q: str = ""):
         return {"ok": True, "rows": ew_journal.read(c, since_h=max(0.1, min(hours, 336)), lvl=lvl or None, q=q.strip() or None, limit=300)}
 
 
+@app.post("/api/support/send")
+def support_send(request: Request):
+    """Knappen Skicka felsökningsinfo (#559): den sanerade loggen (2 dygn) till utvecklarna, och en referens att skriva i ärendet."""
+    if _role(request) != "owner":
+        raise HTTPException(403, "Bara ägaren kan skicka loggen")
+    import ew_journal
+    import telemetry
+    try:
+        hc = HC.load_house_config(HOUSE_CONFIG_PATH)
+    except Exception:
+        hc = {}
+    try:
+        with ENGINE.connect() as c:
+            text = ew_journal.export_text(c, 2)
+        return {"ok": True, "ref": telemetry.send_support_bundle(text, hc)}
+    except Exception as e:
+        raise HTTPException(502, f"Kunde inte skicka felsökningsinfon: {e}"[:300])
+
+
 @app.get("/api/journal/download")
 def journal_download(request: Request, days: float = 2):
     if _role(request) != "owner":

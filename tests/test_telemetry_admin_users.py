@@ -193,3 +193,19 @@ def test_loggutdrag_i_flottvyn_hamtas_med_egen_nyckel_och_kraver_behorighet(monk
     mod.AUTH.session = lambda request: ("family", "lazgeo")
     seen.clear()
     assert asyncio.run(mod.installs_support(MagicMock(), key="utan-kolon"))["ok"] is False and not seen
+
+
+def test_skicka_felsokningsinfo_bara_for_agaren_och_ger_referens(monkeypatch):
+    mod = _reload_app(TELEMETRY_STATS_URL="http://collector/api/stats")
+    import telemetry, ew_journal
+    monkeypatch.setattr(ew_journal, "export_text", lambda c, days: "❌ en rad")
+    monkeypatch.setattr(telemetry, "send_support_bundle", lambda text, cfg=None: "EW-ABCDE")
+    mod.ENGINE = MagicMock()
+    mod.AUTH.session = lambda request: ("family", "elin")
+    r = asyncio.run(mod.api_support_send(MagicMock()))
+    assert r.status_code == 403
+    mod.AUTH.session = lambda request: ("owner", "owner")
+    assert asyncio.run(mod.api_support_send(MagicMock())) == {"ok": True, "ref": "EW-ABCDE"}
+    monkeypatch.setattr(telemetry, "send_support_bundle", lambda text, cfg=None: (_ for _ in ()).throw(RuntimeError("samlaren nere")))
+    r = asyncio.run(mod.api_support_send(MagicMock()))
+    assert r.status_code == 502 and b"samlaren nere" in r.body

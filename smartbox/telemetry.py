@@ -279,6 +279,23 @@ def maybe_send_daily(cfg: dict, now: datetime | None = None) -> None:
     threading.Thread(target=send_driver_snapshot, args=(cfg,), daemon=True, name="telemetry-daily").start()
 
 
+def send_support_bundle(text: str, cfg: dict | None = None) -> str:
+    """Skickar felsökningsloggen som användaren själv valt att skicka (knappen Skicka felsökningsinfo, #559) och ger tillbaka
+    en referens, t.ex. EW-7K3F2, att skriva i ärendet. Saneras här (log_scrub) och igen i samlaren, sparas 7 dagar och kan bara
+    läsas av administratörerna. Till skillnad från telemetrin kastar den fel: användaren tryckte på en knapp och ska få veta."""
+    import log_scrub
+    body = log_scrub.scrub(str(text or ""))[-300000:]
+    if not body.strip():
+        raise ValueError("Loggen är tom")
+    r = requests.post(f"{ENDPOINT}/ingest/support-bundle", timeout=25,
+                      json={"house": house_hash(cfg), "version": _software_version(), "text": body})
+    r.raise_for_status()
+    ref = (r.json() or {}).get("ref")
+    if not ref:
+        raise RuntimeError("Samlaren gav ingen referens")
+    return str(ref)
+
+
 def send_driver_snapshot(cfg: dict) -> None:
     """Skickas vid uppstart och sedan en gång per dygn - vilka drivrutinkategorier som är aktiva."""
     global _last_snapshot

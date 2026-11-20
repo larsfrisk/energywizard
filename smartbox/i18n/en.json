@@ -3056,5 +3056,13 @@
  "AlphaESS skugga: håller utan urladdning, register # = #, # = # och # = # (bara sol). Varar # s. Skriver inte.": "AlphaESS shadow: holds without discharging, register # = #, # = # and # = # (PV only). Lasts # s. Does not write.",
  "AlphaESS skugga: laddar från nätet, register # = #, # = #, # = # och # = # (# %). Varar # s. Skriver inte.": "AlphaESS shadow: charges from the grid, register # = #, # = #, # = # and # = # (# %). Lasts # s. Does not write.",
  "AlphaESS utan lägen i Home Assistant: ett skuggrecept (ärende #) kan logga vilket registerläge EnergyWizard skulle valt. Inga register skrivs, och styrningen lämnas i samarbete tills en installation verifierat den.": "AlphaESS with no modes in Home Assistant: a shadow recipe (issue #) can log which register mode EnergyWizard would have chosen. No registers are written, and control stays on cooperate until an installation has verified it.",
- "snittpris": "average price"
+ "snittpris": "average price",
+ "Skicka felsökningsinfo": "Send debug info",
+ "📨 Skicka felsökningsinfo": "📨 Send debug info",
+ "Kunde inte skicka felsökningsinfon": "Could not send the debug info",
+ "Bara ägaren kan skicka loggen": "Only the owner can send the log",
+ "Skickar loggen (2 dygn, sanerad) till EnergyWizards utvecklare. Den raderas efter 7 dagar och kan bara läsas av dem. Du får en referens att skriva i ärendet. Fortsätta?": "Sends the log (2 days, scrubbed) to the EnergyWizard developers. It is deleted after 7 days and only they can read it. You get a reference to write in the issue. Continue?",
+ "Skickar den sanerade loggen (2 dygn) till utvecklarna och ger en referens att skriva i ärendet. Raderas efter 7 dagar.": "Sends the scrubbed log (2 days) to the developers and gives a reference to write in the issue. Deleted after 7 days.",
+ "Skickat. Din referens:": "Sent. Your reference:",
+ "(skriv den i ärendet).": "(write it in the issue)."
 }

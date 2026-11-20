@@ -57,6 +57,10 @@ Samlaren (telemetry-collector) har en egen nyckel per administratör: `STATS_TOK
 - **Granskningslogg** (`/api/admin-access`): varje hämtning skrivs med vem, vad och när.
 - **Spärr:** ta bort personens rad ur `STATS_TOKENS` och starta om samlaren. De andras nycklar rörs inte.
 
+**Felsökningsreferens (#559):** användaren trycker *Skicka felsökningsinfo* under Logg och får en kod, t.ex. `EW-7K3F2`, att skriva i ärendet.
+Loggen (2 dygn, sanerad) ligger i samlaren i 7 dagar och läses av administratörerna på `https://<samlaren>/telemetry/admin/logs?ref=EW-7K3F2`
+(eller `GET /api/bundle?ref=…` med nyckeln). Varje uppslag loggas i granskningsloggen.
+
 De automatiska felärendena på GitHub innehåller inget loggutdrag, bara en länk till sidan ovan. Ärendena är publika, och ett
 utdrag ur någons hem ska inte vara det även om det är sanerat.
 

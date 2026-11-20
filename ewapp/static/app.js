@@ -835,6 +835,7 @@ async function settingsSheet() {
       + (NL && window.EWJournal ? `<div style="margin-top:14px">${EWJournal.notifyHtml(NL, { compact: true })}</div>` : `<div class="note" style="margin-top:14px">Hämtar skickade aviseringar…</div>`),
     logg: () => `<div class="seg">${[["", "Allt"], ["fel", "Fel"], ["varning", "Varningar"], ["notis", "Notiser"]].map(([v, t]) => `<button data-s="lg:${v}" class="${LGL === v ? "on" : ""}">${t}</button>`).join("")}</div>
       <div class="note">Allt EnergyWizard läst in, bestämt, skickat och fått för fel de senaste 6 timmarna. <a href="api/journal/download?days=2">Ladda ner 2 dygn</a> (att bifoga i en issue).</div>
+      <div class="setrow"><span>Skicka felsökningsinfo<div class="note">Skickar den sanerade loggen (2 dygn) till utvecklarna och ger en referens att skriva i ärendet. Raderas efter 7 dagar.</div></span><button class="mini" data-a="sendlog">Skicka</button></div><div class="note" id="lgref"></div>
       ${LG ? (LG.length ? LG.map((r) => `<div class="plrow" style="display:block;font-size:.8rem"><span class="note">${esc(new Date(r.ts).toLocaleTimeString("sv-SE"))} · ${esc(r.lvl)} · ${esc(r.src)}</span><div style="white-space:pre-wrap;overflow-wrap:anywhere">${esc(r.msg)}</div></div>`).join("") : `<div class="note">Inget i loggen.</div>`) : `<div class="note">Laddar…</div>`}`,
     appen: () => `<div class="note" style="margin-top:2px">Stil</div><div class="seg"><button data-s="style:new" class="${CL() ? "" : "on"}">Ny (standard)</button><button data-s="style:classic" class="${CL() ? "on" : ""}">Klassisk</button></div><div class="seg">${((S && S.cars) || []).map((c) => `<button data-s="car:${esc(c.key)}" class="${primary() === c.key ? "on" : ""}">Huvudbil: ${esc(c.name)}</button>`).join("")}</div><div class="seg"><button data-s="glass" class="${LS.get("ew_glass", CL() ? "1" : "0") === "1" ? "on" : ""}">Glasdesign</button><button data-s="ambient" class="${LS.get("ew_ambient", CL() ? "1" : "0") === "1" ? "on" : ""}">Dygnsfärger</button></div><div class="seg"><button data-s="simple" class="${LS.get("ew_simple", "") === "1" ? "on" : ""}">Enkel vy (bara huvudbilen)</button>${standalone ? "" : `<button data-s="install">${installEvt ? "Installera appen" : "Lägg till på hemskärmen"}</button>`}</div><div class="seg"><button data-s="reload">Ladda om appen</button></div>
       <div class="note" style="margin-top:6px">Språk / Language</div><div class="seg" data-noi18n>${Object.entries(I18N.languages).map(([k, v]) => `<button data-s="lang:${k}" class="${I18N.lang === k ? "on" : ""}">${esc(v)}</button>`).join("")}</div>
@@ -905,6 +906,13 @@ document.addEventListener("click", async (e) => {
   if (a === "home" && b.dataset.k === "hotwater" && v === "on") return hotwaterSheet();     // #397: välj hur länge
   if (a === "home") { buzz(); try { const r = await api("home/" + b.dataset.k, { value: v }); toast(r.msg); H = await api("home"); render(); } catch (er) { toast(er.message); } return; }
   if (a === "spabath") { spaBathSheet(); return; }
+  if (a === "sendlog") {                    // #559: den sanerade loggen till utvecklarna, och en referens att skriva i ärendet
+    if (!confirm("Skickar loggen (2 dygn, sanerad) till EnergyWizards utvecklare. Den raderas efter 7 dagar och kan bara läsas av dem. Du får en referens att skriva i ärendet. Fortsätta?")) return;
+    toast("Skickar…");
+    try { const r = await api("support/send", {}); const el = $("#lgref"); if (el) el.innerHTML = `Skickat. Din referens: <b>${esc(r.ref)}</b> (skriv den i ärendet).`; toast("Skickat: " + r.ref); }
+    catch (er) { toast("Kunde inte skicka felsökningsinfon"); }
+    return;
+  }
   if (a === "spa") { buzz(); try { const r = await api("home/" + b.dataset.k, { value: v === "1" }); toast(r.msg); H = await api("home"); render(); } catch (er) { toast(er.message); } return; }
   if (a === "energy" && b.dataset.k === "limit" && +v < 100 && !b.dataset.ok) {      // 0–75 % stryper solelen: kräver bekräftelse så att det inte sker av misstag
     sheet(`<h3>Begränsa solelen till ${v} %?</h3><div class="note">Exporten och solproduktionen begränsas tills du väljer 100 % igen. AI:n släpper begränsningen själv bara vid minuspris.</div><button class="big stop" data-x="ok">Ja, begränsa till ${v} %</button><button class="mini" data-x="no">Avbryt</button>`);
