@@ -1,5 +1,11 @@
 # Ändringar
 
+## 1.2.131 (2026-11-20)
+- **Husdata/Thermia: värmepumpens elförbrukning från H66 när du angett watt (#466).** H66 räknar själv ut en summa av de watt du anger per statusvariabel (Compressor, Add heat step 1/2, pumparna) och visar den som
+  "Power consumption". Är den större än 0 använder motorn den som pumpens elförbrukning i lastnedbrytningen och COP, i stället för uppskattningen ur framledningstemperaturen. Utan inställda watt är allt som förut.
+  Så här ställer du in dem: öppna H66:ans startsida, klicka på t.ex. `0W` vid **Compressor** och skriv ett watt-tal (ange minst kompressorn; tillsatsvärmen får du bara med om den också har ett värde).
+  H66 räknar om ungefär en gång per minut. Mätt mot en riktig H66: 60 W på en radiatorpump som gick gav "Power consumption" 60 efter en minut.
+
 ## 1.2.130 (2026-11-20)
 - **Husdata/Thermia: lärdomar av Husdatas eget Modbus-bibliotek (#466), alla mätta mot en riktig H66.**
   - **Saknad givare är inte längre en temperatur.** En ej inkopplad givare ger ett fast skenvärde (−40,0 °C på en Thermia Diplomat, −48,3 °C på Rego 600). Det läses nu som "saknas", så loggar och styrning räknar inte med det. Det
