@@ -3033,5 +3033,9 @@
  "Hämtar loggen…": "Fetching the log…",
  "Kunde inte hämta loggen": "Could not fetch the log",
  "Kunde inte hämta loggen från telemetrisamlaren (har du en administratörsnyckel?)": "Could not fetch the log from the telemetry collector (do you have an administrator key?)",
- "Ogiltig felgrupp": "Invalid error group"
+ "Ogiltig felgrupp": "Invalid error group",
+ "Growatt skugga: självförbrukning, register # = # och # = #. Skriver inte.": "Growatt shadow: self-consumption, register # = # and # = #. Does not write.",
+ "Growatt skugga: håller utan urladdning, register # = # och # = #. Skriver inte.": "Growatt shadow: holds without discharging, register # = # and # = #. Does not write.",
+ "Growatt skugga: laddar från nätet, register # = # och # = #. Skriver inte.": "Growatt shadow: charges from the grid, register # = # and # = #. Does not write.",
+ "Growatt utan lägen i Home Assistant: ett skuggrecept (ärende #) kan logga vilket registerläge EnergyWizard skulle valt. Inga register skrivs, och styrningen lämnas i samarbete tills en installation verifierat den.": "Growatt with no modes in Home Assistant: a shadow recipe (issue #) can log which register mode EnergyWizard would have chosen. No registers are written, and control stays on cooperate until an installation has verified it."
 }
