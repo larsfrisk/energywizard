@@ -2,6 +2,9 @@
 
 ❤️ EnergyWizard är gratis och öppet. Om det sparar pengar hemma hos dig kan du hålla det så med en sponsring (runt 10 USD i månaden räcker långt): https://github.com/sponsors/murre87
 
+## 1.2.143 (2026-11-20)
+- **Lugnare och luftigare mobilvy**: "Just nu"-grafen har mindre text och mer luft mellan rutorna (ingen text klipps längre), och beslutsrubriken i webbens översikt är mindre på telefon med lite mer avstånd mellan korten.
+
 ## 1.2.142 (2026-11-20)
 - **Påminnelsen om sponsring säger först vad EnergyWizard sparat dig den senaste veckan** och föreslår en konkret summa (runt 10 USD i månaden). Den visas bara när besparingen är minst 50 och minst tre dygn med data finns; annars väntar den. En andra knapp ("Ge utan GitHub-konto") visas så fort en alternativ betalsida är inlagd.
 

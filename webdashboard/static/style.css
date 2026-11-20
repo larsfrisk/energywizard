@@ -195,3 +195,6 @@ input[type=checkbox]:not(.switch input):checked, input[type=radio]:checked { bac
 input[type=checkbox]:not(.switch input):checked::after, input[type=radio]:checked::after { transform:scale(1); }
 input[type=checkbox]:not(.switch input):focus-visible, input[type=radio]:focus-visible { box-shadow:0 0 0 3px color-mix(in srgb, var(--acc) 25%, transparent); outline:none; }
 input[type=range] { accent-color:var(--acc); }
+
+/* Mobil: lugnare rubriktext och luft i översikten (2026-11-20, Emil: för stor text, tajt) */
+@media (max-width:560px) { .dhead { font-size:.98rem !important; line-height:1.4; } main .card { padding:16px; } main .card + .card { margin-top:14px; } }

@@ -13,7 +13,7 @@ for (const compact of [true, false]) {
       assert.match(html, new RegExp(`>${state.toLowerCase()}</text>`));
       assert.match(html, w === 0 ? />0<tspan/ : />1,5<tspan/);
       if (soc == null) assert.doesNotMatch(html, /\d+ %/);
-      else assert.match(html, new RegExp(`y="${compact ? 47 : 26}"[^>]*>${soc} %</text>`));
+      else assert.match(html, new RegExp(`y="${compact ? 42 : 26}"[^>]*>${soc} %</text>`));
       assert.doesNotMatch(html, /undefined|NaN|null/);
       assert.equal(html.includes('<animateMotion'), w !== 0);
     }
@@ -26,7 +26,7 @@ for (const compact of [true, false]) {
       const html = flow.svg({nodes:[{key:'ev_nissan',label:'Nissan Leaf',icon:'🚗',role:'load',
         w,active:w>0,detail:state+(soc==null?'':` · ${soc} %`)}]}, {compact});
       if(soc==null) assert.doesNotMatch(html,/\d+ %/);
-      else assert.match(html,new RegExp(`y="${compact?18:24}"[^>]*>${soc} %</text>`));
+      else assert.match(html,new RegExp(`y="${compact?16:24}"[^>]*>${soc} %</text>`));
       assert.match(html,w===0?/>0<tspan/:/>3,7<tspan/);
       assert.match(html,w===0?/>laddar inte<\//:/>laddar<\//);
       assert.doesNotMatch(html,/NaN|undefined|null/);

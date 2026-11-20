@@ -463,7 +463,7 @@ async function renderOversikt() {
     : d.high_load_source === "tidstariff" ? `⚡ Tidstariff just nu: ${d.is_high_load ? "🔴 Höglast" : "🟢 Låglast"}` : "";
   main.innerHTML = `
     <div class="card" style="margin-bottom:16px">
-      <div style="font-size:1.15rem;font-weight:700">${emoji} ${decisionHeadlineHtml(d.decision)}</div>
+      <div class="dhead" style="font-size:1.15rem;font-weight:700">${emoji} ${decisionHeadlineHtml(d.decision)}</div>
       <div class="note" style="margin-top:4px">💸 ${fmtKrOre(d.price)}/kWh · 🌡️ Inne ${fmt(d.indoor_temp, 1, "°C")} (mål ${fmt(d.indoor_target, 1, "")}) · 🌳 Ute ${fmt(d.outdoor_temp, 1, "°C")}</div>
     </div>
     ${(d.ftw_problems || []).map((s) => `<div class="card" style="margin-bottom:16px;border-color:var(--warn,#f59e0b)">
