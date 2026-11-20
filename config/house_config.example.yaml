@@ -224,6 +224,25 @@ spa:
 #     current_l2: sensor.husets_last_strom_l2
 #     current_l3: sensor.husets_last_strom_l3
 
+# --- Elvärme med egen termostat (valfri, #431) ---
+# Element, golvvärme, Adax. Dyrt -> min_c, billigt och kraftigt solöverskott -> max_c.
+# Ett schema går före priset. Bortaläge sätter min_c. control false skriver inget
+# och visar börvärdet i skuggläget. Sätt control: true när det ser rätt ut.
+# electric_heat:
+#   enabled: true
+#   control: false
+#   zones:
+#     - entity: climate.sovrum
+#       name: Sovrum
+#       min_c: 15
+#       max_c: 21
+#       power: sensor.sovrum_effekt    # valfri, förklarar lasten
+#       schedule:                      # valfri. days 0=måndag … 6=söndag, får gå över midnatt
+#         - days: [0, 1, 2, 3, 4]
+#           start: "06:00"
+#           end: "09:00"
+#           temp_c: 21
+
 # --- Huvudsäkring ---
 fuse:
   main_fuse_a: 25

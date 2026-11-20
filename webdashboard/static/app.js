@@ -2423,12 +2423,16 @@ async function runModbusScan() {
 // Nyckeln är enhetens egen entitet/namn, så valen hittar rätt även efter en ny skanning i annan ordning.
 const _carKey = (c) => c.soc_entity || c.device_name || "";
 function wizardForm() {
-  const d = _discovered || {}, f = { cars: {}, chargers: {}, picks: {} };
+  const d = _discovered || {}, f = { cars: {}, chargers: {}, picks: {}, heaters: {} };
   (d.cars || []).forEach((c, i) => {
     const on = document.querySelector(`.car-pick[data-i="${i}"]`), id = document.querySelector(`.car-id[data-i="${i}"]`), kwh = document.querySelector(`.car-kwh[data-i="${i}"]`);
     if (on) f.cars[_carKey(c)] = { on: on.checked, id: id ? id.value : "", kwh: kwh ? kwh.value : "" };
   });
   (d.chargers || []).forEach((c, i) => { const cb = document.querySelector(`.charger-pick[data-i="${i}"]`); if (cb) f.chargers[c.device_name || i] = cb.checked; });
+  (d.radiators || []).forEach((r, i) => {
+    const on = document.querySelector(`.heat-pick[data-i="${i}"]`), min = document.querySelector(`.heat-min[data-i="${i}"]`), max = document.querySelector(`.heat-max[data-i="${i}"]`);
+    if (on) f.heaters[r.entity] = { on: on.checked, min: min ? min.value : "", max: max ? max.value : "" };
+  });
   document.querySelectorAll(".pick").forEach((cb) => { f.picks[cb.dataset.cat] = cb.checked; });
   // Elmätarvalen, generisk styrning och direkt anslutning till växelriktare (samma fel som bilarna)
   f.selects = {}; ["pm_main", "pm_export", "pm_second", "hp_compressor"].forEach((id) => { const e = document.getElementById(id); if (e) f.selects[id] = e.value; });
@@ -2473,6 +2477,11 @@ function applyWizardForm(f) {
     if (on) on.checked = !!s.on; if (id && s.id) id.value = s.id; if (kwh && s.kwh) kwh.value = s.kwh;
   });
   (_discovered.chargers || []).forEach((c, i) => { const v = (f.chargers || {})[c.device_name || i]; const cb = document.querySelector(`.charger-pick[data-i="${i}"]`); if (cb && v != null) cb.checked = !!v; });
+  (_discovered.radiators || []).forEach((r, i) => {
+    const s = (f.heaters || {})[r.entity]; if (!s) return;
+    const on = document.querySelector(`.heat-pick[data-i="${i}"]`), min = document.querySelector(`.heat-min[data-i="${i}"]`), max = document.querySelector(`.heat-max[data-i="${i}"]`);
+    if (on) on.checked = !!s.on; if (min && s.min) min.value = s.min; if (max && s.max) max.value = s.max;
+  });
   document.querySelectorAll(".pick").forEach((cb) => { const v = (f.picks || {})[cb.dataset.cat]; if (v != null) cb.checked = !!v; });
   Object.entries(f.selects || {}).forEach(([id, val]) => { const e = document.getElementById(id); if (e && [...e.options].some((o) => o.value === val)) e.value = val; });
   document.querySelectorAll(".generic-pick").forEach((cb) => { const v = (f.generic || {})[cb.dataset.key]; if (v != null && cb.checked !== !!v) { cb.checked = !!v; cb.onchange && cb.onchange(); } });
@@ -2536,10 +2545,13 @@ async function runDiscovery(ev, cached) {
   };
   html += simpleCard("♨️", "Värmepump", d.heat_pump, d.heat_pump ? `<span data-noi18n>${esc(d.heat_pump.device_name || "")}</span> ${compressorPicker(d)}` : "");
   if ((d.radiators || []).length) {
-    html += `<div class="card" style="margin-bottom:16px"><h2>Radiatorer i Home Assistant</h2>
-      <div class="note">Upptäckta radiatorer visas endast som inventering. Styr dem i Home Assistant; separat zonschemaläggning stöds ännu inte.</div>`;
-    d.radiators.forEach(r => {
-      html += `<div class="note"><b data-noi18n>${esc(r.name)}</b> · <code>${esc(r.entity)}</code>${r.area ? ` · <span data-noi18n>${esc(r.area)}</span>` : ""}</div>`;
+    html += `<div class="card" style="margin-bottom:16px"><h2>Elvärme</h2>
+      <div class="note">Kryssa i element och golvvärme som ska följa elpriset. Styrningen är av tills du sätter control: true, så skuggläget visar börvärdet först.</div>`;
+    d.radiators.forEach((r, i) => {
+      html += `<div class="note" style="margin:10px 0"><label><input type="checkbox" class="heat-pick" data-i="${i}" data-entity="${esc(r.entity)}"> <b data-noi18n>${esc(r.name)}</b></label>
+        · <code>${esc(r.entity)}</code>${r.area ? ` · <span data-noi18n>${esc(r.area)}</span>` : ""}${r.power ? ` · <code>${esc(r.power)}</code>` : ""}<br>
+        <label>Lägst °C <input type="number" class="heat-min" data-i="${i}" value="15" min="5" max="35" step="0.5" style="width:4.5rem"></label>
+        <label>Högst °C <input type="number" class="heat-max" data-i="${i}" value="21" min="5" max="35" step="0.5" style="width:4.5rem"></label></div>`;
     });
     html += `</div>`;
   }
@@ -2712,6 +2724,13 @@ async function generateConfig(save) {
   const pmExport = (document.getElementById("pm_export") || {}).value;
   if (pmMain) sel.power_meter = pmExport ? { driver: "import_export", entities: { import_w: pmMain, export_w: pmExport } } : { driver: "power_w", entities: { power_w: pmMain } };
   if (pmSecond) sel.power_meter = { ...(sel.power_meter || { driver: "power_w", entities: {} }), secondary_power_w: pmSecond };
+  sel.heaters = [];
+  document.querySelectorAll(".heat-pick:checked").forEach(cb => {
+    const i = cb.dataset.i, r = _discovered.radiators[i];
+    const min = parseFloat((document.querySelector(`.heat-min[data-i="${i}"]`) || {}).value);
+    const max = parseFloat((document.querySelector(`.heat-max[data-i="${i}"]`) || {}).value);
+    sel.heaters.push({ ...r, min_c: min, max_c: max });
+  });
 
   if (save) {
     const msg = document.getElementById("savemsg");

@@ -2351,6 +2351,37 @@ def _build_house_config_yaml(sel: dict) -> str:
         if pm.get("secondary_power_w") and re.fullmatch(r"sensor\.[a-z0-9_]+", str(pm["secondary_power_w"])):
             lines.append(f"  secondary_power_w: {pm['secondary_power_w']}   # annan byggnad - visas, styr inte säkringsskyddet")
     lines += ["", "fuse:", "  main_fuse_a: 25  # FYLL I - din huvudsäkring i Ampere"]
+    heaters = []
+    for item in sel.get("heaters") or []:
+        if not isinstance(item, dict):
+            continue
+        entity = str(item.get("entity") or "")
+        if not re.fullmatch(r"climate\.[a-z0-9_]{1,128}", entity):
+            continue
+        try:
+            low, high = float(item.get("min_c")), float(item.get("max_c"))
+        except (TypeError, ValueError):
+            continue
+        if not 5 <= low < high <= 35:
+            continue
+        name = str(item.get("name") or entity).replace("\n", " ").strip()[:40] or entity
+        row = {"entity": entity, "name": name, "min_c": low, "max_c": high}
+        power = str(item.get("power") or "")
+        if re.fullmatch(r"sensor\.[a-z0-9_]{1,128}", power):
+            row["power"] = power
+        heaters.append(row)
+    if heaters:
+        lines += ["", "electric_heat:   # elvärme med egen termostat. control false skriver inget (skuggläge)",
+                  "  enabled: true", "  control: false",
+                  "  # schedule under en zon går före priset (days 0=måndag … 6=söndag). Se house_config.example.yaml.",
+                  "  zones:"]
+        for row in heaters:
+            lines.append(f"    - entity: {row['entity']}")
+            lines.append(f"      name: {json.dumps(row['name'], ensure_ascii=False)}")
+            lines.append(f"      min_c: {row['min_c']:g}")
+            lines.append(f"      max_c: {row['max_c']:g}")
+            if row.get("power"):
+                lines.append(f"      power: {row['power']}")
 
     # Ett "entities:" utan rader under blir None i YAML - skriv en tom lista över givare i stället (#127)
     def _indent(t):
