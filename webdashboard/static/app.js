@@ -592,7 +592,7 @@ async function renderElbil() {
       <div class="note" style="margin:6px 0 8px">Varje dag, varm till klockan när bilen är hemma eller inkopplad.</div>
       <div style="display:flex;align-items:center;gap:8px">
         <label class="switch" style="flex:none"><input type="checkbox" class="cl-en" data-car="${c.id}" ${h.enabled ? "checked" : ""}><span class="slider"></span></label>
-        <input type="time" class="cl-t" data-car="${c.id}" value="${h.time}" style="flex:1 1 90px;min-width:0">
+        <input type="text" inputmode="numeric" maxlength="5" placeholder="TT:MM" autocomplete="off" class="cl-t hhmm" data-car="${c.id}" value="${h.time}" style="flex:0 0 5.6em;width:5.6em;min-width:0;text-align:center">
         <input type="number" class="cl-c" data-car="${c.id}" min="15" max="28" step="0.5" value="${h.temp}" style="width:72px"> <span>°C</span>
       </div>
       <button class="icobtn cl-save" data-car="${c.id}" style="margin-top:8px">Spara värmen</button>
@@ -624,7 +624,7 @@ async function renderElbil() {
           ${wk.map((x) => `<div class="schrow" style="display:flex;align-items:center;gap:8px;padding:4px 0;border-top:1px solid var(--line)">
             <span style="width:34px;font-weight:600">${WD[x.day]}</span>
             <label class="switch" style="flex:none"><input type="checkbox" class="sch-en" data-car="${c.id}" data-day="${x.day}" ${x.enabled ? "checked" : ""}><span class="slider"></span></label>
-            <input type="time" class="sch-t" data-car="${c.id}" data-day="${x.day}" value="${x.time}" style="flex:1 1 90px;min-width:0">
+            <input type="text" inputmode="numeric" maxlength="5" placeholder="TT:MM" autocomplete="off" class="sch-t hhmm" data-car="${c.id}" data-day="${x.day}" value="${x.time}" style="flex:0 0 5.6em;width:5.6em;min-width:0;text-align:center">
             <input type="number" class="sch-s" data-car="${c.id}" data-day="${x.day}" min="20" max="100" value="${x.soc}" style="width:64px"> %
           </div>`).join("")}
           <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px">
@@ -1071,7 +1071,8 @@ async function renderSpabad() {
         <h2>⏰ Klart till</h2>
         <div class="note">${d.ready_enabled && d.ready_at ? `Aktivt: ${d.ready_at.replace("T", " ")} · ${fmt(d.ready_temp, 1, "°C")}. Motorn värmer på de billigaste timmarna fram till dess.` : "Av - badet följer sitt vanliga läge."}</div>
         <div class="numfield" style="margin-top:10px;flex-wrap:wrap;gap:10px">
-          <input type="datetime-local" id="spareadyat" value="${d.ready_at || ""}">
+          <input type="date" id="spareadyd" value="${(d.ready_at || "").slice(0, 10)}">
+          <input type="text" inputmode="numeric" maxlength="5" placeholder="TT:MM" autocomplete="off" class="hhmm" id="spareadyt" value="${(d.ready_at || "").slice(11, 16)}" style="width:5.6em;text-align:center">
           <input type="number" id="spareadytemp" step="0.5" min="20" max="40" value="${d.ready_temp ?? 38}"> °C
         </div>
         <div style="display:flex;gap:8px;margin-top:10px"><button class="icobtn" id="spareadysave">Spara</button>${d.ready_enabled ? `<button class="icobtn" id="spareadyoff">Stäng av</button>` : ""}</div>
@@ -1083,7 +1084,7 @@ async function renderSpabad() {
       <div class="note">Tider vi badar: utanför dem får badet svalna och värms upp i tid före nästa badtid. Inga påslagna dagar = badet hålls varmt som idag.</div>
       <div style="display:grid;gap:6px;margin-top:10px">${(d.bath_windows || []).map((w, i) => `<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
         <label style="display:flex;align-items:center;gap:8px;width:118px"><input type="checkbox" class="bathon" data-i="${i}"${w.on ? " checked" : ""}> ${["Måndag", "Tisdag", "Onsdag", "Torsdag", "Fredag", "Lördag", "Söndag"][i]}</label>
-        <input type="time" class="bathfrom" data-i="${i}" value="${w.from}" style="width:110px"> – <input type="time" class="bathto" data-i="${i}" value="${w.to}" style="width:110px">
+        <input type="text" inputmode="numeric" maxlength="5" placeholder="TT:MM" autocomplete="off" class="bathfrom hhmm" data-i="${i}" value="${w.from}" style="width:5.6em;text-align:center"> – <input type="text" inputmode="numeric" maxlength="5" placeholder="TT:MM" autocomplete="off" class="bathto hhmm" data-i="${i}" value="${w.to}" style="width:5.6em;text-align:center">
         <span class="note bathnext" data-i="${i}"${w.to <= w.from ? "" : " hidden"}>→ nästa dag</span></div>`).join("")}</div>
       <div class="note" style="margin-top:6px">Varje rad räknas från sin dag. Slutar tiden före starttiden gäller den till nästa dag: torsdag 22:00–15:00 = torsdag kväll till fredag 15:00.</div>
       <button class="icobtn" id="bathsave" style="margin-top:10px">Spara</button></div>
@@ -1108,8 +1109,9 @@ async function renderSpabad() {
       renderSpabad();
     };
     document.getElementById("spareadysave").onclick = () => {
-      const when = document.getElementById("spareadyat").value;
-      if (!when) return;
+      const dd = document.getElementById("spareadyd").value, tt = normTid(document.getElementById("spareadyt").value);
+      if (!dd || !tt) return;
+      const when = `${dd}T${tt}`;
       postAction("api/home-action/spa_ready", { when, temp: parseFloat(document.getElementById("spareadytemp").value) }).then(renderSpabad);
     };
     const off = document.getElementById("spareadyoff");
@@ -1282,6 +1284,29 @@ async function renderAviseringar() {
   if (nl && nl.ok && window.EWJournal && currentPage === "aviseringar") document.getElementById("main").insertAdjacentHTML("beforeend", `<div class="card" id="notifylog">${EWJournal.notifyHtml(nl)}</div>`);
 }
 
+// Klockslag är alltid 24-timmars TT:MM (som i Sverige), oavsett språk och webbläsarens inställning. <input type="time">
+// visar AM/PM i en engelsk webbläsare och klipper texten på smala skärmar, så tider är vanliga textfält med klassen hhmm.
+function normTid(v) {
+  const d = String(v == null ? "" : v).replace(/\D/g, "");
+  if (!d) return "";
+  let h, m;
+  if (d.length <= 2) { h = +d; m = 0; } else if (d.length === 3) { h = +d[0]; m = +d.slice(1); } else { h = +d.slice(0, 2); m = +d.slice(2, 4); }
+  if (h > 23 || m > 59) return null;
+  return String(h).padStart(2, "0") + ":" + String(m).padStart(2, "0");
+}
+document.addEventListener("focusin", (e) => { const t = e.target; if (t.classList && t.classList.contains("hhmm")) t.dataset.prev = t.value; });
+document.addEventListener("input", (e) => {
+  const t = e.target; if (!t.classList || !t.classList.contains("hhmm")) return;
+  const d = t.value.replace(/\D/g, "").slice(0, 4);
+  t.value = d.length > 2 ? d.slice(0, 2) + ":" + d.slice(2) : d;
+});
+document.addEventListener("change", (e) => {
+  const t = e.target; if (!t.classList || !t.classList.contains("hhmm")) return;
+  const n = normTid(t.value);
+  if (n === null) { t.value = t.dataset.prev || ""; return; }                    // ogiltig tid: förra värdet behålls
+  if (n !== t.value) { t.value = n; }
+}, true);
+
 function esc(s) { return String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
 
 let _toastT = null;
@@ -1363,7 +1388,7 @@ const BAT_STYLES = {
 function snapshotStatusHtml(status) {
   const labels = {disabled:"Avstängd",waiting:"Väntar på första ögonblicksbilden",queued:"I kö",
     saving:"Sparar",failed:"Sparning misslyckades eller tappades",saved:"Sparad",unknown:"Okänd eller inaktuell status"};
-  const stamp = value => value == null ? "–" : new Date(value * 1000).toLocaleString((window.I18N && I18N.lang) || "sv-SE");
+  const stamp = value => value == null ? "–" : new Date(value * 1000).toLocaleString("sv-SE");
   const state = status && status.fresh ? status.state : "unknown";
   return `<div><b>${labels[state] || labels.unknown}</b></div>
     ${status && status.fresh ? `<div class="note"><span>Senast sparad</span>: ${esc(stamp(status.last_saved_at))}<br>
@@ -1398,7 +1423,7 @@ function hotWaterStatusHtml(status) {
   const state = fresh && Object.hasOwn(labels, status.state) ? status.state : "unknown";
   const date = value => {
     const d = new Date(value);
-    return Number.isNaN(d.getTime()) ? "–" : d.toLocaleString((window.I18N && I18N.lang) || "sv-SE");
+    return Number.isNaN(d.getTime()) ? "–" : d.toLocaleString("sv-SE");
   };
   return `<div><b>${esc(tr(labels[state]))}</b></div>
     ${state === "proposed" ? `<div class="note"><span>${esc(tr("Föreslagen start"))}</span>: ${esc(date(status.start))}<br>
@@ -1451,7 +1476,7 @@ function hotWaterControlHtml(status) {
   const age = status ? Date.now()/1000 - status.reported_at : NaN;
   const fresh = status && status.fresh === true && Number.isFinite(age) && age >= 0 && age <= 90;
   const state = fresh && Object.hasOwn(labels, status.state) ? status.state : "unknown";
-  const date = value => Number.isFinite(value) ? new Date(value * 1000).toLocaleString((window.I18N && I18N.lang) || "sv-SE") : "–";
+  const date = value => Number.isFinite(value) ? new Date(value * 1000).toLocaleString("sv-SE") : "–";
   const windowHtml = ["planned","active","start_pending","release_pending"].includes(state) ?
     `<div class="note">${esc(tr("Planerad start"))}: ${esc(date(status.start))}<br>${esc(tr("Senast klart"))}: ${esc(date(status.end))}</div>` : "";
   return `<div><b>${esc(tr(labels[state]))}</b></div>${windowHtml}
@@ -2225,7 +2250,7 @@ async function loadImageUpdates(force) {
     const d = await api(`api/image-updates${force ? "?force=1" : ""}`);
     const labels = {checking: "Kontrollerar uppdateringar…", up_to_date: "Du kör senaste versionen", update_available: "Ny version tillgänglig",
       error: "Kunde inte kontrollera uppdateringar", not_configured: "Versionskontroll är inte konfigurerad"};
-    const when = d.last_success_at ? new Date(d.last_success_at * 1000).toLocaleString() : "–";
+    const when = d.last_success_at ? new Date(d.last_success_at * 1000).toLocaleString("sv-SE") : "–";
     panel.innerHTML = `<div class="card" style="margin-bottom:16px">
       <h2>EnergyWizard – uppdateringar</h2><b>${esc(labels[d.status] || labels.error)}</b>
       <div class="note"><span>Senast kontrollerad utan fel</span>: ${esc(when)}</div>
@@ -2388,7 +2413,7 @@ async function renderInstallningar() {
     if (last && last.ok && document.getElementById("discoverResults")) {
       await runDiscovery(null, { d: last });
       const r = document.getElementById("discoverResults"), at = new Date((last.scanned_at || 0) * 1000);
-      if (r) r.insertAdjacentHTML("afterbegin", `<div class="note" style="margin-bottom:8px"><span>Senaste skanningen</span> ${at.toLocaleString((window.I18N && I18N.lang) || "sv-SE", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}. <span>Kryssa i det som stämmer och tryck</span> <b>Spara och starta</b> – <span>det som är sparat är det EnergyWizard använder. Tryck Skanna för att söka igen.</span></div>`);
+      if (r) r.insertAdjacentHTML("afterbegin", `<div class="note" style="margin-bottom:8px"><span>Senaste skanningen</span> ${at.toLocaleString("sv-SE", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}. <span>Kryssa i det som stämmer och tryck</span> <b>Spara och starta</b> – <span>det som är sparat är det EnergyWizard använder. Tryck Skanna för att söka igen.</span></div>`);
     }
   } catch (e) {}
   document.getElementById("scanmodbusbtn").onclick = runModbusScan;
@@ -2443,12 +2468,16 @@ async function runModbusScan() {
 // Nyckeln är enhetens egen entitet/namn, så valen hittar rätt även efter en ny skanning i annan ordning.
 const _carKey = (c) => c.soc_entity || c.device_name || "";
 function wizardForm() {
-  const d = _discovered || {}, f = { cars: {}, chargers: {}, picks: {} };
+  const d = _discovered || {}, f = { cars: {}, chargers: {}, picks: {}, heaters: {} };
   (d.cars || []).forEach((c, i) => {
     const on = document.querySelector(`.car-pick[data-i="${i}"]`), id = document.querySelector(`.car-id[data-i="${i}"]`), kwh = document.querySelector(`.car-kwh[data-i="${i}"]`);
     if (on) f.cars[_carKey(c)] = { on: on.checked, id: id ? id.value : "", kwh: kwh ? kwh.value : "" };
   });
   (d.chargers || []).forEach((c, i) => { const cb = document.querySelector(`.charger-pick[data-i="${i}"]`); if (cb) f.chargers[c.device_name || i] = cb.checked; });
+  (d.radiators || []).forEach((r, i) => {
+    const on = document.querySelector(`.heat-pick[data-i="${i}"]`), min = document.querySelector(`.heat-min[data-i="${i}"]`), max = document.querySelector(`.heat-max[data-i="${i}"]`);
+    if (on) f.heaters[r.entity] = { on: on.checked, min: min ? min.value : "", max: max ? max.value : "" };
+  });
   document.querySelectorAll(".pick").forEach((cb) => { f.picks[cb.dataset.cat] = cb.checked; });
   // Elmätarvalen, generisk styrning och direkt anslutning till växelriktare (samma fel som bilarna)
   f.selects = {}; ["pm_main", "pm_export", "pm_second", "hp_compressor"].forEach((id) => { const e = document.getElementById(id); if (e) f.selects[id] = e.value; });
@@ -2493,6 +2522,11 @@ function applyWizardForm(f) {
     if (on) on.checked = !!s.on; if (id && s.id) id.value = s.id; if (kwh && s.kwh) kwh.value = s.kwh;
   });
   (_discovered.chargers || []).forEach((c, i) => { const v = (f.chargers || {})[c.device_name || i]; const cb = document.querySelector(`.charger-pick[data-i="${i}"]`); if (cb && v != null) cb.checked = !!v; });
+  (_discovered.radiators || []).forEach((r, i) => {
+    const s = (f.heaters || {})[r.entity]; if (!s) return;
+    const on = document.querySelector(`.heat-pick[data-i="${i}"]`), min = document.querySelector(`.heat-min[data-i="${i}"]`), max = document.querySelector(`.heat-max[data-i="${i}"]`);
+    if (on) on.checked = !!s.on; if (min && s.min) min.value = s.min; if (max && s.max) max.value = s.max;
+  });
   document.querySelectorAll(".pick").forEach((cb) => { const v = (f.picks || {})[cb.dataset.cat]; if (v != null) cb.checked = !!v; });
   Object.entries(f.selects || {}).forEach(([id, val]) => { const e = document.getElementById(id); if (e && [...e.options].some((o) => o.value === val)) e.value = val; });
   document.querySelectorAll(".generic-pick").forEach((cb) => { const v = (f.generic || {})[cb.dataset.key]; if (v != null && cb.checked !== !!v) { cb.checked = !!v; cb.onchange && cb.onchange(); } });
@@ -2556,10 +2590,13 @@ async function runDiscovery(ev, cached) {
   };
   html += simpleCard("♨️", "Värmepump", d.heat_pump, d.heat_pump ? `<span data-noi18n>${esc(d.heat_pump.device_name || "")}</span> ${compressorPicker(d)}` : "");
   if ((d.radiators || []).length) {
-    html += `<div class="card" style="margin-bottom:16px"><h2>Radiatorer i Home Assistant</h2>
-      <div class="note">Upptäckta element visas här. I den nedladdade filen finns en avstängd lista. Sätt electric_heat.enabled: true för att se börvärdet i besluten. Ingenting skrivs till elementen.</div>`;
-    d.radiators.forEach(r => {
-      html += `<div class="note"><b data-noi18n>${esc(r.name)}</b> · <code>${esc(r.entity)}</code>${r.area ? ` · <span data-noi18n>${esc(r.area)}</span>` : ""}</div>`;
+    html += `<div class="card" style="margin-bottom:16px"><h2>Elvärme</h2>
+      <div class="note">Kryssa i element och golvvärme som ska följa elpriset. Styrningen är av tills du sätter control: true, så skuggläget visar börvärdet först.</div>`;
+    d.radiators.forEach((r, i) => {
+      html += `<div class="note" style="margin:10px 0"><label><input type="checkbox" class="heat-pick" data-i="${i}" data-entity="${esc(r.entity)}"> <b data-noi18n>${esc(r.name)}</b></label>
+        · <code>${esc(r.entity)}</code>${r.area ? ` · <span data-noi18n>${esc(r.area)}</span>` : ""}${r.power ? ` · <code>${esc(r.power)}</code>` : ""}<br>
+        <label>Lägst °C <input type="number" class="heat-min" data-i="${i}" value="15" min="5" max="35" step="0.5" style="width:4.5rem"></label>
+        <label>Högst °C <input type="number" class="heat-max" data-i="${i}" value="21" min="5" max="35" step="0.5" style="width:4.5rem"></label></div>`;
     });
     html += `</div>`;
   }
@@ -2732,6 +2769,13 @@ async function generateConfig(save) {
   const pmExport = (document.getElementById("pm_export") || {}).value;
   if (pmMain) sel.power_meter = pmExport ? { driver: "import_export", entities: { import_w: pmMain, export_w: pmExport } } : { driver: "power_w", entities: { power_w: pmMain } };
   if (pmSecond) sel.power_meter = { ...(sel.power_meter || { driver: "power_w", entities: {} }), secondary_power_w: pmSecond };
+  sel.heaters = [];
+  document.querySelectorAll(".heat-pick:checked").forEach(cb => {
+    const i = cb.dataset.i, r = _discovered.radiators[i];
+    const min = parseFloat((document.querySelector(`.heat-min[data-i="${i}"]`) || {}).value);
+    const max = parseFloat((document.querySelector(`.heat-max[data-i="${i}"]`) || {}).value);
+    sel.heaters.push({ ...r, min_c: min, max_c: max });
+  });
 
   if (save) {
     const msg = document.getElementById("savemsg");

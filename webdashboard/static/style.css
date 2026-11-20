@@ -122,7 +122,7 @@ main > *:first-child { animation:fadeUp .3s ease both; }
 .seg button[disabled], .togglerow.dim, .row-disabled { opacity:.45; pointer-events:none; }
 .numfield { display:flex; align-items:center; gap:8px; }
 .numfield input[type=number] { width:88px; font-size:15px; padding:9px 10px; border-radius:var(--r-sm); border:1px solid var(--line); background:var(--card2); color:var(--txt); }
-.numfield input[type=time] { width:118px; font-size:15px; padding:9px 10px; border-radius:var(--r-sm); border:1px solid var(--line); background:var(--card2); color:var(--txt); }
+.numfield input[type=time], .numfield input.hhmm { width:118px; font-size:15px; padding:9px 10px; border-radius:var(--r-sm); border:1px solid var(--line); background:var(--card2); color:var(--txt); }
 .numfield input[type=range] { flex:1; accent-color:var(--acc); }
 
 @media (max-width: 860px) {
@@ -156,7 +156,7 @@ main > *:first-child { animation:fadeUp .3s ease both; }
    Reglagen (.switch) rörs inte. ---- */
 select, textarea,
 input:not([type]), input[type=text], input[type=search], input[type=password], input[type=email], input[type=url],
-input[type=tel], input[type=number], input[type=time], input[type=date], input[type=datetime-local] {
+input[type=tel], input[type=number], input[type=time], input.hhmm, input[type=date], input[type=datetime-local] {
   font: inherit; font-size:15px; line-height:1.3; color:var(--txt); background-color:var(--card2);
   border:1px solid var(--line); border-radius:12px; padding:10px 12px; min-height:44px; box-sizing:border-box;
   max-width:100%; outline:none; -webkit-appearance:none; appearance:none;
