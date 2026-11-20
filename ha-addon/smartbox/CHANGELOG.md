@@ -4,6 +4,8 @@
 - **Märkesnamn med å, ä, ö, š m.fl. blev fel i telemetrin** ("Škoda" blev "Åkoda"). HA:s svar lästes som latin-1 i stället för
   UTF-8. Rättat, och telemetrisidan visar redan inkomna "Åkoda" som Škoda. Kia, Volvo, Volkswagen, Mercedes och Huawei med
   olika stavningar samlas också under ett märke.
+- Telemetrisidan döljer poster som inte är utrustning av kategorin (t.ex. rökvarnare, gräsklippare och surfplattor som valts som elbil i
+  startguiden) och visar hur många som dolts.
 
 ## 1.2.117 (2026-11-20)
 - **Beslutsraden visar det som faktiskt beställdes.** "Prio 5b" (rumsåterkopplingen) kändes inte igen av sammanfattningen,

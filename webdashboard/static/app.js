@@ -2154,18 +2154,29 @@ function groupEquipment(items) {   // [[nyckel, antal]] -> [{name, total, subs:[
   }
   return [...fam.values()].sort((a, b) => b.total - a.total);
 }
+// Poster som inte är utrustning av den kategorin (fel entitet vald i startguiden, testposter, HA-beskrivningstexter).
+const INSTALL_HIDE = {
+  car: /@(Aqara|Mammotion|Teclast|Tractive|HMD Global|AWOW|Victron)\b/i,
+  battery: /#äää$/i, solar: /#äää$/i,
+  meter: /@providing curated/i,
+};
 function installsCard(d) {
   if (!d.ok) return `<div class="card" style="margin-bottom:16px">👥 ${esc(d.error || "")}</div>`;
   const row = (l, n) => `<div style="display:flex;justify-content:space-between;gap:10px;padding:3px 0"><span>${l}</span><b>${n}</b></div>`;
   const cats = INSTALL_CATS.map(([key, ico, name]) => {
-    const groups = groupEquipment(Object.entries((d.equipment || {})[key] || {}));
+    const all = Object.entries((d.equipment || {})[key] || {});
+    const hide = INSTALL_HIDE[key];
+    const shown = hide ? all.filter(([k]) => !hide.test(k)) : all;
+    const hidden = all.length - shown.length;
+    const groups = groupEquipment(shown);
     const body = groups.length ? groups.map((g) => {
       if (g.subs.length === 1 && !g.subs[0].model) return row(esc(g.name) + (g.subs[0].hasBrand ? ` <span class="note">(${esc(DRIVER_NAMES[g.subs[0].drv] || g.subs[0].drv)})</span>` : ""), g.total);
       const subs = g.subs.sort((a, b) => b.n - a.n).map((x) => row(`${esc(x.model || "–")} <span class="note">(${esc(DRIVER_NAMES[x.drv] || x.drv)})</span>`, x.n)).join("");
       return `<details style="padding:3px 0"><summary style="cursor:pointer;display:flex;justify-content:space-between;gap:10px;list-style:none"><span>▸ ${esc(g.name)} <span class="note">(${g.subs.length})</span></span><b>${g.total}</b></summary><div style="padding:2px 0 4px 14px">${subs}</div></details>`;
     }).join("")
       : `<div class="note">–</div>`;
-    return `<div class="card" style="padding:12px"><div style="font-weight:700;margin-bottom:6px">${ico} ${name}</div>${body}</div>`;
+    const hiddenNote = hidden ? `<div class="note" style="margin-top:6px">${hidden} post${hidden > 1 ? "er" : ""} dold${hidden > 1 ? "a" : ""} (inte ${name.toLowerCase()})</div>` : "";
+    return `<div class="card" style="padding:12px"><div style="font-weight:700;margin-bottom:6px">${ico} ${name}</div>${body}${hiddenNote}</div>`;
   }).join("");
   return `<div class="card" style="margin-bottom:16px">
       <div style="font-size:1.1rem;font-weight:700">👥 Installationer</div>
