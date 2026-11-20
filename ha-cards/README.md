@@ -13,12 +13,12 @@ De ser ut som appen och fungerar likadant för **HA-tillägget** och för **Dock
 ## Installera
 
 **HACS (rekommenderas)**
-1. HACS → ⋮ → Anpassade arkiv → lägg till arkivet för korten, typ **Dashboard**.
-2. Sök efter *EnergyWizard cards* och installera.
+1. HACS → ⋮ → Anpassade arkiv → lägg till `https://github.com/murre87/energywizard`, kategori **Dashboard**.
+2. Sök efter *EnergyWizard cards* och installera. Det är samma arkiv som EnergyWizard själv; HACS hämtar bara `dist/energywizard-cards.js`.
 3. Ladda om webbläsaren (Ctrl+F5).
 
 **Manuellt**
-1. Kopiera `energywizard-cards.js` till `/config/www/`.
+1. Kopiera `dist/energywizard-cards.js` till `/config/www/`.
 2. Inställningar → Dashboards → ⋮ → Resurser → lägg till `/local/energywizard-cards.js` som *JavaScript-modul*.
 
 ## Lägg till korten
@@ -53,6 +53,8 @@ Korten läser bara. Styrning (starta, pausa, strategi) sker i EnergyWizard.
 Tider visas alltid som 24-timmarsklocka (TT:MM), aldrig AM/PM.
 
 ## Utveckling
+
+Källan är `ha-cards/energywizard-cards.js`. Efter en ändring kopieras den till `dist/` (det är den filen HACS hämtar), annars stoppar testet `tests/test_ha_cards_dist.py`.
 
 `preview.html` visar kortet med exempeldata, utan Home Assistant. Öppna den i en webbläsare. Parametrar: `?theme=light`,
 `?tab=plan`, `?lang=en`, `?empty=1` (ingen data), `?missing=1` (sensorn saknas).

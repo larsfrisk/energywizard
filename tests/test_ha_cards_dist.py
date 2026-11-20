@@ -1,0 +1,21 @@
+"""HACS hämtar korten ur dist/ (hacs.json i roten). ha-cards/ är källan och förhandsvisningen; de två filerna måste vara lika."""
+import json
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+
+
+def test_dist_ar_samma_fil_som_kallan():
+    assert (ROOT / "dist" / "energywizard-cards.js").read_text(encoding="utf-8") == \
+        (ROOT / "ha-cards" / "energywizard-cards.js").read_text(encoding="utf-8"), "kopiera ha-cards/energywizard-cards.js till dist/"
+
+
+def test_hacs_json_pekar_pa_filen():
+    h = json.loads((ROOT / "hacs.json").read_text(encoding="utf-8"))
+    assert h["filename"] == "energywizard-cards.js" and (ROOT / "dist" / h["filename"]).is_file()
+
+
+def test_alla_tre_korten_ar_registrerade():
+    js = (ROOT / "dist" / "energywizard-cards.js").read_text(encoding="utf-8")
+    for tag in ("energywizard-house-card", "energywizard-heat-card", "energywizard-car-card"):
+        assert f'customElements.define("{tag}"' in js
