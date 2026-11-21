@@ -996,6 +996,7 @@ async function mountCapacityTariff(slotId) {
     <div class="numfield" style="margin-top:8px;flex-wrap:wrap;gap:8px">Antal timmar <input type="number" id="ctN" min="1" max="10" value="${d.top_n}" style="width:64px">
       <label style="display:flex;align-items:center;gap:6px"><input type="checkbox" id="ctDist" ${d.distinct_days ? "checked" : ""}> på olika dygn</label></div>
     <div class="numfield" style="margin-top:8px">Trappsteg (kW) <input type="text" id="ctSteps" value="${esc((d.steps || []).join(", "))}" style="flex:1;min-width:0"></div>
+    <div class="numfield" style="margin-top:8px">Natt (22–06) räknas som <input type="number" id="ctNight" min="0" max="100" step="5" value="${Math.round((d.night_weight ?? 1) * 100)}" style="width:72px"> % <span class="note">(100 = ingen viktning; vissa nätägare räknar natten som hälften)</span></div>
     <div class="numfield" style="margin-top:8px">Sikta på steget upp till <input type="number" id="ctTarget" step="1" value="${d.target_kw ?? ""}" style="width:80px"> kW <span class="note">(tomt = det steg du redan är i)</span></div>
     <button class="icobtn" id="ctSave" style="margin-top:10px">Spara</button>
     <div class="note" style="margin-top:12px">Just nu: snitt ${kw(st.avg_kw)} (steg ${kw(st.step && st.step[0])}–${kw(st.step && st.step[1])}) · gräns för den här timmen <b>${kw(st.limit_kw)}</b>${st.free_below_kw ? ` · under ${kw(st.free_below_kw)} påverkar inte avgiften alls` : ""}</div>
@@ -1005,7 +1006,7 @@ async function mountCapacityTariff(slotId) {
     try {
       await postJSON("api/capacity-tariff", { enabled: document.getElementById("ctOn").checked, top_n: +document.getElementById("ctN").value,
         distinct_days: document.getElementById("ctDist").checked, steps: document.getElementById("ctSteps").value.split(/[;,\s]+/).filter(Boolean),
-        target_kw: document.getElementById("ctTarget").value });
+        target_kw: document.getElementById("ctTarget").value, night_weight_pct: document.getElementById("ctNight").value });
       toast("Sparat"); mountCapacityTariff(slotId);
     } catch (e) { toast(e.message); }
   };

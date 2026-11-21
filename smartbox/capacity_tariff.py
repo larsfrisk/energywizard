@@ -11,9 +11,31 @@ gränsen för timmen som pågår är så hög som möjligt utan att snittet går
 En timme som ändå inte kommer in bland de N högsta (x <= den lägsta av dem) påverkar inte avgiften alls, så gränsen
 är aldrig lägre än den. Inställningen (ew_settings "capacity_tariff"): {"enabled", "top_n", "distinct_days", "steps"}.
 Ren logik i limit_kw() - testas i tests/test_capacity_tariff.py; main.py använder den som effektvaktens gräns.
+
+Vikt per timme (idé från FTW:s effektkontrakt): vissa nätägare räknar natten (22-06) som en del av effekten, t.ex. hälften.
+Timmens värde är då vikt x snittet i kW. Inställningen "night_weight" (0-1, standard 1 = ingen viktning) gäller timmar med
+lokal starttid 22-06; weigh() viktar månadens timmar och limit_kw(weight_now=...) räknar om gränsen för timmen som pågår
+(en nattimme får gå högre eftersom bara en del av den räknas). Lokal tid, så sommartidsbytet blir rätt.
 """
+NIGHT_FROM, NIGHT_TO = 22, 6
 # Vanlig norsk trappa (kW) - de flesta nätbolag använder dessa steg; går att ändra i inställningen
 DEFAULT_STEPS = [2, 5, 10, 15, 20, 25, 50, 75, 100]
+
+
+def hour_weight(local_hour, night_weight=1.0):
+    """Vikten för en timme med lokal starttid local_hour (0-23): night_weight 22-06, annars 1."""
+    try:
+        w = float(night_weight)
+    except (TypeError, ValueError):
+        return 1.0
+    if not 0.0 <= w <= 1.0:
+        return 1.0
+    return w if (local_hour >= NIGHT_FROM or local_hour < NIGHT_TO) else 1.0
+
+
+def weigh(hours, night_weight=1.0):
+    """hours = [(dygn, lokal timme 0-23, kW)] -> [(dygn, vikt x kW)] i samma form som top_hours/limit_kw tar."""
+    return [(d, (None if kw is None else kw * hour_weight(h, night_weight))) for d, h, kw in hours]
 
 
 def top_hours(hour_peaks, top_n=3, distinct_days=True):
@@ -39,10 +61,12 @@ def step_for(avg_kw, steps):
     return lo, float("inf")
 
 
-def limit_kw(hour_peaks, today, top_n=3, distinct_days=True, steps=None, target_kw=None):
+def limit_kw(hour_peaks, today, top_n=3, distinct_days=True, steps=None, target_kw=None, weight_now=1.0):
     """-> (gräns i kW för timmen som pågår, info). today = dygnet för timmen som pågår. target_kw = trappsteget man siktar
     på (övre gräns, t.ex. 10): gränsen räknas mot det högsta av målsteget och steget man redan hamnat i - annars blir den
-    orimligt låg i början av månaden när bara några timmar finns."""
+    orimligt låg i början av månaden när bara några timmar finns. hour_peaks är redan viktade (weigh()); weight_now är
+    vikten för timmen som pågår: bara den delen räknas, så kW-gränsen är den viktade gränsen delad med vikten. Vikt 0 (timmen
+    räknas inte alls) ger ingen gräns (inf)."""
     steps = steps or DEFAULT_STEPS
     n = max(1, int(top_n))
     pad = lambda v: (v + [0.0] * n)[:n]
@@ -59,6 +83,16 @@ def limit_kw(hour_peaks, today, top_n=3, distinct_days=True, steps=None, target_
     free = max(min(others), today_best)                          # under detta påverkas inte snittet alls
     room = hi * n - sum(base) if hi != float("inf") else float("inf")
     limit = max(free, room)
+    try:
+        wn = float(weight_now)
+    except (TypeError, ValueError):
+        wn = 1.0
+    if not 0.0 <= wn <= 1.0:
+        wn = 1.0
+    if wn != 1.0:
+        limit = limit / wn if wn > 0 else float("inf")
+        free = free / wn if wn > 0 else float("inf")
     info = {"avg_kw": round(avg_now, 2), "step": [lo, hi], "top": [round(k, 2) for k in cur],
-            "free_below_kw": round(free, 2), "limit_kw": round(limit, 2) if limit != float("inf") else None}
+            "free_below_kw": round(free, 2) if free != float("inf") else None,
+            "limit_kw": round(limit, 2) if limit != float("inf") else None, "weight_now": wn}
     return limit, info

@@ -99,6 +99,13 @@ def build(module: str = "", error_type: str = "") -> str:
     except Exception:
         pass
     try:
+        import support_week
+        week = support_week.lines(words)               # veckan, en rad per dygn (siffror, inga namn)
+        if week:
+            parts.extend(week)
+    except Exception:
+        pass
+    try:
         lines = _journal_lines()
         if lines:
             journal_start = len(parts)

@@ -870,16 +870,20 @@ async def capacity_tariff_get():
     from datetime import datetime
     cfg = ew_settings.get("capacity_tariff") or {}
     with ENGINE.connect() as c:
-        rows = c.execute(text(local_sql("""SELECT (h AT TIME ZONE __EW_TIMEZONE__)::date, kw FROM (
+        rows = c.execute(text(local_sql("""SELECT (h AT TIME ZONE __EW_TIMEZONE__)::date, EXTRACT(hour FROM h AT TIME ZONE __EW_TIMEZONE__)::int, kw FROM (
                                    SELECT date_trunc('hour', timestamp) h, avg(GREATEST(net_power, 0)) / 1000.0 kw FROM sensor_log
                                    WHERE timestamp >= date_trunc('month', now() AT TIME ZONE __EW_TIMEZONE__) AT TIME ZONE __EW_TIMEZONE__
                                      AND timestamp < date_trunc('hour', now()) GROUP BY 1) x"""))).fetchall()
-    peaks = [(d, float(k or 0)) for d, k in rows]
-    today = datetime.now(zoneinfo.ZoneInfo("Europe/Stockholm")).date()
+    nw = cfg.get("night_weight", 1.0)
+    peaks = capacity_tariff.weigh([(d, int(h), float(k or 0)) for d, h, k in rows], nw)
+    from local_sql import installation_timezone
+    loc = datetime.now(installation_timezone())            # installationens tid, inte en fast tidszon
+    today = loc.date()
     n, distinct = int(cfg.get("top_n") or 3), cfg.get("distinct_days", True) is not False
-    lim, info = capacity_tariff.limit_kw(peaks, today, n, distinct, cfg.get("steps"), cfg.get("target_kw"))
+    lim, info = capacity_tariff.limit_kw(peaks, today, n, distinct, cfg.get("steps"), cfg.get("target_kw"),
+                                         weight_now=capacity_tariff.hour_weight(loc.hour, nw))
     top = capacity_tariff.top_hours(peaks, n, distinct)
-    return {"ok": True, "enabled": bool(cfg.get("enabled")), "top_n": n, "distinct_days": distinct,
+    return {"ok": True, "enabled": bool(cfg.get("enabled")), "top_n": n, "distinct_days": distinct, "night_weight": nw,
             "steps": cfg.get("steps") or capacity_tariff.DEFAULT_STEPS, "target_kw": cfg.get("target_kw"),
             "status": {**info, "top_days": [[str(d), round(k, 2)] for d, k in top]}}
 
@@ -894,12 +898,16 @@ async def capacity_tariff_set(request: Request):
         steps = sorted({float(str(x).replace(",", ".")) for x in (b.get("steps") or []) if str(x).strip()})
         n = max(1, min(10, int(b.get("top_n") or 3)))
         target = float(str(b.get("target_kw")).replace(",", ".")) if b.get("target_kw") not in (None, "") else None
+        nw_raw = b.get("night_weight_pct")
+        night_weight = 1.0 if nw_raw in (None, "") else float(str(nw_raw).replace(",", ".")) / 100.0
     except (TypeError, ValueError):
         return JSONResponse({"error": "Ogiltigt värde"}, status_code=400)
+    if not 0.0 <= night_weight <= 1.0:
+        return JSONResponse({"error": "Natten ska räknas som 0-100 % av effekten"}, status_code=400)
     if steps and (steps[0] <= 0 or len(steps) > 20):
         return JSONResponse({"error": "Trappstegen ska vara positiva kW-värden"}, status_code=400)
     ew_settings.update(capacity_tariff={"enabled": bool(b.get("enabled")), "top_n": n, "distinct_days": b.get("distinct_days", True) is not False,
-                                        "steps": steps or None, "target_kw": target})
+                                        "steps": steps or None, "target_kw": target, "night_weight": round(night_weight, 4)})
     return {"ok": True, "message": "Sparat"}
 
 
