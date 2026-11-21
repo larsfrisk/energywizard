@@ -52,6 +52,7 @@ evs:
       soc: sensor.tesla_model_y_battery
       plugged_in: binary_sensor.tesla_model_y_charger
       charging: binary_sensor.tesla_model_y_charging
+      charging_amps: number.tesla_model_y_charging_amps   # bilens begärda ström: syns i kontrolljournalen när laddningen ligger under beställningen
       charging_state: sensor.tesla_model_y_charging_state
       climate: climate.tesla_model_y_hvac_climate_system
       shift_state: sensor.tesla_model_y_shift_state   # P/D/R/N - värmen räknas inte som förvärmning under körning

@@ -25,8 +25,10 @@ def _f(v):
         return None
 
 
-def check_ev(name, ordered_a, reading, note=None):
-    """(enhet, ok, beställt, faktiskt, förklaring) eller None när det inte går att bedöma."""
+def check_ev(name, ordered_a, reading, note=None, requested_a=None):
+    """(enhet, ok, beställt, faktiskt, förklaring) eller None när det inte går att bedöma.
+    requested_a: strömmen bilen själv begär (HA:s number.<bil>_charging_amps). Skrivs i förklaringen när laddningen
+    ligger under beställningen, så att man ser om det är bilen/laddaren (begär 11 A) eller boxen (begär 16 A) som håller emot."""
     got = _f((reading or {}).get("current_a"))
     if ordered_a is None or got is None:
         return None
@@ -34,7 +36,11 @@ def check_ev(name, ordered_a, reading, note=None):
         ok = got < 1.5
         return (name, ok, "paus", f"{got:.0f} A", None if ok else "Laddade trots paus")
     ok = got >= ordered_a - EV_MARGIN_A
-    return (name, ok, f"{ordered_a:.0f} A", f"{got:.0f} A", None if ok else (note or ("Laddade inte" if got < 1 else "Lägre ström")))
+    why = None if ok else (note or ("Laddade inte" if got < 1 else "Lägre ström"))
+    req = _f(requested_a)
+    if why and req is not None:
+        why = f"{why} Bilen begär {req:.0f} A."
+    return (name, ok, f"{ordered_a:.0f} A", f"{got:.0f} A", why)
 
 
 def check_pump(ordered_c, actual_c):

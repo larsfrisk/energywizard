@@ -2,6 +2,9 @@
 
 ❤️ EnergyWizard är gratis och öppet. Om det sparar pengar hemma hos dig kan du hålla det så med en sponsring (runt 10 USD i månaden räcker långt): https://github.com/sponsors/murre87
 
+## 1.2.147 (2026-11-21)
+- **Kontrolljournalen visar vad bilen själv begär** när laddningen ligger under beställningen ("Bilen tar bara 11 A, vi beställde 16 A. Bilen begär 11 A."). Så syns om det är bilen eller laddaren (begär 11 A) eller boxen (begär 16 A) som håller emot. Ange `charging_amps: number.<bil>_charging_amps` under bilens `entities` i husfilen (Tesla via HA:s Tesla-integration).
+
 ## 1.2.146 (2026-11-21)
 - **NIBE S735 via pumpens lokala REST-API** (`driver: nibe_local`), från pearldrums fork. Frånluftspumpen S735/S735C läses som S1155/S1255 (ute, framledning, retur, varmvatten, rum, kompressorstatus, frekvens, el och uppmätt COP), och varje värde kontrolleras mot pumpens metadata. Utan rumsgivare (vanligt på S735) styrs innetemperaturen via värmekurvans förskjutning: bind `heating_offset` till register 30 (`offset_normal`, `offset_base_c`, `offset_steps_per_c`, `offset_min`/`offset_max`). Färdigt exempel i docs/nibe-local-rest.md. HA-entiteterna får `offset_normal`.
 - **Generisk laddare: strömgräns via integrationens tjänst** (till exempel Charge Amps), också från pearldrums fork.

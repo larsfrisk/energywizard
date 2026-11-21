@@ -2567,7 +2567,9 @@ while True:
                         _ev_hold_now[_EV_NAMES.get(car_id, car_id.capitalize())] = _ht
                     if connected and not ev_phase_switch_active[car_id]:
                         _journal.append(control_journal.check_ev(_EV_NAMES.get(car_id, car_id.capitalize()), ev_amps[car_id],
-                                                                 charger_data, _ht))
+                                                                 charger_data, _ht,
+                                                                 requested_a=homeassistant._get_numeric_state(
+                                                                     ((_EV_BY_ID.get(car_id) or {}).get("entities") or {}).get("charging_amps") or "")))
                 except Exception as _he:
                     print(f"⚠️ Laddförklaringen ({car_id}): {_he}")
             _hs = json.dumps(_ev_hold_now, ensure_ascii=False, sort_keys=True) if _ev_hold_now else "ok"

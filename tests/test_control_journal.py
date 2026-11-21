@@ -47,3 +47,11 @@ def test_korta_avbrott_slas_ihop_enstaka_minuter_ignoreras():
 def test_ordning_batteri_pump_bilar():
     r = rows([True], "Tesla") + rows([True], "Värmepump") + rows([True], "Husbatteri")
     assert [d["device"] for d in cj.summarize(r)] == ["Husbatteri", "Värmepump", "Tesla"]
+
+
+def test_ev_forklaringen_visar_bilens_begarda_strom():
+    import control_journal as cj
+    r = cj.check_ev("Tesla", 16, {"current_a": 11}, requested_a=11)
+    assert r[1] is False and r[4].endswith("Bilen begär 11 A.")
+    assert cj.check_ev("Tesla", 16, {"current_a": 16}, requested_a=11)[4] is None      # ingen avvikelse: ingen text
+    assert "begär" not in cj.check_ev("Tesla", 16, {"current_a": 11})[4]               # okänd: som förut
