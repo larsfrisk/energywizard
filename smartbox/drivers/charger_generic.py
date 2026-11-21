@@ -13,6 +13,20 @@ assistant, MIT, bekräftat mot riktig hårdvara: Charge Amps HALO):
   - Högst en skrivning per 10 s per laddbox.
   - Statusen normaliseras till samma ord som Easee-drivrutinen (connector-statusen i OCPP 1.6),
     så resten av motorn (anslutning, laddstopp-vakten) fungerar likadant.
+
+Strömgräns via tjänst (current_limit_service): vissa integrationer har ingen number-entitet för
+laddströmmen utan en egen tjänst - t.ex. Charge Amps molnintegration (kirei/hass-chargeamps:
+chargeamps.set_max_current). Då anges tjänsten på laddarnivå i husets config:
+
+    charger:
+      driver: generic
+      current_limit_service:
+        service: chargeamps.set_max_current   # domän.tjänst
+        field: max_current                     # fältet som får amperetalet (standard: max_current)
+        data: {charge_point: "2012...", connector: 1}   # valfria fasta fält
+      entities: {switch: ..., status: ...}
+
+Finns både current_limit (number) och current_limit_service används number-entiteten.
 """
 import time
 
@@ -46,14 +60,29 @@ def normalize_status(raw):
     return str(raw).strip().lower()
 
 
+def _parse_service(cfg) -> tuple | None:
+    """{service: 'domän.tjänst', field?, data?} -> (domän, tjänst, fält, data). None om ogiltig/saknas."""
+    if not isinstance(cfg, dict):
+        return None
+    name = str(cfg.get("service") or "").strip()
+    if name.count(".") != 1 or not all(name.split(".")):
+        if name:
+            print(f"⚠️ current_limit_service: ogiltig tjänst '{name}' - ange domän.tjänst, t.ex. chargeamps.set_max_current")
+        return None
+    domain, service = name.split(".")
+    data = cfg.get("data") if isinstance(cfg.get("data"), dict) else {}
+    return domain, service, str(cfg.get("field") or "max_current"), dict(data)
+
+
 class GenericChargerDriver(ChargerDriver):
     """Default för laddare utan egen drivrutin. Kräver bara en switch-entitet
     (på/av) - strömgräns är valfri, fasväxling stöds inte."""
     supports_phase_switch = False
 
-    def __init__(self, id: str, entities: dict | None = None):
+    def __init__(self, id: str, entities: dict | None = None, current_limit_service: dict | None = None):
         self.id = id
         self._e = entities or {}
+        self._svc = _parse_service(current_limit_service)
         self._last_write = {"amps": None, "t": 0.0}
 
     def read_state(self) -> dict:
@@ -88,14 +117,18 @@ class GenericChargerDriver(ChargerDriver):
             return True
         amps = max(MIN_CHARGE_A, amps)
         current_e = self._e.get("current_limit")
-        if not current_e:
+        if not current_e and not self._svc:
             return False
         now = time.time()
         if self._last_write["amps"] == amps:
             return True
         if now - self._last_write["t"] < MIN_WRITE_INTERVAL_S:
             return False                                  # försök igen nästa varv
-        ok = homeassistant.set_number(current_e, amps)
+        if current_e:
+            ok = homeassistant.set_number(current_e, amps)
+        else:
+            domain, service, field, data = self._svc
+            ok = homeassistant.call_service(domain, service, {**data, field: amps})
         if ok:
             self._last_write = {"amps": amps, "t": now}
         return ok

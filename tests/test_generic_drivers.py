@@ -231,3 +231,49 @@ def test_las_fore_skriv_number_och_select(monkeypatch):
     assert h.set_number("number.p", 2500) and h.set_select("select.m", "Force charge") and calls == []
     assert h.set_number("number.p", 3000) and len(calls) == 1
     assert h.set_select("select.m", "Force charge", force=True) and len(calls) == 2
+
+
+# ---------- Laddare: strömgräns via integrationens egen tjänst (t.ex. Charge Amps) ----------
+
+def test_charger_strömgräns_via_tjänst_när_number_saknas():
+    svc = {"service": "chargeamps.set_max_current", "data": {"connector": 1}}
+    with patch("drivers.charger_generic.homeassistant") as mock_ha:
+        mock_ha.call_service.return_value = True
+        ok = GenericChargerDriver(id="x", entities={"switch": "switch.ca"}, current_limit_service=svc).set_limit_a(10)
+    assert ok is True
+    mock_ha.call_service.assert_called_once_with("chargeamps", "set_max_current", {"connector": 1, "max_current": 10})
+    mock_ha.set_number.assert_not_called()
+
+
+def test_charger_tjänst_eget_fält_och_6a_golv():
+    svc = {"service": "keba.set_current", "field": "current"}
+    with patch("drivers.charger_generic.homeassistant") as mock_ha:
+        mock_ha.call_service.return_value = True
+        GenericChargerDriver(id="x", current_limit_service=svc).set_limit_a(3)
+    mock_ha.call_service.assert_called_once_with("keba", "set_current", {"current": 6})
+
+
+def test_charger_number_vinner_över_tjänst():
+    svc = {"service": "chargeamps.set_max_current"}
+    with patch("drivers.charger_generic.homeassistant") as mock_ha:
+        mock_ha.set_number.return_value = True
+        GenericChargerDriver(id="x", entities={"current_limit": "number.n"}, current_limit_service=svc).set_limit_a(8)
+    mock_ha.set_number.assert_called_once_with("number.n", 8)
+    mock_ha.call_service.assert_not_called()
+
+
+def test_charger_ogiltig_tjänst_ignoreras():
+    with patch("drivers.charger_generic.homeassistant") as mock_ha:
+        ok = GenericChargerDriver(id="x", current_limit_service={"service": "felaktig"}).set_limit_a(10)
+    assert ok is False
+    mock_ha.call_service.assert_not_called()
+
+
+def test_build_charger_driver_skickar_med_current_limit_service():
+    cfg = {"evs": [{"id": "bil1", "charger": {"id": "ca", "driver": "generic", "entities": {"switch": "switch.ca"},
+                                                "current_limit_service": {"service": "chargeamps.set_max_current"}}}]}
+    for drv in (build_charger_drivers(cfg)["bil1"], build_physical_charger_drivers(cfg)["ca"]):
+        with patch("drivers.charger_generic.homeassistant") as mock_ha:
+            mock_ha.call_service.return_value = True
+            assert drv.set_limit_a(12) is True
+        mock_ha.call_service.assert_called_once_with("chargeamps", "set_max_current", {"max_current": 12})

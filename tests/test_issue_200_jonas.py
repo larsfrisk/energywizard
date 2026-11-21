@@ -38,6 +38,17 @@ def test_nibe_kurvforskjutning_nar_rumsborvarde_saknas():
         assert d.set_room_temp(30.0) and sn.call_args.args[1] == 5                              # inom -5..+5
 
 
+def test_nibe_kurvforskjutning_runt_husets_vanliga_forskjutning():
+    from drivers.heatpump_ha_entities import HaEntitiesHeatPumpDriver
+    d = HaEntitiesHeatPumpDriver({"curve_offset": "number.heating_offset_climate_system_1_40031"},
+                                 cfg={"offset_normal": 1, "offset_min": -2, "offset_max": 4})
+    with patch("homeassistant.set_number", return_value=True) as sn, patch("shadow.active", return_value=False):
+        assert d.set_room_temp(20.5) and sn.call_args.args[1] == 1                              # husets vanliga +1
+        assert d.set_room_temp(21.5) and sn.call_args.args[1] == 3
+        assert d.set_room_temp(19.0) and sn.call_args.args[1] == -2
+        assert d.set_room_temp(25.0) and sn.call_args.args[1] == 4                              # absolut tak
+
+
 def test_guiden_kopplar_nibe_47011():
     from discovery import _nibe_bt_entities
     base = dict(dc="temperature", u="°C", d="dev", m="NIBE")

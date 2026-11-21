@@ -31,6 +31,12 @@ evs: []
 #       entities:
 #         status: sensor.min_laddare_status
 #         current_a: sensor.min_laddare_strom
+#       # Saknar laddaren en number-entitet för strömgränsen men har en egen tjänst (t.ex. Charge Amps
+#       # molnintegration, kirei/hass-chargeamps), styrs strömmen via tjänsten istället:
+#       # current_limit_service:
+#       #   service: chargeamps.set_max_current
+#       #   field: max_current             # fältet som får amperetalet
+#       #   data: {connector: 1}           # valfria fasta fält (t.ex. charge_point om du har flera boxar)
 
 # --- Värmepump (valfri) ---
 heat_pump:
@@ -54,8 +60,9 @@ heat_pump:
 #
 # NIBE S-serie, lokalt REST-API (meny 7.5.15). Börja med enbart läsning.
 # Lösenord och certifikatets SHA-256-pin sätts i NIBE_LOCAL_* (se .env.example).
-# Sensorer för S1155/S1255 mappas mot enhetens registermetadata. Andra modeller
-# och skrivningar kräver egna verifierade points-bindningar: docs/nibe-local-rest.md.
+# Sensorer för S1155/S1255 och S735/S735C mappas mot enhetens registermetadata. Andra
+# modeller och skrivningar kräver egna verifierade points-bindningar: docs/nibe-local-rest.md
+# (där finns ett färdigt S735-exempel med styrning via värmekurvans förskjutning).
 # heat_pump:
 #   enabled: true
 #   driver: nibe_local

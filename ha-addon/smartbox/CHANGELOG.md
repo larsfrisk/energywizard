@@ -2,6 +2,10 @@
 
 ❤️ EnergyWizard är gratis och öppet. Om det sparar pengar hemma hos dig kan du hålla det så med en sponsring (runt 10 USD i månaden räcker långt): https://github.com/sponsors/murre87
 
+## 1.2.146 (2026-11-21)
+- **NIBE S735 via pumpens lokala REST-API** (`driver: nibe_local`), från pearldrums fork. Frånluftspumpen S735/S735C läses som S1155/S1255 (ute, framledning, retur, varmvatten, rum, kompressorstatus, frekvens, el och uppmätt COP), och varje värde kontrolleras mot pumpens metadata. Utan rumsgivare (vanligt på S735) styrs innetemperaturen via värmekurvans förskjutning: bind `heating_offset` till register 30 (`offset_normal`, `offset_base_c`, `offset_steps_per_c`, `offset_min`/`offset_max`). Färdigt exempel i docs/nibe-local-rest.md. HA-entiteterna får `offset_normal`.
+- **Generisk laddare: strömgräns via integrationens tjänst** (till exempel Charge Amps), också från pearldrums fork.
+
 ## 1.2.145 (2026-11-20)
 - Värmepumpens uppmätta effekt till flödet (`latest_pump_w`) rullar tillbaka transaktionen om tabellen `load_breakdown` saknas, så att en äldre installation inte får följdfel i nästa fråga.
 

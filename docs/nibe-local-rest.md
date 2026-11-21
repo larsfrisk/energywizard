@@ -1,8 +1,12 @@
 # NIBE local REST driver
 
-This implementation primarily targets the NIBE S1255. It has not been verified
-against other heaters. The S1155 read preset follows the published register map,
-but is not hardware-validated; no compatibility with other models is claimed.
+This implementation primarily targets the NIBE S1255. The S1155 read preset follows
+the published register map, but is not hardware-validated. The S735/S735C read preset
+uses the same registers: NIBE's own S735 register export (as shipped in
+[yozik04/nibe](https://github.com/yozik04/nibe/blob/master/nibe/data/s735.csv), which
+Home Assistant's `nibe_heatpump` integration uses) lists identical type, address,
+unit and scale for every register this driver reads. No compatibility with other
+models is claimed. See [NIBE S735](#nibe-s735) below for a ready-made configuration.
 
 `heat_pump.driver: nibe_local` connects directly to the heater over HTTPS (normally
 8443), using Basic authentication and a required SHA-256 certificate pin. Enable
@@ -107,6 +111,86 @@ not necessarily the threshold currently controlling the heater; changing a high-
 threshold does not activate that profile or prove charging starts. A curve offset is
 not a room temperature, and an installation without the appropriate room sensor may
 not expose a usable room target. Match each binding to the exact intended behavior.
+
+## NIBE S735
+
+The S735 (exhaust air) runs the same S-series firmware and local REST API. You need
+firmware 4.6.4 or later for the local API to work reliably. In menu 7.5.15: switch it
+on, set a user name and password, note the certificate fingerprint and, when you're
+ready to control the pump, turn off "read only".
+
+Reading works with no bindings: outdoor (BT1), supply (BT2), return (BT3), hot water
+top (BT7), room (register 26, only if a room sensor is fitted), compressor status,
+frequency, power and the pump's own hourly energy log (COP).
+
+Many S735 installations have no room sensor, so there is no room set point in °C to
+write. For those, bind `heating_offset` to the heating curve offset. `set_room_temp`
+then turns the engine's wanted indoor temperature into an offset:
+
+```
+offset = offset_normal + offset_steps_per_c × (wanted °C − offset_base_c)
+```
+
+The offset is rounded, clamped to `offset_min`..`offset_max`, and also checked against
+the binding's `limits` and the pump's own -10..10 range. Set `offset_normal` to the
+offset your house normally runs at (menu 1.30.1). Setting it means the pump goes back
+to that offset when the wanted temperature equals `offset_base_c`. If a room sensor is
+fitted, bind `room_target` instead. It takes precedence over `heating_offset`.
+
+```yaml
+heat_pump:
+  enabled: true
+  driver: nibe_local
+  control_enabled: false          # true once the readings look right
+  connection:
+    host: 192.168.1.50
+    port: 8443
+    device_index: 0
+    expected_product: "NIBE S735" # replace with the exact discovered product name
+  # Heating curve offset: wanted indoor temperature -> offset steps
+  offset_normal: 0                # your usual offset (menu 1.30.1)
+  offset_base_c: 20.5             # indoor temperature that maps to offset_normal
+  offset_steps_per_c: 2           # offset steps per °C of wanted change
+  offset_min: -3
+  offset_max: 3
+  points:
+    heating_offset:               # Heating offset climate system 1
+      register: 30
+      register_type: MODBUS_HOLDING_REGISTER
+      limits: [-3, 3]
+    # With a room sensor (BT50), use this instead of heating_offset:
+    # room_target:                # Room sensor set point value climate system 1
+    #   register: 206
+    #   register_type: MODBUS_HOLDING_REGISTER
+    #   unit: "°C"
+    #   limits: [16, 24]
+    # Hot water. Only active while the hot water demand is "Normal" (menu 2.2):
+    # water_start:                # Start temperature HW normal temperature
+    #   register: 59
+    #   register_type: MODBUS_HOLDING_REGISTER
+    #   unit: "°C"
+    #   limits: [40, 55]
+    # water_stop:                 # Stop temperature HW normal temperature
+    #   register: 63
+    #   register_type: MODBUS_HOLDING_REGISTER
+    #   unit: "°C"
+    #   limits: [45, 60]
+    # Summer heat stop (summer_strategy: heat_stop). Only applies in Auto mode:
+    # heating_start:              # Auto mode, stop temperature for heating
+    #   register: 184
+    #   register_type: MODBUS_HOLDING_REGISTER
+    #   unit: "°C"
+    #   limits: [10, 22]
+```
+
+Leave `mode_values` unset on the S735. The engine's legacy mode codes come from
+Thermia (4 = hot water only), and the S735's "Operating mode" register (2743) only has
+auto/manual/additional heat only. A summer "hot water only" switch therefore has no
+safe mapping. Use `summer_strategy: heat_stop` with the `heating_start` binding instead.
+
+Check that each register in `GET /api/v1/devices/0/points` on your pump has the
+expected title, register type and `isWritable: true` before you enable control. Then
+start with `control_enabled: true` in shadow mode and watch the log.
 
 ## Scope and verification limits
 

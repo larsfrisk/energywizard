@@ -180,9 +180,78 @@ def test_real_discovery_shape_uses_device_index_and_scales_by_metadata(heater):
 
 
 def test_other_models_do_not_inherit_s1255_register_map(heater):
-    heater.product = "NIBE S735"
+    heater.product = "NIBE VVM S320"
     values = nibe.NibeLocalHeatPumpDriver().read_sensors()
     assert values["water_temp"] is None
+
+
+@pytest.mark.parametrize("product", ["NIBE S735", "NIBE S735-7", "NIBE S735C"])
+def test_s735_uses_the_same_read_registers_as_s1255(heater, product):
+    heater.product = product
+    values = nibe.NibeLocalHeatPumpDriver().read_sensors()
+    assert values["outdoor_temp"] == -3.5 and values["water_temp"] == 50.4
+
+
+S735 = "NIBE S735"
+OFFSET = {"register": 30, "register_type": HOLDING, "limits": [-10, 10]}
+
+
+def offset_point(raw=-1):
+    p = point(4100, 30, raw, divisor=1, unit="", writable=True)
+    p["metadata"].update(variableSize="s8", minValue=-10, maxValue=10)
+    return p
+
+
+def s735(heater, **kw):
+    heater.product = S735
+    heater.points["4100"] = offset_point()
+    return nibe.NibeLocalHeatPumpDriver(connection={"expected_product": S735}, control_enabled=True,
+                                        points={"heating_offset": OFFSET}, **kw)
+
+
+@pytest.mark.parametrize("target,expected", [(20.5, 0), (21.5, 2), (19.0, -3), (30.0, 5), (10.0, -5)])
+def test_s735_without_room_sensor_steers_the_heating_offset(heater, target, expected):
+    assert s735(heater).set_room_temp(target)
+    assert heater.points["4100"]["value"]["integerValue"] == expected
+
+
+def test_s735_offset_is_relative_to_the_houses_normal_offset(heater):
+    d = s735(heater, offset={"offset_normal": -1, "offset_steps_per_c": 1, "offset_base_c": 21})
+    assert d.set_room_temp(22)
+    assert heater.points["4100"]["value"]["integerValue"] == 0
+    assert d.set_room_temp(21)                     # tillbaka till husets vanliga -1
+    assert heater.points["4100"]["value"]["integerValue"] == -1
+
+
+def test_s735_offset_already_at_target_sends_nothing(heater):
+    assert s735(heater, offset={"offset_normal": -1}).set_room_temp(20.5)
+    assert not heater.writes
+
+
+def test_offset_respects_installation_limits_and_needs_control(heater):
+    d = s735(heater)
+    d._bindings["heating_offset"] = {**OFFSET, "limits": [-2, 2]}
+    assert not d.set_room_temp(23)                 # +5 utanför husets gräns: skrivs inte
+    heater.points["4100"]["metadata"]["unit"] = "°C"
+    d._bindings["heating_offset"] = {**OFFSET, "unit": "°C"}
+    assert not d.set_room_temp(21)                 # en förskjutning är aldrig grader
+    assert not nibe.NibeLocalHeatPumpDriver(connection={"expected_product": S735},
+                                            points={"heating_offset": OFFSET}).set_room_temp(21)
+    assert not heater.writes
+
+
+def test_room_target_binding_wins_over_offset(heater):
+    d = s735(heater)
+    d._bindings["room_target"] = binding(variable_id=3699)
+    assert d.set_room_temp(42.5)
+    assert heater.writes[0][0]["variableId"] == 3699
+
+
+def test_factory_passes_offset_settings(heater):
+    d = build_heat_pump_driver({"heat_pump": {"enabled": True, "driver": "nibe_local", "control_enabled": True,
+                                              "connection": {"expected_product": S735},
+                                              "points": {"heating_offset": OFFSET}, "offset_normal": -1}})
+    assert d._offset_cfg["offset_normal"] == -1.0
 
 
 def test_wrong_product_or_device_cannot_be_read_or_written(heater):
@@ -452,6 +521,6 @@ def test_s1255_matvarden_for_varmepumpsfliken(heater):
 
 
 def test_andra_modeller_far_inga_matvarden(heater):
-    heater.product = "NIBE S735"
+    heater.product = "NIBE VVM S320"
     heater.points["41046"] = point(41046, 1046, 52, divisor=1, unit="Hz")
     assert nibe.NibeLocalHeatPumpDriver().read_sensors().get("compressor_frequency_hz") is None

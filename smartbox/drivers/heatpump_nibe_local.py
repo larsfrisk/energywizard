@@ -1,6 +1,7 @@
 """NIBE local REST: pinned HTTPS, device discovery and metadata-checked settings.
 
-Enable menu 7.5.15. Local variable IDs, Modbus addresses and cloud IDs are distinct.
+Enable menu 7.5.15. Read presets: S1155/S1255 and S735/S735C (same register map).
+Local variable IDs, Modbus addresses and cloud IDs are distinct.
 Writes require explicit configuration; boost lifetime belongs to its caller.
 No AUX blocks or cloud replay.
 See docs/nibe-local-rest.md for the evidence and hardware verification limits.
@@ -42,6 +43,13 @@ _METRIC_REGISTERS = {"compressor_frequency_hz": {"register": 1046, "unit": "Hz"}
 # NIBE M12676SV (2026-01-13), S1155/S1255 table; match reported register metadata.
 _TEMPERATURE_REGISTERS = {"outdoor_temp": 1, "forward_temp": 5, "return_temp": 7,
                           "water_temp": 8, "indoor_temp": 26}
+# Modeller som får läsregistren ovan automatiskt. S735/S735C (frånluft): NIBE:s egen registerexport för S735
+# (samma som HA:s nibe_heatpump använder, yozik04/nibe data/s735.csv) har exakt samma typ/adress/enhet/skala för
+# 1, 5, 7, 8, 26, 1100, 1046, 1048, 2283 och 2291 som S1155/S1255. Varje värde kontrolleras ändå mot pumpens metadata.
+_PRESET_MODELS = re.compile(r"\bS(?:1155|1255|735C?)(?:\b|-)", re.I)
+# Värmekurvans förskjutning (S735/S1255: holding 30 "Heating offset climate system 1", s8, -10..10, utan enhet).
+_OFFSET_DEFAULTS = {"offset_base_c": 20.5, "offset_steps_per_c": 2.0, "offset_normal": 0.0,
+                    "offset_min": -5.0, "offset_max": 5.0}
 
 
 class LocalRestError(RuntimeError):
@@ -175,8 +183,12 @@ class NibeLocalHeatPumpDriver(HeatPumpDriver):
             return False
         return self._write('hot_water_boost', binding['start_value'] if active else binding['release_value'])
 
-    def __init__(self, connection=None, points=None, control_enabled=False, mode_values=None):
+    def __init__(self, connection=None, points=None, control_enabled=False, mode_values=None, offset=None):
         cfg = connection or {}
+        self._offset_cfg = dict(_OFFSET_DEFAULTS)
+        for k, v in (offset or {}).items():
+            if k in _OFFSET_DEFAULTS and not isinstance(v, bool) and isinstance(v, (int, float)) and math.isfinite(v):
+                self._offset_cfg[k] = float(v)
         self._host = cfg.get("host", _HOST)
         self._port = int(cfg.get("port", _PORT))
         self._timeout = float(cfg.get("timeout_s", 5))
@@ -284,7 +296,7 @@ class NibeLocalHeatPumpDriver(HeatPumpDriver):
             return {}
         result = {field: None for field in _FIELDS}
         bindings = {}
-        if re.search(r"\bS(?:1155|1255)(?:\b|-)", self._product, re.I):
+        if _PRESET_MODELS.search(self._product):
             bindings.update({k: {"register": reg, "unit": "°C"} for k, reg in _TEMPERATURE_REGISTERS.items()})
             bindings["compressor_running"] = {"register": 1100}
             bindings.update(_METRIC_REGISTERS)
@@ -332,7 +344,11 @@ class NibeLocalHeatPumpDriver(HeatPumpDriver):
         binding = self._bindings[field]
         if not isinstance(binding, dict):
             return False
-        if field not in {'operating_mode', 'hot_water_boost'} and binding.get("unit") != "°C":
+        if field == "heating_offset":
+            # Förskjutningen är ett enhetslöst heltal i steg, aldrig grader
+            if binding.get("unit", "") != "" or isinstance(value, bool) or not isinstance(value, int):
+                return False
+        elif field not in {'operating_mode', 'hot_water_boost'} and binding.get("unit") != "°C":
             return False
         if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
             return False
@@ -416,7 +432,15 @@ class NibeLocalHeatPumpDriver(HeatPumpDriver):
             return False
 
     def set_room_temp(self, target_c):
-        return self._write("room_target", target_c)
+        """Med rumsgivare: skriv rumsbörvärdet (room_target, °C). Utan (vanligt på S735): översätt önskad innetemp
+        till värmekurvans förskjutning (heating_offset) kring husets normala förskjutning, som HA-drivrutinen (#200)."""
+        if "room_target" in self._bindings or "heating_offset" not in self._bindings:
+            return self._write("room_target", target_c)
+        if isinstance(target_c, bool) or not isinstance(target_c, (int, float)) or not math.isfinite(target_c):
+            return False
+        c = self._offset_cfg
+        steps = c["offset_normal"] + c["offset_steps_per_c"] * (float(target_c) - c["offset_base_c"])
+        return self._write("heating_offset", int(round(min(max(steps, c["offset_min"]), c["offset_max"]))))
 
     def set_water_stop_temp(self, target_c):
         return self._write("water_stop", target_c)

@@ -12,8 +12,8 @@ läser i stället de entiteter installationsguiden kopplat (heat_pump.entities i
                W eller kW enligt givarens enhet. Utan den uppskattas eleffekten ur framledningen)
   curve_offset (valfri, number-entitet för värmekurvans förskjutning, t.ex. NIBE 47011 "Heating offset climate system 1",
                #200 Jonas: F730 via nibegw). Används när rumsbörvärde saknas: önskad innetemp -> förskjutning med
-               offset_steps_per_c steg per grad kring offset_base_c (standard 2 steg/°C kring 20,5 °C), inom
-               offset_min..offset_max (standard -5..+5).
+               offset_steps_per_c steg per grad kring offset_base_c (standard 2 steg/°C kring 20,5 °C), räknat från
+               husets vanliga förskjutning offset_normal (standard 0), inom offset_min..offset_max (standard -5..+5).
 
 Guiden kopplar NIBE:s givarkoder i entiteternas namn (BT1 ute, BT2 framledning, BT3 retur, BT7/BT6 varmvatten, BT50
 rum), som är desamma på alla språk (discovery.py, _nibe_bt_entities). room_target kopplas aldrig automatiskt: vilket
@@ -95,7 +95,8 @@ class HaEntitiesHeatPumpDriver(HeatPumpDriver):
                 return float(self._cfg.get(k, d))
             except (TypeError, ValueError):
                 return d
-        steps = num("offset_steps_per_c", 2.0) * (float(target_c) - num("offset_base_c", 20.5))
+        # offset_normal: husets vanliga förskjutning (t.ex. +1), som offset_base_c motsvarar; offset_min/max är absoluta
+        steps = num("offset_normal", 0.0) + num("offset_steps_per_c", 2.0) * (float(target_c) - num("offset_base_c", 20.5))
         off = int(round(min(max(steps, num("offset_min", -5.0)), num("offset_max", 5.0))))
         ent = self._e["curve_offset"]
         import shadow
