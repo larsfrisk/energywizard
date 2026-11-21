@@ -219,7 +219,7 @@ _battery_follow = battery_follow.FollowWatch()
 _battery_balance = battery_balance.Monitor()
 _battery_commands = battery_commands.Tracker()
 _guest_state, _guest_price = {}, {}
-_cap_cache = {"at": None, "peaks": [], "info": None}   # effektavgift efter högsta timmar (capacity_tariff.py)          # gästbil per bilens laddbox (guest_charge.py)
+_cap_cache = {"at": None, "hours": [], "peaks": [], "info": None}   # effektavgift efter högsta timmar (capacity_tariff.py)          # gästbil per bilens laddbox (guest_charge.py)
 
 
 def _battery_note(model, live):
@@ -1887,14 +1887,20 @@ while True:
                 if _ct.get("enabled"):
                     if _cap_cache["at"] is None or (now - _cap_cache["at"]) > timedelta(minutes=10):
                         with logger.get_db() as _c, _c.cursor() as _cur:
-                            _cur.execute(local_sql("""SELECT (h AT TIME ZONE __EW_TIMEZONE__)::date, kw FROM (
+                            _cur.execute(local_sql("""SELECT (h AT TIME ZONE __EW_TIMEZONE__)::date, EXTRACT(hour FROM h AT TIME ZONE __EW_TIMEZONE__)::int, kw FROM (
                                               SELECT date_trunc('hour', timestamp) h, avg(GREATEST(net_power, 0)) / 1000.0 kw
                                               FROM sensor_log WHERE timestamp >= date_trunc('month', now() AT TIME ZONE __EW_TIMEZONE__) AT TIME ZONE __EW_TIMEZONE__
                                                 AND timestamp < date_trunc('hour', now()) GROUP BY 1) x"""))
-                            _cap_cache["peaks"] = [(d, float(k or 0)) for d, k in _cur.fetchall()]
+                            _cap_cache["hours"] = [(d, int(h), float(k or 0)) for d, h, k in _cur.fetchall()]
                         _cap_cache["at"] = now
-                    _lim, _ci = capacity_tariff.limit_kw(_cap_cache["peaks"], now.date(), int(_ct.get("top_n") or 3),
-                                                         _ct.get("distinct_days", True) is not False, _ct.get("steps"), _ct.get("target_kw"))
+                    # Vikt per timme: natt (22-06) räknas som night_weight (standard 1 = ingen viktning), lokal tid
+                    from local_sql import installation_timezone as _itz
+                    _loc = datetime.now(_itz())
+                    _nw = _ct.get("night_weight", 1.0)
+                    _cap_cache["peaks"] = capacity_tariff.weigh(_cap_cache["hours"], _nw)
+                    _lim, _ci = capacity_tariff.limit_kw(_cap_cache["peaks"], _loc.date(), int(_ct.get("top_n") or 3),
+                                                         _ct.get("distinct_days", True) is not False, _ct.get("steps"), _ct.get("target_kw"),
+                                                         weight_now=capacity_tariff.hour_weight(_loc.hour, _nw))
                     if _lim and _lim != float("inf"):
                         current_target_limit = float(_lim)
                     _cap_cache["info"] = _ci
