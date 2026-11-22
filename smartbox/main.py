@@ -1013,6 +1013,23 @@ def get_last_legionella(target_temp):
         print(f"Kunde inte hämta legionellahistorik: {e}")
     return hot_water_hygiene.last_event(None, reset)
 
+def _on_loop_stall(info):
+    """Huvudloopen har inte gett livstecken på 15 min: spara var den står (heartbeat.watch). Ingen omstart (heartbeat.py)."""
+    print(f"🟠 Huvudloopen står still: {info['text']}. Den står i: {info['where'] or 'okänt'}.")
+    for _l in info["stack"]:
+        print(f"    {_l}")
+    try:
+        telemetry.report_error(house_cfg, "main_loop_stall@" + (info["where"] or "okant"), "LoopStall")
+    except Exception:
+        pass
+
+
+def _on_loop_recover(text):
+    print(f"✅ Huvudloopen ger livstecken igen ({text}).")
+
+
+heartbeat.start_watch(_on_loop_stall, _on_loop_recover)
+
 while True:
     try:
         heartbeat.beat()                # en motor som hänger sig syns som ohälsosam (docker ps)
