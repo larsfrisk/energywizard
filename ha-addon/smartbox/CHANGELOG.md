@@ -2,6 +2,9 @@
 
 ❤️ EnergyWizard är gratis och öppet. Om det sparar pengar hemma hos dig kan du hålla det så med en sponsring (runt 10 USD i månaden räcker långt): https://github.com/sponsors/murre87
 
+## 1.2.153 (2026-11-22)
+- **Gecko-badets övriga entiteter hittas även om någon döpt om dem (#570).** Upptäckten letade syskon bara via namnstammen (`climate.<bad>_heater` → `sensor.<bad>_current_temperature`). Har du döpt om en entitet, så att climate heter `climate.spabad_heater` men sensorerna `sensor.spa_xxx_current_temperature`, hittades de inte. Nu räknas allt i samma Home Assistant-enhet som badets climate-entitet som syskon, och namnstammen används som komplement. Det du valt själv ändras fortfarande aldrig.
+
 ## 1.2.152 (2026-11-22)
 - **Versionsnumret syns under System** i webben (stort överst på uppdateringskortet): tilläggets version eller Docker-bildens nummer.
 
