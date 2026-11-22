@@ -30,3 +30,13 @@ def pump_el_w(pump_data: dict | None, estimate_w) -> float:
     if p.get("compressor_running") in (1, True):
         return float(estimate_w(p.get("forward_temp")))
     return 0.0
+
+
+def estimate_cop(forward_c, brine_in_c):
+    """Carnot-baserad COP-uppskattning (klampad till 1,5-6,5), eller None när framledningen eller köldbäraren saknas.
+    En saknad givare är inte 0 °C: förut räknades den som 0 (``or 0.0``) och gav ett påhittat COP (#466)."""
+    if forward_c is None or brine_in_c is None:
+        return None
+    delta_t = max(5.0, forward_c - brine_in_c)
+    carnot_efficiency = 0.60 - (forward_c * 0.0025)
+    return round(max(1.5, min(6.5, ((forward_c + 273.15) / delta_t) * carnot_efficiency)), 2)

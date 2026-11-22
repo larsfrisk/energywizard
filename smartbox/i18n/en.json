@@ -4,6 +4,8 @@
  "# %": "# %",
  "# % billigare": "# % cheaper",
  "# % billigare än dygnets snitt": "# % cheaper than the day's average",
+ "# % billigare än ett vanligt hushåll": "# % cheaper than a typical household",
+ "Sparat mot ett vanligt hushåll": "Saved vs a typical household",
  "# % klar #": "# % ready #",
  "# % klar imorgon #": "# % ready tomorrow #",
  "# av # entiteter har giltigt värde. ✓ = validerad, ⚠ = otillgänglig eller gammal.": "# of # entities have a valid value. ✓ = validated, ⚠ = unavailable or old.",

@@ -593,8 +593,8 @@ async function renderElbil() {
       <div class="note" style="margin:6px 0 8px">Varje dag, varm till klockan när bilen är hemma eller inkopplad.</div>
       <div style="display:flex;align-items:center;gap:8px">
         <label class="switch" style="flex:none"><input type="checkbox" class="cl-en" data-car="${c.id}" ${h.enabled ? "checked" : ""}><span class="slider"></span></label>
-        <input type="text" inputmode="numeric" maxlength="5" placeholder="TT:MM" autocomplete="off" class="cl-t hhmm" data-car="${c.id}" value="${h.time}" style="flex:0 0 5.6em;width:5.6em;min-width:0;text-align:center">
-        <input type="number" class="cl-c" data-car="${c.id}" min="15" max="28" step="0.5" value="${h.temp}" style="width:72px"> <span>°C</span>
+        <input type="text" inputmode="numeric" maxlength="5" placeholder="TT:MM" autocomplete="off" class="cl-t hhmm" data-car="${c.id}" value="${esc(h.time)}" style="flex:0 0 5.6em;width:5.6em;min-width:0;text-align:center">
+        <input type="number" class="cl-c" data-car="${c.id}" min="15" max="28" step="0.5" value="${esc(h.temp)}" style="width:72px"> <span>°C</span>
       </div>
       <button class="icobtn cl-save" data-car="${c.id}" style="margin-top:8px">Spara värmen</button>
     </div>`;
@@ -625,8 +625,8 @@ async function renderElbil() {
           ${wk.map((x) => `<div class="schrow" style="display:flex;align-items:center;gap:8px;padding:4px 0;border-top:1px solid var(--line)">
             <span style="width:34px;font-weight:600">${WD[x.day]}</span>
             <label class="switch" style="flex:none"><input type="checkbox" class="sch-en" data-car="${c.id}" data-day="${x.day}" ${x.enabled ? "checked" : ""}><span class="slider"></span></label>
-            <input type="text" inputmode="numeric" maxlength="5" placeholder="TT:MM" autocomplete="off" class="sch-t hhmm" data-car="${c.id}" data-day="${x.day}" value="${x.time}" style="flex:0 0 5.6em;width:5.6em;min-width:0;text-align:center">
-            <input type="number" class="sch-s" data-car="${c.id}" data-day="${x.day}" min="20" max="100" value="${x.soc}" style="width:64px"> %
+            <input type="text" inputmode="numeric" maxlength="5" placeholder="TT:MM" autocomplete="off" class="sch-t hhmm" data-car="${c.id}" data-day="${x.day}" value="${esc(x.time)}" style="flex:0 0 5.6em;width:5.6em;min-width:0;text-align:center">
+            <input type="number" class="sch-s" data-car="${c.id}" data-day="${x.day}" min="20" max="100" value="${esc(x.soc)}" style="width:64px"> %
           </div>`).join("")}
           <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px">
             <button class="icobtn sch-save" data-car="${c.id}">Spara veckan</button>
@@ -779,7 +779,7 @@ async function renderSolceller() {
     <div class="card${d.ai_limit ? " row-disabled" : ""}" style="margin-bottom:16px">
       <h2>🎚️ Manuell exportgräns${d.ai_limit ? " · automatiken styr just nu" : ""}</h2>
       <div class="note">${d.auto_export ? "Gäller tills nästa minuspris, då tar automatiken över." : "Ligger kvar tills du ändrar den."}</div>
-      <div class="numfield" style="margin-top:8px"><input type="range" id="solarlimit" min="0" max="100" step="5" value="${d.solar_limit_pct != null ? d.solar_limit_pct : 100}"><span id="solarlimitval" style="min-width:48px;text-align:right;font-weight:700">${d.solar_limit_pct != null ? d.solar_limit_pct.toFixed(0) : 100} %</span></div>
+      <div class="numfield" style="margin-top:8px"><input type="range" id="solarlimit" min="0" max="100" step="5" value="${esc(d.solar_limit_pct != null ? d.solar_limit_pct : 100)}"><span id="solarlimitval" style="min-width:48px;text-align:right;font-weight:700">${d.solar_limit_pct != null ? d.solar_limit_pct.toFixed(0) : 100} %</span></div>
       <button class="icobtn" id="setsolarlimitbtn" style="margin-top:10px">Sätt gräns</button>
     </div>
     <div class="card" id="solarorder" style="margin-bottom:16px"><h2>☀️ Ordning för solöverskott</h2><div class="note">Laddar…</div></div>
@@ -894,7 +894,7 @@ async function renderEkonomi() {
       ${statTile("🧾 Köpt el", money(m.cost), `${fmt(m.bought_kwh, 1, " kWh")}${avgPaid}`)}
       ${statTile("☀️ Såld el", money(m.income), `${fmt(m.sold_kwh, 1, " kWh")}${avgSold}`)}
       ${statTile("💰 Netto", money(m.net), "köpt minus sålt")}
-      ${statTile("🎯 Sparat genom tajmning", t.saved_kr != null ? (t.saved_kr >= 0 ? "+" : "") + money(t.saved_kr) : "–", t.pct != null ? `${t.pct.toFixed(0)} % billigare än dygnets snitt` : "")}
+      ${statTile("🎯 Sparat genom tajmning", t.saved_kr != null ? (t.saved_kr >= 0 ? "+" : "") + money(t.saved_kr) : "–", t.pct != null ? `${t.pct.toFixed(0)} % billigare än ett vanligt hushåll` : "")}
     </div>
     <div class="card" style="margin-bottom:16px"><h2>💸 Kostnad per dag</h2>
       <div class="note">Köpt el inklusive moms, nätavgift och skatt, minus såld el. Senaste 31 dagarna.</div>
@@ -930,7 +930,7 @@ const loggLive = () => { try { return localStorage.getItem("ewLoggLive") !== "0"
 const LVL_COL = { fel: "var(--bad, #ef4444)", varning: "var(--warn, #f59e0b)", notis: "#a78bfa", info: "var(--mut)" };
 async function renderLogg() {
   const main = document.getElementById("main");
-  const sel = (id, opts, cur) => `<select id="${id}">${opts.map(([v, t]) => `<option value="${v}"${String(cur) === String(v) ? " selected" : ""}>${t}</option>`).join("")}</select>`;
+  const sel = (id, opts, cur) => `<select id="${id}">${opts.map(([v, t]) => `<option value="${esc(v)}"${String(cur) === String(v) ? " selected" : ""}>${t}</option>`).join("")}</select>`;
   main.innerHTML = `<div class="card" style="margin-bottom:16px">
       <h2>📜 Logg</h2>
       <div class="note">Allt EnergyWizard läser in, bestämmer (med orsak), skickar till dina enheter, aviserar och får för fel - från motorn, appen och webben. Sparas i ditt hus i två veckor och lämnar det aldrig av sig själv.</div>
@@ -993,11 +993,11 @@ async function mountCapacityTariff(slotId) {
     <h2>📊 Effektavgift efter högsta timmar</h2>
     <div class="note">För nätbolag som tar betalt efter snittet av månadens högsta timmar i trappsteg (Norges effektledd, vissa svenska nätbolag). Då ersätter den här den fasta effektgränsen: varje timme får gå så högt som möjligt utan att snittet går upp ett steg.</div>
     <div class="togglerow" style="margin-top:8px"><span>Använd effektavgift efter högsta timmar</span><label class="switch"><input type="checkbox" id="ctOn" ${d.enabled ? "checked" : ""}><span class="slider"></span></label></div>
-    <div class="numfield" style="margin-top:8px;flex-wrap:wrap;gap:8px">Antal timmar <input type="number" id="ctN" min="1" max="10" value="${d.top_n}" style="width:64px">
+    <div class="numfield" style="margin-top:8px;flex-wrap:wrap;gap:8px">Antal timmar <input type="number" id="ctN" min="1" max="10" value="${esc(d.top_n)}" style="width:64px">
       <label style="display:flex;align-items:center;gap:6px"><input type="checkbox" id="ctDist" ${d.distinct_days ? "checked" : ""}> på olika dygn</label></div>
     <div class="numfield" style="margin-top:8px">Trappsteg (kW) <input type="text" id="ctSteps" value="${esc((d.steps || []).join(", "))}" style="flex:1;min-width:0"></div>
-    <div class="numfield" style="margin-top:8px">Natt (22–06) räknas som <input type="number" id="ctNight" min="0" max="100" step="5" value="${Math.round((d.night_weight ?? 1) * 100)}" style="width:72px"> % <span class="note">(100 = ingen viktning; vissa nätägare räknar natten som hälften)</span></div>
-    <div class="numfield" style="margin-top:8px">Sikta på steget upp till <input type="number" id="ctTarget" step="1" value="${d.target_kw ?? ""}" style="width:80px"> kW <span class="note">(tomt = det steg du redan är i)</span></div>
+    <div class="numfield" style="margin-top:8px">Natt (22–06) räknas som <input type="number" id="ctNight" min="0" max="100" step="5" value="${esc(Math.round((d.night_weight ?? 1) * 100))}" style="width:72px"> % <span class="note">(100 = ingen viktning; vissa nätägare räknar natten som hälften)</span></div>
+    <div class="numfield" style="margin-top:8px">Sikta på steget upp till <input type="number" id="ctTarget" step="1" value="${esc(d.target_kw ?? "")}" style="width:80px"> kW <span class="note">(tomt = det steg du redan är i)</span></div>
     <button class="icobtn" id="ctSave" style="margin-top:10px">Spara</button>
     <div class="note" style="margin-top:12px">Just nu: snitt ${kw(st.avg_kw)} (steg ${kw(st.step && st.step[0])}–${kw(st.step && st.step[1])}) · gräns för den här timmen <b>${kw(st.limit_kw)}</b>${st.free_below_kw ? ` · under ${kw(st.free_below_kw)} påverkar inte avgiften alls` : ""}</div>
     <div class="note">Månadens högsta: ${(st.top_days || []).map(([dd, k]) => `${esc(dd.slice(5))} ${kw(k)}`).join(" · ") || "–"}</div>
@@ -1040,7 +1040,7 @@ async function renderElforbrukning() {
     <div class="card" style="margin-top:16px">
       <h2>🛡️ Effektvakt (peak shaving)</h2>
       <div class="togglerow"><span>Effektvakt på</span><label class="switch"><input type="checkbox" id="peakenabled" ${d.peak_shaving_enabled ? "checked" : ""}><span class="slider"></span></label></div>
-      <div class="numfield${d.peak_shaving_enabled ? "" : " row-disabled"}" style="margin-top:8px" id="peaklimitrow">Gräns: <input type="number" id="peaklimit" step="0.5" min="1" value="${d.power_limit_kw != null ? d.power_limit_kw : ""}"> kW <button class="icobtn" id="peaklimitbtn">Spara</button></div>
+      <div class="numfield${d.peak_shaving_enabled ? "" : " row-disabled"}" style="margin-top:8px" id="peaklimitrow">Gräns: <input type="number" id="peaklimit" step="0.5" min="1" value="${esc(d.power_limit_kw != null ? d.power_limit_kw : "")}"> kW <button class="icobtn" id="peaklimitbtn">Spara</button></div>
     </div>
     <div id="captariffslot"></div>`;
   });
@@ -1071,9 +1071,9 @@ async function renderSpabad() {
         <h2>🌡️ Temperaturer</h2>
         <div class="note">Som värmepumpens: vad motorn håller badet på i de olika lägena.</div>
         <div class="numfield" style="margin-top:10px;flex-wrap:wrap;gap:10px">
-          <label>Normal <input type="number" id="spanormal" step="0.5" min="20" max="40" value="${d.normal_temp ?? ""}"> °C</label>
-          <label>Max (minuspris/sol) <input type="number" id="spamax" step="0.5" min="30" max="40" value="${d.max_temp ?? ""}"> °C</label>
-          <label>Eco-golv <input type="number" id="spalow" step="0.5" min="10" max="30" value="${d.low_temp ?? ""}"> °C</label>
+          <label>Normal <input type="number" id="spanormal" step="0.5" min="20" max="40" value="${esc(d.normal_temp ?? "")}"> °C</label>
+          <label>Max (minuspris/sol) <input type="number" id="spamax" step="0.5" min="30" max="40" value="${esc(d.max_temp ?? "")}"> °C</label>
+          <label>Eco-golv <input type="number" id="spalow" step="0.5" min="10" max="30" value="${esc(d.low_temp ?? "")}"> °C</label>
         </div>
         <div class="note" style="margin-top:6px">Max är aldrig över 40 °C - motorns säkerhetsgräns.</div>
         <button class="icobtn" id="spatempsave" style="margin-top:10px">Spara temperaturer</button>
@@ -1082,9 +1082,9 @@ async function renderSpabad() {
         <h2>⏰ Klart till</h2>
         <div class="note">${d.ready_enabled && d.ready_at ? `Aktivt: ${d.ready_at.replace("T", " ")} · ${fmt(d.ready_temp, 1, "°C")}. Motorn värmer på de billigaste timmarna fram till dess.` : "Av - badet följer sitt vanliga läge."}</div>
         <div class="numfield" style="margin-top:10px;flex-wrap:wrap;gap:10px">
-          <input type="date" id="spareadyd" value="${(d.ready_at || "").slice(0, 10)}">
-          <input type="text" inputmode="numeric" maxlength="5" placeholder="TT:MM" autocomplete="off" class="hhmm" id="spareadyt" value="${(d.ready_at || "").slice(11, 16)}" style="width:5.6em;text-align:center">
-          <input type="number" id="spareadytemp" step="0.5" min="20" max="40" value="${d.ready_temp ?? 38}"> °C
+          <input type="date" id="spareadyd" value="${esc((d.ready_at || "").slice(0, 10))}">
+          <input type="text" inputmode="numeric" maxlength="5" placeholder="TT:MM" autocomplete="off" class="hhmm" id="spareadyt" value="${esc((d.ready_at || "").slice(11, 16))}" style="width:5.6em;text-align:center">
+          <input type="number" id="spareadytemp" step="0.5" min="20" max="40" value="${esc(d.ready_temp ?? 38)}"> °C
         </div>
         <div style="display:flex;gap:8px;margin-top:10px"><button class="icobtn" id="spareadysave">Spara</button>${d.ready_enabled ? `<button class="icobtn" id="spareadyoff">Stäng av</button>` : ""}</div>
       </div>
@@ -1095,7 +1095,7 @@ async function renderSpabad() {
       <div class="note">Tider vi badar: utanför dem får badet svalna och värms upp i tid före nästa badtid. Inga påslagna dagar = badet hålls varmt som idag.</div>
       <div style="display:grid;gap:6px;margin-top:10px">${(d.bath_windows || []).map((w, i) => `<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
         <label style="display:flex;align-items:center;gap:8px;width:118px"><input type="checkbox" class="bathon" data-i="${i}"${w.on ? " checked" : ""}> ${["Måndag", "Tisdag", "Onsdag", "Torsdag", "Fredag", "Lördag", "Söndag"][i]}</label>
-        <input type="text" inputmode="numeric" maxlength="5" placeholder="TT:MM" autocomplete="off" class="bathfrom hhmm" data-i="${i}" value="${w.from}" style="width:5.6em;text-align:center"> – <input type="text" inputmode="numeric" maxlength="5" placeholder="TT:MM" autocomplete="off" class="bathto hhmm" data-i="${i}" value="${w.to}" style="width:5.6em;text-align:center">
+        <input type="text" inputmode="numeric" maxlength="5" placeholder="TT:MM" autocomplete="off" class="bathfrom hhmm" data-i="${i}" value="${esc(w.from)}" style="width:5.6em;text-align:center"> – <input type="text" inputmode="numeric" maxlength="5" placeholder="TT:MM" autocomplete="off" class="bathto hhmm" data-i="${i}" value="${esc(w.to)}" style="width:5.6em;text-align:center">
         <span class="note bathnext" data-i="${i}"${w.to <= w.from ? "" : " hidden"}>→ nästa dag</span></div>`).join("")}</div>
       <div class="note" style="margin-top:6px">Varje rad räknas från sin dag. Slutar tiden före starttiden gäller den till nästa dag: torsdag 22:00–15:00 = torsdag kväll till fredag 15:00.</div>
       <button class="icobtn" id="bathsave" style="margin-top:10px">Spara</button></div>
@@ -1653,7 +1653,7 @@ async function mountSensorSettings() {
     return `<div class="sensrow" data-e="${esc(t.entity)}" style="display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;padding:7px 0;border-top:1px solid var(--line)">
       <label style="display:flex;gap:8px;align-items:center;flex:1 1 220px;min-width:0"><input type="checkbox" class="senson"${on ? " checked" : ""}>
         <span style="min-width:0;overflow-wrap:anywhere">${t.suggest_indoor ? "⭐ " : ""}${esc(t.name)} <span class="note">${num(t.value)}</span></span></label>
-      <label class="note" style="display:flex;gap:6px;align-items:center">Korrigering <input class="sensoff" inputmode="decimal" style="width:64px" value="${cur.offset ? String(cur.offset).replace(".", ",") : ""}" placeholder="0"> °C</label>
+      <label class="note" style="display:flex;gap:6px;align-items:center">Korrigering <input class="sensoff" inputmode="decimal" style="width:64px" value="${esc(cur.offset ? String(cur.offset).replace(".", ",") : "")}" placeholder="0"> °C</label>
       <input type="hidden" class="senshum" value="${esc(cur.humidity || humFor(t.entity))}"></div>`;
   }).join("");
   const outdoor = d.selected.outdoor || (d.temperatures.find((t) => t.suggest_outdoor) || {}).entity || "";
@@ -1689,13 +1689,13 @@ async function mountPriceSettings() {
   moneyCurrency = d.currency;
   moneySymbol = d.symbol;
   const field = (id, label, val, hint, mode = "decimal") => `<label style="display:flex;flex-direction:column;gap:4px;flex:1 1 170px;min-width:0">
-      <span class="note">${label}</span><input id="${id}" inputmode="${mode}" value="${val ?? ""}" style="width:100%">${hint ? `<span class="note" style="font-size:.78rem">${hint}</span>` : ""}</label>`;
+      <span class="note">${label}</span><input id="${id}" inputmode="${mode}" value="${esc(val ?? "")}" style="width:100%">${hint ? `<span class="note" style="font-size:.78rem">${hint}</span>` : ""}</label>`;
   const draw = () => {
     const c = d.countries[d.country] || d.countries.SE, sym = d.symbol;
     body.innerHTML = `
       <div style="display:flex;gap:10px;flex-wrap:wrap">
         <label style="display:flex;flex-direction:column;gap:4px;flex:1 1 170px"><span class="note">Land</span>
-          <select id="pcountry">${Object.entries(d.countries).map(([k, v]) => `<option value="${k}"${k === d.country ? " selected" : ""}>${esc(v.name)}</option>`).join("")}</select></label>
+          <select id="pcountry">${Object.entries(d.countries).map(([k, v]) => `<option value="${esc(k)}"${k === d.country ? " selected" : ""}>${esc(v.name)}</option>`).join("")}</select></label>
         <label style="display:flex;flex-direction:column;gap:4px;flex:1 1 170px"><span class="note">Elområde</span>
           <select id="parea">${c.areas.map((a) => `<option${a === d.area ? " selected" : ""}>${a}</option>`).join("")}</select></label>
       </div>
@@ -2008,8 +2008,8 @@ async function renderVarmepump() {
         <div class="note">Värmer varmvattnet till legionellatemperaturen om det har gått för länge sedan sist.</div>
         <div class="note">${legLast(d.legionella_last)}</div>
         <div class="numfield" style="margin-top:8px;display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px">
-          <span style="white-space:nowrap"><span>Intervall</span> <input type="number" id="legdays" step="1" min="3" max="60" value="${d.legionella_days ?? 14}"> <span>dygn</span></span>
-          <span style="white-space:nowrap"><span>Temperatur</span> <input type="number" id="legtemp" step="1" min="55" max="65" value="${d.legionella_temp ?? 60}"> °C</span>
+          <span style="white-space:nowrap"><span>Intervall</span> <input type="number" id="legdays" step="1" min="3" max="60" value="${esc(d.legionella_days ?? 14)}"> <span>dygn</span></span>
+          <span style="white-space:nowrap"><span>Temperatur</span> <input type="number" id="legtemp" step="1" min="55" max="65" value="${esc(d.legionella_temp ?? 60)}"> °C</span>
           <button class="icobtn" id="legsave">Spara</button></div>
         <div class="note">Värmepumpens eget legionellaprogram, om den har ett, ställs på pumpen.</div>
       </div>
@@ -2017,8 +2017,8 @@ async function renderVarmepump() {
     <div class="card">
       <h2>🎯 Måltemperatur (Auto-läget)</h2>
       <div class="note">Vid billig el / Auto: ${fmt(d.temp_cheap, 1, "°C")} · Vid dyr el: ${fmt(d.temp_expensive, 1, "°C")}</div>
-      <div class="numfield" style="margin-top:10px">Billigt: <input type="number" id="tempcheap" step="0.5" min="16" max="26" value="${d.temp_cheap != null ? d.temp_cheap : ""}"> °C
-        Dyrt: <input type="number" id="tempexpensive" step="0.5" min="14" max="24" value="${d.temp_expensive != null ? d.temp_expensive : ""}"> °C
+      <div class="numfield" style="margin-top:10px">Billigt: <input type="number" id="tempcheap" step="0.5" min="16" max="26" value="${esc(d.temp_cheap != null ? d.temp_cheap : "")}"> °C
+        Dyrt: <input type="number" id="tempexpensive" step="0.5" min="14" max="24" value="${esc(d.temp_expensive != null ? d.temp_expensive : "")}"> °C
         <button class="icobtn" id="savetempbtn">Spara</button></div>
       <div class="note" style="margin-top:12px">Följ rumsgivarna: när det är dyrt och huset har värme att ge av sänks börvärdet en grad under dyrt-temperaturen, och när det är billigt lagras värme med en grad över billigt-temperaturen tills huset är 0,5 °C under maxgränsen. Nära golvet höjs börvärdet alltid. Skugga loggar bara vad som skulle ha gjorts.</div>
       <div class="seg" id="hfseg" style="margin-top:6px">${[["av", "Av"], ["skugga", "Skugga"], ["på", "På"]].map(([k, l]) => `<button data-hf="${k}">${l}</button>`).join("")}</div>
@@ -2584,9 +2584,9 @@ async function runDiscovery(ev, cached) {
   d.cars.forEach((c, i) => {
     html += `<div class="note" style="margin:10px 0;padding:10px;border:1px solid var(--line);border-radius:10px">
       <label><input type="checkbox" class="car-pick" data-i="${i}" checked> <b data-noi18n>${esc(c.device_name)}</b></label> ${driverTag(c)}<br>
-      id: <input type="text" class="car-id" data-i="${i}" value="${c.driver}" style="width:100px"> &nbsp;
+      id: <input type="text" class="car-id" data-i="${i}" value="${esc(c.driver)}" style="width:100px"> &nbsp;
       batteri (kWh): <input type="number" class="car-kwh" data-i="${i}" value="60" style="width:70px"><br>
-      <span style="font-size:.8rem">SOC: ${c.soc_entity || "-"} · Kabel: ${c.plugged_in_entity || "-"} · Klimat: ${c.climate_entity || "-"}</span>
+      <span style="font-size:.8rem">SOC: ${esc(c.soc_entity || "-")} · Kabel: ${esc(c.plugged_in_entity || "-")} · Klimat: ${esc(c.climate_entity || "-")}</span>
       <div class="car-learned" data-i="${i}"></div>
     </div>`;
   });
