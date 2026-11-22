@@ -2,6 +2,9 @@
 
 ❤️ EnergyWizard är gratis och öppet. Om det sparar pengar hemma hos dig kan du hålla det så med en sponsring (runt 10 USD i månaden räcker långt): https://github.com/sponsors/murre87
 
+## 1.2.158 (2026-11-22)
+- **Står motorn still får du veta var.** En vakttråd ser efter motorns livstecken var 30:e sekund. Har huvudloopen inte gett livstecken på 15 minuter (och ingen uppgift är med flit upptagen, som veckans backtest) skriver den **en gång** i loggen och skickar som felfall **var huvudtråden står** (fil, rad och funktion, aldrig värden eller sökvägar) tillsammans med anropskedjan, och skriver när det löst sig. Så går det att se vad som hänger sig, till exempel ett nätverksanrop utan tidsgräns, i stället för att gissa. Vakten **startar inte om** något: en omstart kan ge loopar om orsaken är Home Assistant eller databasen, och först när vi sett hur ofta det händer på riktigt går det att avgöra om och hur en omstart ska ske. Containerns hälsa (`unhealthy` efter 10 minuter, 1.2.149) är oförändrad.
+
 ## 1.2.157 (2026-11-22)
 - **Testa ditt system**: en knapp som kontrollerar att batteriet gör som EnergyWizard ber om (håll, ladda, ladda ur, högst 1 kW, högst två minuter per steg) och sedan sätter tillbaka allt. Den erbjuds som **sista steget i installationsguiden**, efter att installationen och alla val sparats, och finns kvar under *System*. Kräver att batteriet står på `styr`, skickar riktiga kommandon även i skuggläge (bara från testet) efter en bekräftelse, och återställer batteriet även efter en omstart mitt i. Resultatet kan skickas till utvecklaren med en referens, så att vi får veta om en förinställning inte fungerar på riktig hårdvara. Se `docs/system-test.md`. **Ej provat mot ett riktigt batteri**, bara med tester.
 
