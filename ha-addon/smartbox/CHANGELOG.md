@@ -2,6 +2,11 @@
 
 ❤️ EnergyWizard är gratis och öppet. Om det sparar pengar hemma hos dig kan du hålla det så med en sponsring (runt 10 USD i månaden räcker långt): https://github.com/sponsors/murre87
 
+## 1.2.151 (2026-11-22)
+- **Gecko-spabadet visar temperatur och går att styra, även om det upptäcktes automatiskt (#570).** Upptäckten kopplade bara badets climate-entitet som "temperatur" (dess tillstånd är text som "heat", inte en siffra) och hittade aldrig badets temperatursensorer, `water_heater` eller ekonomiläge. Då fick motorn ingen temperatur, räknade badet som offline varje minut och kunde inte sätta måltemperatur eller ekonomiläge. Nu hittar upptäckten hela badet via dess namnstam (till exempel `climate.<bad>_heater`, `sensor.<bad>_current_temperature`, `sensor.<bad>_target_temperature`, `water_heater.<bad>_heater` och `switch.<bad>_economy_mode`), och motorn **kompletterar en redan sparad konfiguration på samma sätt**, så ett bad som redan är inlagt börjar fungera utan att du skriver om något. Det du valt själv ändras aldrig. Dessutom läses temperaturen ur climate-entitetens attribut när ingen sensor finns.
+- **EnergyWizards egna sensorer väljs aldrig som källa.** Spabadets effektsensor valdes automatiskt som `sensor.smartbox_effekt_spa`, alltså vår egen publicerade utdata, som då matades tillbaka in. Upptäckten hoppar nu över allt som heter `smartbox_*` eller `energywizard_*`, i alla kategorier, och en redan sparad konfiguration släpper dem också. Vill du ange badets effektsensor själv, se avsnittet om spabad i tilläggets dokumentation.
+- **Översättning av Sigenergy-noten i guiden** på engelska och tjeckiska (saknades i 1.2.150 och fällde översättningstestet).
+
 ## 1.2.150 (2026-11-22)
 - **Sigenergy föreslås nu i guiden** (via TypQxQ/Sigenergy-Local-Modbus): Remote EMS-brytaren blir `enable_switch` och "Remote EMS control mode" lägesväljare, med lägena Maximum Self Consumption (auto), Command Charging (Grid First) och Command Discharging (ESS First), bara de som väljaren erbjuder. Det finns inget "håll"-läge. **Ej verifierat mot en riktig Sigenergy:** slå på skuggläget först. Kan Remote EMS inte slås på loggas ❌ och telemetrin rapporterar felet automatiskt (`battery_generic._ensure_enabled`), så att vi får veta om det inte fungerar för någon.
 

@@ -19,6 +19,7 @@ import re
 import requests
 
 import homeassistant
+import spa_entities
 from logger import get_db
 from house_config import (
     CAR_DRIVER_REGISTRY, CHARGER_DRIVER_REGISTRY, HEAT_PUMP_DRIVER_REGISTRY,
@@ -715,6 +716,9 @@ def discover_house(entities: list[dict] | None = None) -> dict:
     in (t.ex. i tester mot ett syntetiskt svar) - annars hämtas de live."""
     if entities is None:
         entities = read_all_entities()
+    # EnergyWizards egna publicerade entiteter (sensor.smartbox_*, sensor.energywizard_*) är vår utdata och aldrig en källa.
+    # Förut valdes sensor.smartbox_effekt_spa som spabadets effektsensor, och värdet matades tillbaka in (#570).
+    entities = [e for e in entities if not spa_entities.is_own(e.get("e") or "")]
 
     by_device: dict[str, list[dict]] = {}
     for e in entities:
@@ -964,6 +968,13 @@ def discover_house(entities: list[dict] | None = None) -> dict:
             "current_temp_entity": spa_e["e"], "power_entity": power_e["e"] if power_e else None,
             "maker": spa_e.get("m"), "driver": driver, "driver_known": driver in SPA_DRIVER_REGISTRY,
         }
+        if driver == "gecko":
+            # Gecko-badet har flera entiteter med samma namnstam; drivrutinen behöver dem (#570)
+            start = {"climate": spa_e["e"]} if spa_e["e"].startswith("climate.") else {"water_heater": spa_e["e"]}
+            done = spa_entities.complete_gecko(start, {e["e"]: e.get("n") or "" for e in entities})
+            spa["entities"] = {k: v for k, v in done.items() if v}
+            if done.get("current_temp") and done["current_temp"].startswith("sensor."):
+                spa["current_temp_entity"] = done["current_temp"]
 
     # --- Laddare: enhet vars tillverkare/modell/namn matchar kända laddarmärken ---
     chargers = []

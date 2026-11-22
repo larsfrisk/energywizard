@@ -4,6 +4,7 @@
  "# %": "# %",
  "# % billigare": "# % cheaper",
  "# % billigare än dygnets snitt": "# % cheaper than the day's average",
+ "Sigenergy: styrningen är inte verifierad mot en riktig anläggning. Slå på skuggläget först, och rapportera fel i ett ärende. EnergyWizard slår på Remote EMS och väntar på bekräftelse innan ett läge väljs.": "Sigenergy: control has not been verified on a real installation. Turn on shadow mode first, and report problems in an issue. EnergyWizard turns on Remote EMS and waits for confirmation before a mode is selected.",
  "# % billigare än ett vanligt hushåll": "# % cheaper than a typical household",
  "Sparat mot ett vanligt hushåll": "Saved vs a typical household",
  "# % klar #": "# % ready #",
