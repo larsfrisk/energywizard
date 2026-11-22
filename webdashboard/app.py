@@ -775,7 +775,8 @@ def api_notify_log(days: int = 7):
 def api_update_status():
     """Finns en nyare EnergyWizard? (smartbox/update_check.py) - samma i appen och webben. None = inte känt än."""
     import update_check
-    return {"ok": True, "status": update_check.status(block=True)}   # väntar bara när svaret är äldre än sex timmar
+    return {"ok": True, "status": update_check.status(block=True),     # väntar bara när svaret är äldre än sex timmar
+            "version": os.environ.get("APP_VERSION") or None}
 
 
 @app.get("/api/snapshot-status")

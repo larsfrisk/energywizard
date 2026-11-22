@@ -2259,11 +2259,13 @@ async function loadImageUpdates(force) {
   panel.innerHTML = '<div class="card">Kontrollerar uppdateringar…</div>';
   try {
     const d = await api(`api/image-updates${force ? "?force=1" : ""}`);
+    const us = await api("api/update-status").catch(() => null);          // vilken version som körs (tillägget eller Docker)
+    const ver = us && ((us.status && us.status.running) || us.version);
     const labels = {checking: "Kontrollerar uppdateringar…", up_to_date: "Du kör senaste versionen", update_available: "Ny version tillgänglig",
       error: "Kunde inte kontrollera uppdateringar", not_configured: "Versionskontroll är inte konfigurerad"};
     const when = d.last_success_at ? new Date(d.last_success_at * 1000).toLocaleString("sv-SE") : "–";
     panel.innerHTML = `<div class="card" style="margin-bottom:16px">
-      <h2>EnergyWizard – uppdateringar</h2><b>${esc(labels[d.status] || labels.error)}</b>
+      <h2>EnergyWizard – uppdateringar</h2>${ver && ver !== "dev" && ver !== "local" ? `<div style="font-size:1.4rem;font-weight:800;margin:6px 0"><span>Version</span> ${esc(ver)}</div>` : ""}<b>${esc(labels[d.status] || labels.error)}</b>
       <div class="note"><span>Senast kontrollerad utan fel</span>: ${esc(when)}</div>
       ${d.image ? `<div class="note">${esc(d.image)}</div>` : ""}
       ${d.status === "not_configured" ? '<div class="note">Installationen behöver ange image och körande digest. Se guiden för versionskontroll.</div>' : ""}
