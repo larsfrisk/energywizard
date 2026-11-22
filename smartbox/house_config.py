@@ -237,7 +237,7 @@ def build_heat_pump_driver(cfg: dict) -> HeatPumpDriver:
         return NullHeatPumpDriver()
     driver_cls = HEAT_PUMP_DRIVER_REGISTRY.get(hp.get("driver"), NullHeatPumpDriver)
     if driver_cls is GenericClimateHeatPumpDriver:
-        return GenericClimateHeatPumpDriver(entity_id=(hp.get("entities") or {}).get("climate"))
+        return GenericClimateHeatPumpDriver(entity_id=(hp.get("entities") or {}).get("climate"), entities=(hp.get("entities") or {}))
     if driver_cls is MyUplinkHeatPumpDriver:
         return MyUplinkHeatPumpDriver(entities=(hp.get("entities") or {}))
     if driver_cls is NibeLocalHeatPumpDriver:

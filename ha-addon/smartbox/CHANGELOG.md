@@ -2,6 +2,10 @@
 
 ❤️ EnergyWizard är gratis och öppet. Om det sparar pengar hemma hos dig kan du hålla det så med en sponsring (runt 10 USD i månaden räcker långt): https://github.com/sponsors/murre87
 
+## 1.2.156 (2026-11-22)
+- **Automatiskt laddschema skriver inte längre över din laddnivå med 100 % (#576).** När en bil kopplas in utan något aktivt framtida schema skapas ett nytt för nästa avfärd. Det fick alltid 100 % och skrev över dagens sparade rad, så den som satt 50 % fick tillbaka 100 % varje gång. Nu behålls din nivå: dagens sparade nivå om den är lägre än 100, annars den vanligaste lägre nivån bland bilens övriga dagar, annars 100.
+- **`generic_climate` läser nu ute-, framlednings-, retur- och varmvattengivare samt effekt (`power_w`) om de står under `heat_pump.entities` (#577).** Förut lästes bara climate-entiteten och resten ignorerades tyst. Effekt i W eller kW summeras.
+
 ## 1.2.155 (2026-11-22)
 - **EnergyWizard lär sig när ni badar och föreslår badtider.** Varje bad registreras (spabadets "i bruk"-sensor `spa.entities.in_use`, eller ett snabbt temperaturfall, samma tolkning som notisen om öppet lock). Under *Badtider* i appen står ett förslag ("Ni har badat 4 gånger sedan 1 nov. Förslag: söndagar 17:00–22:30 …") med knappen *Använd förslaget*, som bara fyller i formuläret: inget ändras förrän du trycker Spara. Det behövs minst 3 bad, annars står det rakt ut att underlaget är för litet. Webbens API har samma förslag (`spa.bath_suggestion`).
 - Upptäckten hittar "i bruk"-sensorn för Gecko.

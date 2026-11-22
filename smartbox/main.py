@@ -44,6 +44,7 @@ import learning         # AI-modeller för temperatur och avsvalning
 import mpc               # Prediktiv förvärmnings-planerare (skuggläge + veckovis självvalidering)
 import house_config      # EnergyWizard Open: drivrutinsarkitektur (bil/laddare/värmepump/sol/spa)
 import smart_plugs
+import ev_schedule_auto    # nivå för automatiskt skapade laddscheman (#576)
 import spa_bath_learn      # logg över badtillfällen och förslag på badtider
 import spa_error_watch     # nytt fel från spabadet (Gecko: error-sensorn) -> notis
 import spa_filter          # #447: filtercykeln vilar på dyr el, skugga tills control är true
@@ -931,8 +932,9 @@ def update_soc_tracker(car_id, car_data, charger_data, now, schedule):
             try:
                 target_day = now.weekday() if now.hour < 7 else (now.weekday() + 1) % 7
                 dep_time = _learned_departure_time(car_id, target_day, default='07:00')
-                settings.save_ev_schedule_day(car_id, target_day, dep_time, 100, True)
-                print(f"📅 Auto-skapade nytt laddschema för {car_id.capitalize()} till kl {dep_time} (inlärd avfärd, fallback 07:00).")
+                _auto_soc = ev_schedule_auto.soc_for(schedule.get(car_id, {}), target_day)    # användarens egen nivå, inte alltid 100 (#576)
+                settings.save_ev_schedule_day(car_id, target_day, dep_time, _auto_soc, True)
+                print(f"📅 Auto-skapade nytt laddschema för {car_id.capitalize()} till kl {dep_time}, {_auto_soc} % (inlärd avfärd, fallback 07:00).")
             except Exception as e:
                 print(f"❌ Fel vid auto-schema: {e}")
         else:
