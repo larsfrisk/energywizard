@@ -2333,9 +2333,19 @@ def _build_house_config_yaml(sel: dict) -> str:
     spa = sel.get("spa")
     if spa:
         lines += ["spa:", "  enabled: true", f"  driver: {spa.get('driver') or 'generic_spa'}", "  entities:"]
-        if spa.get("current_temp_entity"):
+        import spa_entities
+        _eid_ok = spa_entities.valid_entity_id          # linjär kontroll (inget reguljärt uttryck på användarens text)
+        _ents = spa.get("entities") if isinstance(spa.get("entities"), dict) else {}
+        if spa.get("driver") == "gecko" and _ents:
+            # Gecko: climate (mål och aktuell temperatur), temperatursensorer, värmare och ekonomiläge (#570). En climate-entitet
+            # är ingen temperatursensor (dess tillstånd är text), så current_temp skrivs bara när det är en riktig sensor.
+            for _k in ("climate", "current_temp", "target_temp", "water_heater", "economy_mode"):
+                _v = str(_ents.get(_k) or "")
+                if _v and _eid_ok(_v) and (_k != "current_temp" or _v.startswith("sensor.")):
+                    lines.append(f"    {_k}: {_v}")
+        elif spa.get("current_temp_entity"):
             lines.append(f"    current_temp: {spa['current_temp_entity']}")
-        if spa.get("power_entity"):
+        if spa.get("power_entity") and not str(spa["power_entity"]).split(".", 1)[-1].startswith(("smartbox_", "energywizard_")):
             lines.append(f"    power_w: {spa['power_entity']}")
     else:
         lines += ["spa:", "  enabled: false"]

@@ -63,6 +63,27 @@ sätta `telemetry_stats_url` och `telemetry_stats_token`. Efter omstart syns men
 **Installationer** i webben (anonyma hus och felgrupper). Det är din egen
 installation — du loggar inte in någon annanstans. Se `docs/support-access.md`.
 
+## Spabad: välj egna entiteter
+
+Entitetsväljaren hittar Gecko-badets entiteter själv. Vill du styra vilka som används, lägg dem under `spa:` i
+`house_config.yaml` (en entitet du anger själv ersätts aldrig av automatiken):
+
+```yaml
+spa:
+  enabled: true
+  driver: gecko
+  entities:
+    climate: climate.mitt_bad_heater              # måltemperatur (och vattnets temperatur om ingen sensor anges)
+    current_temp: sensor.mitt_bad_current_temperature
+    target_temp: sensor.mitt_bad_target_temperature
+    water_heater: water_heater.mitt_bad_heater    # värmarens läge
+    economy_mode: switch.mitt_bad_economy_mode    # sänker badet när elen är dyr
+    power_w: sensor.min_effektmatare_for_badet    # valfritt, en egen mätare (inte en sensor från EnergyWizard)
+```
+
+Under **Spabad** i webbgränssnittet ställer du in badtider och temperaturer: utanför badtiderna vilar badet på
+ekonomitemperaturen och värms på de billigaste timmarna före nästa badtid.
+
 ## Kända begränsningar
 
 - Sidan **System** i webdashboard visar "Kunde inte nå Watchtower". Uppdateringar

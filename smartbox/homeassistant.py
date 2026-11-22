@@ -622,6 +622,12 @@ def read_gecko(entities=None):
     climate (climate-entiteten - dess temperature-attribut är den sanna måltemperaturen), water_heater, economy_mode."""
     e = entities or {}
     data = {k: (_get_numeric_state(e[k]) if e.get(k) else None) for k in ("current_temp", "target_temp", "economy_mode")}
+    # En climate- eller water_heater-entitet som "temperatur" (så skrev upptäckten förut, #570): dess tillstånd är text ("heat"),
+    # temperaturen ligger i attributen current_temperature (vattnet) och temperature (målet).
+    for _key, _attr in (("current_temp", "current_temperature"), ("target_temp", "temperature")):
+        if e.get(_key) and str(e[_key]).split(".", 1)[0] in ("climate", "water_heater"):
+            _v = _get_numeric_attribute(e[_key], _attr)
+            data[_key] = float(_v) if _v is not None else None
     if e.get("climate"):
         t = _get_numeric_attribute(e["climate"], "temperature")
         if t is not None:
@@ -630,6 +636,13 @@ def read_gecko(entities=None):
             data["current_temp"] = _get_numeric_attribute(e["climate"], "current_temperature")
     data["heater_state"] = _get_raw_state(e["water_heater"]) if e.get("water_heater") else None
     return data
+
+def all_entity_names():
+    """{entity_id: friendly_name} för alla entiteter i HA:s tillståndscache (hämtar den om den är tom)."""
+    if not _states_cache:
+        update_states()
+    return {eid: str((s.get("attributes") or {}).get("friendly_name") or "") for eid, s in _states_cache.items()}
+
 
 def read_spa_power(entities=None):
     """Spabadets effekt. entities: power_phases (lista med en sensor per fas) eller power_w (en sensor). Värdena tas

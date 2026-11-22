@@ -4,6 +4,7 @@
   "# %": "# %",
   "# % billigare": "# % levněji",
   "# % billigare än dygnets snitt": "# % levněji než denní průměr",
+  "Sigenergy: styrningen är inte verifierad mot en riktig anläggning. Slå på skuggläget först, och rapportera fel i ett ärende. EnergyWizard slår på Remote EMS och väntar på bekräftelse innan ett läge väljs.": "Sigenergy: řízení nebylo ověřeno na skutečné instalaci. Nejprve zapněte stínový režim a hlaste problémy v issue. EnergyWizard zapne Remote EMS a před výběrem režimu počká na potvrzení.",
   "# % billigare än ett vanligt hushåll": "# % levnější než typická domácnost",
   "Sparat mot ett vanligt hushåll": "Ušetřeno oproti typické domácnosti",
   "# % klar #": "# % připraveno #",
