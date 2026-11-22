@@ -338,7 +338,8 @@ async function spaBathSheet() {                           // badtider (smartbox/
   const days = ["Mån", "Tis", "Ons", "Tor", "Fre", "Lör", "Sön"];
   const inp = 'style="font-size:16px;padding:4px 6px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--txt);width:7.4em;min-width:0"';
   const mode0 = (H && H.spa && H.spa.bath_mode) || "bath";
-  sheet(`<h3>Badtider</h3><div class="seg" id="bmode" style="margin-bottom:8px"><button data-m="nobath" class="${mode0 === "nobath" ? "on" : ""}">Tider vi inte badar</button><button data-m="bath" class="${mode0 !== "nobath" ? "on" : ""}">Tider vi badar</button></div>
+  const sg = H && H.spa && H.spa.bath_suggestion;
+  sheet(`<h3>Badtider</h3>${sg ? `<div class="note" style="margin-bottom:10px"><b>Förslag från era bad</b><br>${esc(sg.text)}${sg.windows ? ' <button class="mini" id="bathsug" style="margin-top:6px">Använd förslaget</button>' : ""}</div>` : ""}<div class="seg" id="bmode" style="margin-bottom:8px"><button data-m="nobath" class="${mode0 === "nobath" ? "on" : ""}">Tider vi inte badar</button><button data-m="bath" class="${mode0 !== "nobath" ? "on" : ""}">Tider vi badar</button></div>
     <div class="note">Tider vi inte badar: då får badet svalna, och det värms på de billigaste timmarna så att det är varmt när tiden tar slut. Hur långt det sjunker räknas fram ur hur fort just ert bad svalnar och värms. Tiden får gå över midnatt, t.ex. 22:00–16:00.</div>
     <div class="note">Tider vi badar: utanför dem får badet svalna och värms upp i tid före nästa badtid. Inga påslagna dagar = badet hålls varmt som idag.</div>
     ${ws.map((w, i) => `<div class="setrow"><label style="display:flex;gap:8px;align-items:center;min-width:4.5em"><input type="checkbox" class="bon" data-i="${i}"${w.on ? " checked" : ""}>${days[i]}</label>
@@ -356,6 +357,16 @@ async function spaBathSheet() {                           // badtider (smartbox/
     document.querySelector(`#sheet .bnext[data-i="${i}"]`).hidden = !(t <= f); });
   document.querySelectorAll("#bmode button").forEach((b) => b.onclick = () => document.querySelectorAll("#bmode button").forEach((x) => x.classList.toggle("on", x === b)));
   const no = document.querySelector('#sheet [data-x="no"]'); if (no) no.onclick = () => closeSheet();
+  const sug = document.getElementById("bathsug");
+  if (sug && sg && sg.windows) sug.onclick = () => {                      // fyller bara i formuläret, inget sparas förrän man trycker Spara
+    document.querySelectorAll("#bmode button").forEach((x) => x.classList.toggle("on", x.dataset.m === "bath"));
+    sg.windows.forEach((w, i) => {
+      const q = (c) => document.querySelector(`#sheet .${c}[data-i="${i}"]`);
+      q("bon").checked = !!w.on; q("bfrom").value = w.from; q("bto").value = w.to;
+      const nx = document.querySelector(`#sheet .bnext[data-i="${i}"]`); if (nx) nx.hidden = !(w.to <= w.from);
+    });
+    toast("Förslaget är ifyllt. Kontrollera och tryck Spara.");
+  };
 }
 function solarSheet() {                                    // exportgränsen (förut på Energi-sidan) – nu ett blad från Hem
   const s = EN.solar, lim = s.limit_pct, limTxt = lim == null ? "offline" : lim >= 99.5 ? "ingen begränsning" : `${Math.round(lim)} %`;

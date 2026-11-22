@@ -44,6 +44,7 @@ import learning         # AI-modeller för temperatur och avsvalning
 import mpc               # Prediktiv förvärmnings-planerare (skuggläge + veckovis självvalidering)
 import house_config      # EnergyWizard Open: drivrutinsarkitektur (bil/laddare/värmepump/sol/spa)
 import smart_plugs
+import spa_bath_learn      # logg över badtillfällen och förslag på badtider
 import spa_error_watch     # nytt fel från spabadet (Gecko: error-sensorn) -> notis
 import spa_filter          # #447: filtercykeln vilar på dyr el, skugga tills control är true
 import plug_presence
@@ -2796,6 +2797,16 @@ while True:
                 elif indoor_temp >= INDOOR_COLD_ALERT_C + 1.0:
                     indoor_cold_alerted = False  # Återställ när vi stigit tydligt över golvet
 
+            # Badtillfällen (spa_bath_learn.py): "i bruk"-sensorn, eller ett snabbt temperaturfall (se nedan). Loggen används för att
+            # föreslå badtider i appen.
+            try:
+                _bath_hit = False
+                _in_use_e = ((house_cfg.get("spa") or {}).get("entities") or {}).get("in_use")
+                if HAS_SPA and _in_use_e and str(homeassistant._get_raw_state(_in_use_e)).lower() == "on":
+                    _bath_hit = True
+            except Exception:
+                _bath_hit = False
+            _fall_hit = False
             if gecko_data and cfg.get("notify_spa_open", True) and current_minute % 15 == 0:
                 c_temp = gecko_data.get("current_temp")
                 if c_temp is not None and outdoor_temp is not None:
@@ -2806,9 +2817,19 @@ while True:
                             c_intercept, c_slope = learning.get_cooling_rate_model()
                             expected_drop = learning.predict_cooling_rate(outdoor_temp or 0.0, c_temp, c_intercept)
                             if actual_drop >= (expected_drop + 1.0) and actual_drop >= 1.5:
+                                _fall_hit = True
                                 if last_spa_open_alert_time is None or (now - last_spa_open_alert_time) > timedelta(hours=4):
                                     if should_notify("notify_spa_open"): notifier.alert_spa_cover(actual_drop, expected_drop)
                                     last_spa_open_alert_time = now
+
+            if HAS_SPA and (_bath_hit or _fall_hit):
+                try:
+                    _blog, _is_new = spa_bath_learn.record(_ew_settings.get("spa_bath_log"), now.replace(tzinfo=None))
+                    if _is_new:
+                        _ew_settings.update(spa_bath_log=_blog)
+                        print(f"🛁 Badtillfälle registrerat ({'i bruk' if _bath_hit else 'temperaturfall'}).")
+                except Exception as _ble:
+                    print(f"⚠️ Badloggen: {_ble}")
 
             if gecko_data:
                 solar_boost_now = gpm_actions.get("spa_solar_boost_active", False)

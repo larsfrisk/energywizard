@@ -1884,8 +1884,19 @@ async def api_spa():
             "ready_enabled": bool(cfg.get("spa_schedule_enabled")),
             "ready_at": cfg["spa_target_datetime"].astimezone(zoneinfo.ZoneInfo("Europe/Stockholm")).strftime("%Y-%m-%dT%H:%M") if cfg.get("spa_target_datetime") else None,
             "ready_temp": _n(cfg.get("spa_target_temp")),
-            "bath_windows": _bath_windows(), "bath_mode": ew_settings.get("spa_bath_mode") or "bath",
+            "bath_suggestion": _bath_suggestion(), "bath_windows": _bath_windows(), "bath_mode": ew_settings.get("spa_bath_mode") or "bath",
             "history": [{"t": h.isoformat(), "temp": _n(a), "target": _n(b), "heating": _n(hr)} for h, a, b, hr in hist]}
+
+
+def _bath_suggestion():
+    """Förslag på badtider ur de bad som loggats (smartbox/spa_bath_learn.py)."""
+    try:
+        import spa_bath_learn
+        from datetime import datetime
+        import zoneinfo
+        return spa_bath_learn.suggest(ew_settings.get("spa_bath_log"), datetime.now(zoneinfo.ZoneInfo("Europe/Stockholm")).replace(tzinfo=None))
+    except Exception:
+        return None
 
 
 def _bath_windows() -> list:

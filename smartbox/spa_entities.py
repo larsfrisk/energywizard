@@ -16,6 +16,7 @@ _STEM_SUFFIX = re.compile(r"_(heater|climate|thermostat|water_heater)$")
 _CURRENT = re.compile(r"(current|water|actual).*temp|^temp(erature)?$|aktuell|vattentemp", re.I)
 _TARGET = re.compile(r"(target|set_?point|desired).*temp|^target|^set_?point|mål ?temp|börvärde", re.I)
 _ECONOMY = re.compile(r"econom|^eco(_|$)|ekonomi", re.I)
+_IN_USE = re.compile(r"in_use|spa in use|i bruk", re.I)
 _ERROR = re.compile(r"(^|_)error(_|s|$)|^fel|alarm|fault", re.I)       # Gecko: sensor.<bad>_error_s (felkod som text)
 OWN_PREFIXES = ("smartbox_", "energywizard_")
 
@@ -117,6 +118,10 @@ def complete_gecko(entities: dict | None, names: dict | None, devices: dict | No
         found = pick("switch", _ECONOMY)
         if found:
             e["economy_mode"] = found
+    if not e.get("in_use"):
+        found = pick("binary_sensor", _IN_USE)
+        if found:
+            e["in_use"] = found
     if not e.get("error"):
         found = pick("sensor", _ERROR)
         if found:

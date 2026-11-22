@@ -124,6 +124,7 @@ spa:
     power_w: sensor.spabad_pahsemeter_effekt   # används om fassensorerna saknas; beloppet tas (CT-klämmans riktning)
     smart_plug: switch.shelly2
     error: sensor.spa_malmgatan_34_error_s   # felkod som visas i appen
+    in_use: binary_sensor.spa_malmgatan_34_spa_in_use   # badtillfällen (spa_bath_learn.py)
     safety:
       overcurrent: binary_sensor.shelly2_overstrom
       overvoltage: binary_sensor.shelly2_overspanning

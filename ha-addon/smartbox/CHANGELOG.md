@@ -2,6 +2,10 @@
 
 ❤️ EnergyWizard är gratis och öppet. Om det sparar pengar hemma hos dig kan du hålla det så med en sponsring (runt 10 USD i månaden räcker långt): https://github.com/sponsors/murre87
 
+## 1.2.155 (2026-11-22)
+- **EnergyWizard lär sig när ni badar och föreslår badtider.** Varje bad registreras (spabadets "i bruk"-sensor `spa.entities.in_use`, eller ett snabbt temperaturfall, samma tolkning som notisen om öppet lock). Under *Badtider* i appen står ett förslag ("Ni har badat 4 gånger sedan 1 nov. Förslag: söndagar 17:00–22:30 …") med knappen *Använd förslaget*, som bara fyller i formuläret: inget ändras förrän du trycker Spara. Det behövs minst 3 bad, annars står det rakt ut att underlaget är för litet. Webbens API har samma förslag (`spa.bath_suggestion`).
+- Upptäckten hittar "i bruk"-sensorn för Gecko.
+
 ## 1.2.154 (2026-11-22)
 - **Notis när spabadet rapporterar ett nytt fel** (Gecko: felkodssensorn, `spa.entities.error`, hittas nu av upptäckten). Första avläsningen sparas utan notis, och sedan meddelas bara när felet ändras till ett annat. Ett fel som står kvar i dagar (Geckos "OverTemp" nollställs inte av sig själv) larmar alltså inte om och om igen. Otillgänglig sensor räknas inte som ändring. Kategori: Spabad.
 
