@@ -10,6 +10,7 @@ import re
 import requests
 import zoneinfo
 import nordpool  # Hämtar elpriser från Nordpool
+import heartbeat   # livstecken till containerns HEALTHCHECK (heartbeat.py)
 import pump      # Styr värmepumpen och läser dess sensorer
 import logger    # Sparar logg till databas (varje minut)
 import settings  # Hanterar konfigurationsinställningar
@@ -1000,6 +1001,7 @@ def get_last_legionella(target_temp):
 
 while True:
     try:
+        heartbeat.beat()                # en motor som hänger sig syns som ohälsosam (docker ps)
         now = datetime.now(SWE_TZ)
         current_minute = now.minute
         current_quarter = now.minute // 15
@@ -2818,12 +2820,9 @@ while True:
             cop = None
             avg_tot = energy_balance.pump_el_w(pump_data, _estimate_pump_el_w)   # uppmätt när pumpen ger det (#178)
             if pump_data and pump_data.get("compressor_running") == 1:
-                forward = pump_data.get("forward_temp") or 45.0
-                brine = pump_data.get("brine_in_temp") or 0.0
-                delta_t = max(5.0, forward - brine)
-                carnot_efficiency = 0.60 - (forward * 0.0025)
-                cop = round(max(1.5, min(6.5, ((forward + 273.15) / delta_t) * carnot_efficiency)), 2)
-                pump_data["compressor_power_kw"] = round((avg_tot / 1000.0) * cop, 2)
+                cop = energy_balance.estimate_cop(pump_data.get("forward_temp"), pump_data.get("brine_in_temp"))
+                # Saknas framledning eller köldbärare (givare ur) är COP och värmeeffekt okända, inte uppskattade på 0 °C
+                pump_data["compressor_power_kw"] = None if cop is None else round((avg_tot / 1000.0) * cop, 2)
             else:
                 if pump_data: pump_data["compressor_power_kw"] = 0.0
 
@@ -3072,7 +3071,8 @@ while True:
                 _mpc_age = mpc.last_backtest_age_days()
                 if _mpc_age is None or _mpc_age >= 7.0:
                     print("🔮 Kör veckovis MPC-backtest (skuggläge, självvalidering)...")
-                    mpc.run_and_store_backtest(days=30)
+                    with heartbeat.long_task("mpc_backtest", 3600):     # tung och med flit lång: inget falsklarm
+                        mpc.run_and_store_backtest(days=30)
             except Exception as _mpce:
                 print(f"MPC-backtest hoppade över: {_mpce}")
 

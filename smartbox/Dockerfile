@@ -26,5 +26,9 @@ COPY ftw_drivers/ ./ftw_drivers/
 COPY LICENSE ./LICENSE
 COPY i18n/ ./i18n/
 
+# Livstecken: huvudloopen skriver /tmp/ew_heartbeat.json varje varv (heartbeat.py). Röd efter tio minuter utan, så att en
+# motor som hänger sig syns i docker ps och Portainer. Bara en markering: ingenting startas om av den.
+HEALTHCHECK --interval=60s --timeout=10s --start-period=300s --retries=3 CMD ["python", "/app/heartbeat.py"]
+
 # Kör hjärnan (unbuffered så loggarna syns direkt)
 CMD ["python", "-u", "main.py"]

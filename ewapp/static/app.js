@@ -215,7 +215,7 @@ const SVP = [["today", "Idag"], ["week", "7 d"], ["month", "Månad"]];
 function svLine() {                                       // besparingen på en rad – bara ägaren (servern svarar hidden för andra)
   if (!SV || !SV.ok) return "";
   const p = SV.periods[svPeriod] || SV.periods.week, pos = p.saved_kr >= 0;
-  return `<section class="card svline"><div><h4>Sparat genom smart tajmning</h4><div class="v" style="color:${pos ? "var(--acc)" : "var(--bad)"}">${p.saved_kr > 0 ? "+" : p.saved_kr < 0 ? "−" : ""}${f1(Math.abs(p.saved_kr), 0)}<small> ${moneyUnit()}${p.pct != null ? ` (${p.pct > 0 ? "+" : ""}${f1(p.pct, 0)} %)` : ""}</small></div></div>
+  return `<section class="card svline"><div><h4>Sparat mot ett vanligt hushåll</h4><div class="v" style="color:${pos ? "var(--acc)" : "var(--bad)"}">${p.saved_kr > 0 ? "+" : p.saved_kr < 0 ? "−" : ""}${f1(Math.abs(p.saved_kr), 0)}<small> ${moneyUnit()}${p.pct != null ? ` (${p.pct > 0 ? "+" : ""}${f1(p.pct, 0)} %)` : ""}</small></div></div>
     <div class="seg">${SVP.map(([k, l]) => `<button data-a="svp" data-v="${k}" class="${k === svPeriod ? "on" : ""}">${l}</button>`).join("")}</div></section>`;
 }
 function svBattery() {                                   // #398: vad styrningen gav utöver batteriet i självförbrukningsläge
@@ -250,7 +250,7 @@ function guestSheet(c) {
   sheet(`<h3>Gästbil på ${esc(c.name)}s laddbox</h3>
     <div class="note">För en bil som inte är din: ingen laddnivå behövs. Säg hur mycket den ska få, och om den ska vara klar till en viss tid laddas de billigaste timmarna fram till dess. Avslutas av sig själv när kabeln dras ur.</div>
     <div class="seg" style="margin-top:10px">${[5, 10, 20, 30, 50].map((k) => `<button data-gk="${k}" class="${(g ? g.kwh : 20) == k ? "on" : ""}">${k} kWh</button>`).join("")}</div>
-    <div class="setrow"><span>Klar till (valfritt)</span><input class="hhmm" type="text" inputmode="numeric" maxlength="5" placeholder="TT:MM" autocomplete="off" id="guntil" value="${g && g.until ? hhmm(g.until) : ""}"></div>
+    <div class="setrow"><span>Klar till (valfritt)</span><input class="hhmm" type="text" inputmode="numeric" maxlength="5" placeholder="TT:MM" autocomplete="off" id="guntil" value="${esc(g && g.until ? hhmm(g.until) : "")}"></div>
     <div class="crow"><button class="mini" id="gstart">${g ? "Ändra" : "Starta"}</button>${g ? `<button class="mini" id="gstop">Avsluta gästläget</button>` : ""}<button class="mini" data-a="closesheet">Stäng</button></div>`);
   let kwh = g ? g.kwh : 20;
   document.querySelectorAll("[data-gk]").forEach((b) => b.onclick = () => { kwh = +b.dataset.gk; document.querySelectorAll("[data-gk]").forEach((x) => x.classList.toggle("on", x === b)); });
@@ -342,7 +342,7 @@ async function spaBathSheet() {                           // badtider (smartbox/
     <div class="note">Tider vi inte badar: då får badet svalna, och det värms på de billigaste timmarna så att det är varmt när tiden tar slut. Hur långt det sjunker räknas fram ur hur fort just ert bad svalnar och värms. Tiden får gå över midnatt, t.ex. 22:00–16:00.</div>
     <div class="note">Tider vi badar: utanför dem får badet svalna och värms upp i tid före nästa badtid. Inga påslagna dagar = badet hålls varmt som idag.</div>
     ${ws.map((w, i) => `<div class="setrow"><label style="display:flex;gap:8px;align-items:center;min-width:4.5em"><input type="checkbox" class="bon" data-i="${i}"${w.on ? " checked" : ""}>${days[i]}</label>
-      <span style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"><input type="text" inputmode="numeric" maxlength="5" placeholder="TT:MM" autocomplete="off" class="bfrom hhmm" data-i="${i}" value="${w.from}" ${inp}>–<input type="text" inputmode="numeric" maxlength="5" placeholder="TT:MM" autocomplete="off" class="bto hhmm" data-i="${i}" value="${w.to}" ${inp}><span class="note bnext" data-i="${i}"${w.to <= w.from ? "" : " hidden"}>→ nästa dag</span></span></div>`).join("")}
+      <span style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"><input type="text" inputmode="numeric" maxlength="5" placeholder="TT:MM" autocomplete="off" class="bfrom hhmm" data-i="${i}" value="${esc(w.from)}" ${inp}>–<input type="text" inputmode="numeric" maxlength="5" placeholder="TT:MM" autocomplete="off" class="bto hhmm" data-i="${i}" value="${esc(w.to)}" ${inp}><span class="note bnext" data-i="${i}"${w.to <= w.from ? "" : " hidden"}>→ nästa dag</span></span></div>`).join("")}
     <div class="note">Varje rad räknas från sin dag. Slutar tiden före starttiden gäller den till nästa dag: torsdag 22:00–15:00 = torsdag kväll till fredag 15:00.</div>
     <button class="big" id="bathsave">Spara</button><button class="mini" data-x="no">Avbryt</button>`);
   $("#bathsave").onclick = async () => {
@@ -668,7 +668,7 @@ function tripSheet(key) {                              // Resplan: engångsmål 
   sheet(`<h3>Resplan för ${esc(c.name)}</h3><div class="note">Ett engångsmål: bilen laddas på de billigaste timmarna så att den är klar i tid. Veckoschemat ändras inte.</div>${cur}
     <div class="seg" id="tp-day" style="margin-top:8px"><button data-d="0">Idag</button><button data-d="1" class="on">Imorgon</button></div>
     <div class="numfield" style="margin-top:8px;display:flex;flex-wrap:wrap;gap:8px;align-items:center"><span>Klar</span> <input class="hhmm" type="text" inputmode="numeric" maxlength="5" placeholder="TT:MM" autocomplete="off" id="tp-t" value="07:00">
-      <input type="number" id="tp-s" min="20" max="100" step="5" value="${t ? t.soc : 80}" style="width:70px"> %</div>
+      <input type="number" id="tp-s" min="20" max="100" step="5" value="${esc(t ? t.soc : 80)}" style="width:70px"> %</div>
     <button class="big" data-x="ok" style="width:100%;margin-top:10px">Spara resplanen</button>
     ${t ? `<button class="mini" data-x="clear" style="width:100%;margin-top:8px">Ta bort resplanen</button>` : ""}<button class="mini" data-x="no" style="width:100%;margin-top:8px">Avbryt</button>`);
   $("#sheet").onclick = async (e) => {
