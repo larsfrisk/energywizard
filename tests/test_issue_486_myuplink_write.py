@@ -42,8 +42,8 @@ def test_timeout_forsta_gangen_forsoker_igen_och_lyckas():
         assert homeassistant.set_number("number.offset_47011", 2) is True
     assert mock_post.call_count == 2
     mock_sleep.assert_called_once_with(2)
-    # timeout=10 (inte 5) och samma payload som innan
-    assert mock_post.call_args.kwargs["timeout"] == 10
+    # längre timeout än läsningar (20 s sedan #568) och samma payload som innan
+    assert mock_post.call_args.kwargs["timeout"] == homeassistant._SERVICE_TIMEOUT_S == 20
     assert mock_post.call_args.kwargs["json"] == {"entity_id": "number.offset_47011", "value": "2"}
 
 
@@ -116,3 +116,24 @@ def test_nibe_kurvforskjutning_gar_igenom_set_number():
          patch("shadow.active", return_value=False):
         assert d.set_room_temp(21.5)
         assert sn.call_args.args == ("number.offset_47011", 2)
+
+
+def test_568_timeout_men_vardet_gick_igenom_ar_inget_fel():
+    """#568: Tesla/myUplink svarar efter timeout fast kommandot gick igenom. Står entiteten på värdet är det ingen
+    tappad styrsignal (ingen ❌ i loggen, därmed ingen felrapport)."""
+    seen = _resp(200, {"state": "11"})
+    with patch("homeassistant.requests.get", side_effect=[_no_states(), seen]), \
+         patch("homeassistant.requests.post") as mock_post, \
+         patch("homeassistant.time.sleep"):
+        mock_post.side_effect = [_read_timeout(), _read_timeout()]
+        assert homeassistant.set_number("number.tesla_charging_amps", 11) is True
+    assert mock_post.call_count == 2
+
+
+def test_568_timeout_och_fel_varde_ar_fortfarande_ett_fel():
+    other = _resp(200, {"state": "5"})
+    with patch("homeassistant.requests.get", side_effect=[_no_states(), other]), \
+         patch("homeassistant.requests.post") as mock_post, \
+         patch("homeassistant.time.sleep"):
+        mock_post.side_effect = [_read_timeout(), _read_timeout()]
+        assert homeassistant.set_number("number.tesla_charging_amps", 11) is False

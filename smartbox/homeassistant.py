@@ -1004,6 +1004,22 @@ def _already(entity_id: str, want) -> bool:
         return False
 
 
+_SERVICE_TIMEOUT_S = 20      # skrivningar mot molnintegrationer (Tesla, myUplink) kan ta över 10 s (#568)
+
+
+def _landed(entity_id: str, payload: dict) -> bool:
+    """Står entiteten nu på det vi bad om? (efter en read-timeout på själva skrivningen)"""
+    try:
+        time.sleep(3)
+        if "value" in payload:
+            return _already(entity_id, float(payload["value"]))
+        if "option" in payload:
+            return _already(entity_id, payload["option"])
+    except (TypeError, ValueError):
+        pass
+    return False
+
+
 def _call_service(entity_id: str, service: str, payload: dict) -> bool:
     """POST /services/<service> med en omprövning vid transient drift: read-timeout,
     avbrott eller 502/503/504 från Supervisor-proxyn medan HA är upptagen eller startar om.
@@ -1018,7 +1034,7 @@ def _call_service(entity_id: str, service: str, payload: dict) -> bool:
                 f"{_BASE}/services/{service}",
                 headers=_HEADERS,
                 json=payload,
-                timeout=10,
+                timeout=_SERVICE_TIMEOUT_S,
                 verify=_VERIFY,
             )
             r.raise_for_status()
@@ -1036,6 +1052,11 @@ def _call_service(entity_id: str, service: str, payload: dict) -> bool:
                 print(f"⚠️ {service} på {entity_id} svarade inte ({type(e).__name__}) - försöker igen")
                 time.sleep(2)
                 continue
+            if isinstance(e, (requests.ReadTimeout, requests.ConnectionError)) and _landed(entity_id, payload):
+                # Integrationer som ringer ett moln (Tesla, myUplink) svarar ibland efter timeout fast kommandot gick
+                # igenom (#568): står entiteten redan på värdet var det ingen tappad styrsignal.
+                print(f"⚠️ {service} på {entity_id}: svaret dröjde men värdet gick igenom")
+                return True
             print(f"❌ Fel vid {service} på {entity_id}: {e}")
             return False
         except Exception as e:
