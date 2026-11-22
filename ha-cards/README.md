@@ -12,8 +12,12 @@ De ser ut som appen och fungerar likadant för **HA-tillägget** och för **Dock
 
 ## Installera
 
-**Marknadsplatsen i Home Assistant (HA 2026.11 eller senare, enligt andra integrationers README, ej provat här)**
-Öppna Inställningar → Marknadsplats, lägg till `https://github.com/murre87/energywizard` som eget arkiv (kategori Dashboard) och installera *EnergyWizard cards*. Befintliga HACS-installationer ska flyttas över automatiskt.
+**Marknadsplatsen (Home Assistant 2026.11 eller senare)**
+1. Inställningar → Marknadsplats → **Lägg till från länk**.
+2. Ange `https://github.com/murre87/energywizard` (eller `murre87/energywizard`) och välj **Lägg till**. Hittar den inte typen själv, välj **Dashboard**. Home Assistant ber dig först ansluta GitHub (inloggning med enhetskod).
+3. Installera *EnergyWizard cards* och ladda om webbläsaren. Resursen läggs till automatiskt under `/local/community/`. Har du dina resurser i YAML måste du lägga till raden för hand, och dialogen visar vilken.
+
+Har du redan installerat korten via HACS flyttas de över automatiskt när Home Assistant startar efter uppdateringen, och uppdateringsentiteterna behåller sina id. Gamla `/hacsfiles/`-sökvägar fungerar fortfarande. Anpassade arkiv utan `hacs.json` kan inte uppdateras av Marknadsplatsen, men vårt arkiv har en (`hacs.json` i roten).
 
 **HACS (HA 2026.10 och äldre)**
 1. HACS → ⋮ → Anpassade arkiv → lägg till `https://github.com/murre87/energywizard`, kategori **Dashboard**.
