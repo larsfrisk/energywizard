@@ -37,7 +37,7 @@ bör köras i skuggläge först.
 | 19 | Alpha ESS SMILE | alphaess (moln) | ✅ | ⏳ (bara molnschema med anropsgränser) | `alphaess` | Läsning |
 | 20 | Sonnen | weltmeyer/ha_sonnenbatterie | ✅ | ✅ manuellt läge + laddning/urladdning (tjänster) | `sonnen` | Ny 2026-11-06, ej verifierad |
 | – | Enphase IQ Battery | HA:s inbyggda enphase_envoy | ✅ | ⚠️ bara självförbrukning ↔ full backup | – | Ny 2026-11-05 |
-| – | Emaldo | – (ingen integration) | ❌ | ❌ | – | Saknas, väntar på API |
+| – | Emaldo | [wertigpar/ha-emaldo](https://github.com/wertigpar/ha-emaldo) (via Emaldos moln) | ❌ ingen förinställning än | ❌ | – | Integrationen finns men EnergyWizard har ingen förinställning, inget provat mot riktig anläggning. Testare sökes (#580). Lokal nödspår: johanneswilm/ha-emaldo-local, utanför omfånget |
 | – | HomeWizard Plug-In Battery | HA:s inbyggda homewizard | ✅ | ✅ laddstrategi | – | Förinställning |
 | – | Solinteg MHT/MHS | Solinteg-plugin via Solax Modbus ([mappning](solinteg.md)) | ✅ via HA/FTW | – | `solinteg` (har styrning) | HA kräver annonserade lägen och signed effektbörvärde; annars bara mätning. Ej hårdvaruverifierad (#219), samarbete som standard. |
 
@@ -62,7 +62,7 @@ men Sungrow är nu först i kön för `FTW_CONTROL_VERIFIED`.
 
 1. **Verifiering**: varje "ej verifierad" behöver en användare som kör i skuggläge några dygn och sedan slår på
    styrningen och bekräftar att laddning, urladdning och återgång fungerar. Betatestare med utrustningen:
-   Huawei LUNA (#144), Solax + Emaldo (#135), Sungrow/GoodWe/SolarEdge – efterlys i Discord.
+   Huawei LUNA (#144), Solax + Emaldo (#135, #580), Sungrow/GoodWe/SolarEdge – efterlys i Discord.
 2. **FTW-styrning**: när en FTW-drivrutin provats med styrning på riktig hårdvara läggs den in i `FTW_CONTROL_VERIFIED`.
    Sungrow, Sonnen, Victron och SMA har styrvägar i FTW – de är först i kön.
 3. **Deye/Sunsynk och Sigenergy via HA**: kräver att man skriver växelriktarens TOU-program eller Remote EMS-register.
