@@ -44,6 +44,7 @@ import learning         # AI-modeller för temperatur och avsvalning
 import mpc               # Prediktiv förvärmnings-planerare (skuggläge + veckovis självvalidering)
 import house_config      # EnergyWizard Open: drivrutinsarkitektur (bil/laddare/värmepump/sol/spa)
 import smart_plugs
+import spa_error_watch     # nytt fel från spabadet (Gecko: error-sensorn) -> notis
 import spa_filter          # #447: filtercykeln vilar på dyr el, skugga tills control är true
 import plug_presence
 import electric_heat_control  # #431: prisstyrning av elvärme med egen termostat (zoner), skugga tills control är true
@@ -1374,6 +1375,20 @@ while True:
                 notifier.send_emil("🛁⚠️ Spabad-säkerhet",
                                    f"Spabadets skyddssensor(er) har löst ut: {', '.join(_fmap[f] for f in _spa_faults)}.")
                 last_spa_safety_notify = now
+            # Spabadets felkod (spa.entities.error, t.ex. Geckos "OverTemp"): meddela när det kommer ett NYTT fel
+            try:
+                _spa_err_e = ((house_cfg.get("spa") or {}).get("entities") or {}).get("error")
+                if HAS_SPA and _spa_err_e:
+                    _seen = _ew_settings.get(spa_error_watch.KEY)
+                    _new_seen, _msg = spa_error_watch.step(homeassistant._get_raw_state(_spa_err_e), _seen)
+                    if _new_seen != _seen:
+                        _ew_settings.update(**{spa_error_watch.KEY: _new_seen})
+                    if _msg:
+                        notifier.send_emil("🛁⚠️ Spabadet rapporterar fel",
+                                           f"Spabadet visar felet \"{_msg}\". Kolla badets panel eller dess app. Spabadets värme "
+                                           f"kan vara påverkad.", {"tag": "spa_error"}, key="spabad")
+            except Exception as _see:
+                print(f"⚠️ Spabadets felkod: {_see}")
             # Hushållsmaskiner ur installationen (appliances: [{name, entity}]) - "startad"-notis, inget fast märke
             appliance_states = {a["name"]: homeassistant._get_raw_state(a["entity"])
                                 for a in (house_cfg.get("appliances") or []) if isinstance(a, dict) and a.get("name") and a.get("entity")}

@@ -16,6 +16,7 @@ _STEM_SUFFIX = re.compile(r"_(heater|climate|thermostat|water_heater)$")
 _CURRENT = re.compile(r"(current|water|actual).*temp|^temp(erature)?$|aktuell|vattentemp", re.I)
 _TARGET = re.compile(r"(target|set_?point|desired).*temp|^target|^set_?point|mål ?temp|börvärde", re.I)
 _ECONOMY = re.compile(r"econom|^eco(_|$)|ekonomi", re.I)
+_ERROR = re.compile(r"(^|_)error(_|s|$)|^fel|alarm|fault", re.I)       # Gecko: sensor.<bad>_error_s (felkod som text)
 OWN_PREFIXES = ("smartbox_", "energywizard_")
 
 
@@ -65,7 +66,7 @@ def complete_gecko(entities: dict | None, names: dict | None, devices: dict | No
     devices: {entity_id: enhets-id} när det är känt (upptäckten har det): entiteter i SAMMA enhet som climate-entiteten är
     syskon även om någon döpt om dem så att namnstammarna skiljer (en fungerande installation har climate.spabad_heater men
     sensor.spa_xxx_current_temperature). Utan enhets-id, och som komplement, används namnstammen.
-    Returnerar en kopia där climate, current_temp, target_temp, water_heater och economy_mode är ifyllda när de går att
+    Returnerar en kopia där climate, current_temp, target_temp, water_heater, economy_mode och error (felkodssensorn) är ifyllda när de går att
     hitta. En entitet som redan är vald ändras aldrig, utom att en current_temp som är en climate-entitet (en text, inte en
     siffra) ersätts av en riktig temperatursensor om en finns."""
     e = {k: _without_own(v) for k, v in (entities or {}).items()}
@@ -116,4 +117,8 @@ def complete_gecko(entities: dict | None, names: dict | None, devices: dict | No
         found = pick("switch", _ECONOMY)
         if found:
             e["economy_mode"] = found
+    if not e.get("error"):
+        found = pick("sensor", _ERROR)
+        if found:
+            e["error"] = found
     return e

@@ -284,3 +284,12 @@ def test_discovery_uses_the_device_for_a_renamed_spa():
     with patch("discovery._check_configured_heat_pump", return_value=None):
         spa = discovery.discover_house(ents)["spa"]
     assert spa["entities"]["current_temp"] == "sensor.spa_xxx_current_temperature" and spa["entities"]["economy_mode"] == "switch.spabad_economy_mode"
+
+
+def test_gecko_felkodssensorn_hittas_som_error():
+    from spa_entities import complete_gecko
+    names = {"climate.spabad_heater": "Spabad", "sensor.spa_x_error_s": "Error(s)", "sensor.spa_x_current_temperature": "Current temperature",
+             "sensor.spa_x_pump_1_state": "Pump 1 state", "sensor.spa_x_rf_channel": "RF channel"}
+    devs = {k: "dev1" for k in names}
+    out = complete_gecko({"climate": "climate.spabad_heater"}, names, devs)
+    assert out["error"] == "sensor.spa_x_error_s"
