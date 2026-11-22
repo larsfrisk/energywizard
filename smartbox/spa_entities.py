@@ -19,6 +19,19 @@ _ECONOMY = re.compile(r"econom|^eco(_|$)|ekonomi", re.I)
 OWN_PREFIXES = ("smartbox_", "energywizard_")
 
 
+_ID_CHARS = frozenset("abcdefghijklmnopqrstuvwxyz0123456789_")
+
+
+def valid_entity_id(value) -> bool:
+    """domän.objekt med små bokstäver, siffror och understreck, högst 120 tecken. Linjär kontroll i stället för ett reguljärt
+    uttryck: värdet kommer från webbläsaren, och ``[a-z_]+\\.[a-z0-9_]+`` på en lång sträng utan punkt tar polynomisk tid
+    (CodeQL, #574)."""
+    if not isinstance(value, str) or not 3 <= len(value) <= 120 or value.count(".") != 1:
+        return False
+    domain, obj = value.split(".")
+    return bool(domain) and bool(obj) and set(domain) <= _ID_CHARS and not domain[0].isdigit() and set(obj) <= _ID_CHARS
+
+
 def domain_of(entity_id: str) -> str:
     return entity_id.split(".", 1)[0] if "." in (entity_id or "") else ""
 
@@ -72,7 +85,7 @@ def complete_gecko(entities: dict | None, names: dict | None) -> dict:
         for i in siblings:
             if domain_of(i) != domain:
                 continue
-            text = f"{rest(i)} {names.get(i) or ''}"
+            text = f"{rest(i)} {names.get(i) or ''}"[:300]          # namnen kan döpas fritt i HA: korta dem före matchningen
             if avoid and avoid.search(text):
                 continue
             if want.search(text):

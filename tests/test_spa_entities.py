@@ -216,3 +216,33 @@ def test_driver_never_overrides_what_the_user_configured():
     mine = {"climate": "climate.erik_spa_heater", "current_temp": "sensor.erik_spa_target_temperature", "economy_mode": "switch.erik_spa_economy_mode"}
     with patch.object(homeassistant, "_states_cache", _states()), patch.object(homeassistant, "update_states", lambda: None):
         assert GeckoSpaDriver(dict(mine)).read_state()["current_temp"] == 38.0   # användarens val gäller, hur konstigt det än är
+
+
+# --- entitets-id:n från webbläsaren kontrolleras linjärt (CodeQL, #574) ---
+
+def test_valid_entity_id_accepts_ids_and_rejects_everything_else():
+    for ok in ("sensor.a", "climate.erik_spa_heater", "water_heater.x_1", "switch.erik_spa_economy_mode", "_x.y"):
+        assert spa_entities.valid_entity_id(ok), ok
+    for bad in ("", "a", "sensor", "sensor.", ".x", "sensor.a.b", "Sensor.x", "sensor.X", "sensor.a b", "sensor.a;b", "sensor.å",
+                "1sensor.x", "sensor.a\n", None, 5, ["sensor.a"], "x" * 121 + ".y"):
+        assert not spa_entities.valid_entity_id(bad), repr(bad)
+
+
+def test_a_very_long_hostile_value_is_rejected_at_once():
+    import time
+    t = time.time()
+    for s in ("_" * 200_000, "a" * 200_000 + "!", ("_" * 5000) + ".", "sensor." + "_" * 200_000 + "!"):
+        assert not spa_entities.valid_entity_id(s)
+    assert time.time() - t < 1.0                                   # linjärt, inte polynomiskt
+
+
+def test_writer_drops_a_hostile_or_malformed_entity_value():
+    spa = {"driver": "gecko", "entities": {"climate": "climate.ok_heater", "water_heater": "water_heater.x: {evil}",
+                                            "economy_mode": "switch.a\nspa: hacked", "target_temp": "_" * 50_000}}
+    cwd = os.getcwd(); os.chdir(ROOT / "webdashboard")
+    try:
+        text = _wd()._build_house_config_yaml({"spa": spa})
+    finally:
+        os.chdir(cwd)
+    cfg = yaml.safe_load(text)
+    assert cfg["spa"]["entities"] == {"climate": "climate.ok_heater"} and "hacked" not in text and "evil" not in text
