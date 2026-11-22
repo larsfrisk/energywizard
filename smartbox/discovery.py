@@ -467,6 +467,22 @@ def _battery_control_preset(ents, all_ents=None):
                 "modes": {"auto": both("Self Use Mode"), "hold": both("Back Up Mode"), "charge": both("Force Time Use")},
                 "note": "Solax Gen2: laddfönstren ska stå vidöppna i växelriktaren (t.ex. 00:01-23:59) - EnergyWizard "
                         "byter bara Charger Use Mode och skriver aldrig om tiderna."}
+    # Sigenergy via TypQxQ/Sigenergy-Local-Modbus (HA, lokalt Modbus). Fjärrstyrningen måste slås på med brytaren
+    # "Remote EMS" innan "Remote EMS control mode" går att välja (enable_switch, bekräftas i drivrutinen). Lägesnamnen
+    # ur integrationens docs/MODBUS_ENTITIES.md. Bara lägen som selecten erbjuder föreslås. "Håll" saknas: inget läge
+    # låter batteriet varken ladda eller ladda ur. EJ VERIFIERAT mot en riktig Sigenergy (2026-11-22).
+    sg_mode = _find(ents, "select", re.compile(r"remote ems control mode$", re.I))
+    sg_sw = _find(all_ents or ents, "switch", re.compile(r"remote ems( \(controlled by home assistant\))?$", re.I))
+    if sg_mode and sg_sw:
+        opts = sg_mode.get("options")
+        known = {"auto": "Maximum Self Consumption", "charge": "Command Charging (Grid First)",
+                 "discharge": "Command Discharging (ESS First)"}
+        modes = {k: v for k, v in known.items() if not isinstance(opts, list) or v in opts}
+        return {"name": "sigenergy_ha", "entities": {"mode_select": sg_mode["e"], "enable_switch": sg_sw["e"]},
+                "modes": modes if "auto" in modes else {},
+                "note": "Sigenergy: styrningen är inte verifierad mot en riktig anläggning. Slå på skuggläget först, "
+                        "och rapportera fel i ett ärende. EnergyWizard slår på Remote EMS och väntar på bekräftelse "
+                        "innan ett läge väljs."}
     # FoxESS via nathanmarlor/foxess_modbus (lokalt, Modbus): "Work Mode" har Force Charge/Force
     # Discharge när integrationens fjärrstyrning är påslagen, och effekten sätts i kW.
     work = _find(ents, "select", re.compile(r"work mode$", re.I))

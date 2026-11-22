@@ -59,7 +59,6 @@ står den inte på i tid ändras inget läge och det syns som ett fel. EJ VERIFI
         enable_switch: switch.sigen_plant_remote_ems_controlled_by_home_assistant
       modes:
         auto: "Maximum Self Consumption"
-        hold: "Maximum Self Consumption"
         charge: "Command Charging (Grid First)"
         discharge: "Command Discharging (ESS First)"
 
@@ -332,7 +331,9 @@ class GenericBatteryDriver(BatteryDriver):
             homeassistant.update_states()
             if homeassistant._get_raw_state(sw) == "on":
                 return True
-        print(f"⚠️ {sw} stod inte på efter {wait:.0f} s - ändrar inget läge")
+        # ❌ rapporteras av telemetrin som ett eget fel (battery_generic._ensure_enabled), så att vi får veta om en
+        # installation inte kan slå på fjärrstyrningen (#Sigenergy). Texten lämnar aldrig huset.
+        print(f"❌ {sw} stod inte på efter {wait:.0f} s - ändrar inget läge")
         return False
 
     def _apply(self, intent: str, power_w: float | None = None) -> bool:

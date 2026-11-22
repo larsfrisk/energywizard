@@ -2,6 +2,9 @@
 
 ❤️ EnergyWizard är gratis och öppet. Om det sparar pengar hemma hos dig kan du hålla det så med en sponsring (runt 10 USD i månaden räcker långt): https://github.com/sponsors/murre87
 
+## 1.2.150 (2026-11-22)
+- **Sigenergy föreslås nu i guiden** (via TypQxQ/Sigenergy-Local-Modbus): Remote EMS-brytaren blir `enable_switch` och "Remote EMS control mode" lägesväljare, med lägena Maximum Self Consumption (auto), Command Charging (Grid First) och Command Discharging (ESS First), bara de som väljaren erbjuder. Det finns inget "håll"-läge. **Ej verifierat mot en riktig Sigenergy:** slå på skuggläget först. Kan Remote EMS inte slås på loggas ❌ och telemetrin rapporterar felet automatiskt (`battery_generic._ensure_enabled`), så att vi får veta om det inte fungerar för någon.
+
 ## 1.2.149 (2026-11-22)
 - **En motor som hänger sig syns nu.** Huvudloopen skriver ett livstecken varje varv, och motorns container har en `HEALTHCHECK` som blir röd (**unhealthy** i `docker ps` och Portainer) om livstecknet är över tio minuter gammalt. En krasch hanterades redan (omstartspolicyn, `run.sh` i tillägget), men en motor som lever och står still, till exempel ett nätverksanrop utan tidsgräns, upptäcktes inte. Veckans MPC-backtest, som tar lång tid med flit, markerar sig som upptagen så att den inte ger falsklarm. Det här är bara en markering: ingenting startas om av den.
 - **COP och värmeeffekt räknas inte längre på en påhittad köldbärartemperatur.** När värmepumpens framledning eller köldbärare saknas (givaren ur) räknades den som 0 °C och gav ett påhittat COP. Nu är COP och värmeeffekt okända tills givaren är tillbaka.

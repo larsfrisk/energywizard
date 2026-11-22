@@ -109,3 +109,27 @@ def test_powerwall_och_enphase():
              E("sensor.en_p", "Battery power", m="Enphase", dc="power", u="W"),
              E("select.en_st", "Storage mode", m="Enphase", st="self_consumption")])
     assert b["generic_suggestion"]["preset"] == "enphase"
+
+
+def test_sigenergy_via_ha_med_enable_switch():
+    b = bat([E("sensor.sg_soc", "Battery State of Charge", m="Sigenergy", dc="battery", u="%"),
+             E("sensor.sg_p", "Battery Power", m="Sigenergy", dc="power", u="W", st="-300"),
+             {**E("select.sg_mode", "Remote EMS control mode", m="Sigenergy", st="Maximum Self Consumption"),
+              "options": ["Maximum Self Consumption", "Command Charging (Grid First)", "Command Discharging (ESS First)",
+                          "PCS Remote Control"]},
+             E("switch.sg_ems", "Remote EMS (controlled by Home Assistant)", m="Sigenergy", st="off")])
+    gs = b["generic_suggestion"]
+    assert gs["preset"] == "sigenergy_ha"
+    assert gs["entities"]["mode_select"] == "select.sg_mode" and gs["entities"]["enable_switch"] == "switch.sg_ems"
+    assert gs["modes"] == {"auto": "Maximum Self Consumption", "charge": "Command Charging (Grid First)",
+                           "discharge": "Command Discharging (ESS First)"}
+    assert "hold" not in gs["modes"] and "verifierad" in b["note"] and b["control_preset"] == "sigenergy_ha"
+
+
+def test_sigenergy_utan_normalt_lage_ger_ingen_styrning():
+    b = bat([E("sensor.sg_soc", "Battery State of Charge", m="Sigenergy", dc="battery", u="%"),
+             E("sensor.sg_p", "Battery Power", m="Sigenergy", dc="power", u="W", st="-300"),
+             {**E("select.sg_mode", "Remote EMS control mode", m="Sigenergy", st="PCS Remote Control"),
+              "options": ["PCS Remote Control"]},
+             E("switch.sg_ems", "Remote EMS", m="Sigenergy", st="off")])
+    assert not (b.get("generic_suggestion") or {}).get("modes")         # ingen styrning föreslås utan normalläget

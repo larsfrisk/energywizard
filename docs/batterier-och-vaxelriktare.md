@@ -31,7 +31,7 @@ bör köras i skuggläge först.
 | 13 | Deye / Sunsynk | davidrapan/ha-solarman | ✅ | – (styrs via FTW-vägen) | `deye` (har styrning) | Styrning via `driver: ftw` (val i guiden), ej verifierad |
 | 14 | SMA Sunny Tripower Smart Energy / Sunny Boy Storage | sma / pysmaplus | ✅ | ⏳ | `sma`, `sma_pv` (ingen styrning) | Läsning – styrning kräver SMA:s Modbus-register, planeras |
 | 15 | Victron (ESS, Cerbo GX) | sfstar/hass-victron | ✅ | ✅ ESS-börvärde för nätet (+ ladda, − ladda ur) | `victron`, `victron_mqtt` | Ny 2026-11-06, ej verifierad |
-| 16 | Sigenergy SigenStor | TypQxQ/Sigenergy-Local-Modbus | ✅ | ⏳ via HA-integrationen: Remote EMS-brytare (`enable_switch`) + lägesväljare, ej verifierad | `sigenergy` (har styrning) | Styrning via `driver: ftw` (val i guiden), ej verifierad |
+| 16 | Sigenergy SigenStor | TypQxQ/Sigenergy-Local-Modbus | ✅ | ⚠️ via HA-integrationen: guiden föreslår Remote EMS-brytare (`enable_switch`) + lägesväljare (`sigenergy_ha`). Ej verifierad mot riktig anläggning. Fel rapporteras automatiskt av telemetrin som `battery_generic._ensure_enabled` | `sigenergy` (har styrning) | Styrning via `driver: ftw` (val i guiden), ej verifierad |
 | 17 | Pixii PowerShaper / Home | – (ingen HA-integration) | ✅ via FTW | – | `pixii` (har styrning), `pixii_pv` | Styrning via `driver: ftw` (val i guiden), ej verifierad |
 | 18 | Kostal Plenticore + BYD | HA:s inbyggda kostal_plenticore | ✅ | ⚠️ bara håll (lägsta laddnivå = nuvarande) | `kostal` | Ny 2026-11-06, ej verifierad |
 | 19 | Alpha ESS SMILE | alphaess (moln) | ✅ | ⏳ (bara molnschema med anropsgränser) | `alphaess` | Läsning |
