@@ -60,8 +60,11 @@ def stem_of(entity_id: str) -> str:
     return _STEM_SUFFIX.sub("", object_id(entity_id))
 
 
-def complete_gecko(entities: dict | None, names: dict | None) -> dict:
+def complete_gecko(entities: dict | None, names: dict | None, devices: dict | None = None) -> dict:
     """entities: spa.entities (kan vara ofullständig). names: {entity_id: friendly_name} för alla entiteter i HA.
+    devices: {entity_id: enhets-id} när det är känt (upptäckten har det): entiteter i SAMMA enhet som climate-entiteten är
+    syskon även om någon döpt om dem så att namnstammarna skiljer (en fungerande installation har climate.spabad_heater men
+    sensor.spa_xxx_current_temperature). Utan enhets-id, och som komplement, används namnstammen.
     Returnerar en kopia där climate, current_temp, target_temp, water_heater och economy_mode är ifyllda när de går att
     hitta. En entitet som redan är vald ändras aldrig, utom att en current_temp som är en climate-entitet (en text, inte en
     siffra) ersätts av en riktig temperatursensor om en finns."""
@@ -76,10 +79,14 @@ def complete_gecko(entities: dict | None, names: dict | None) -> dict:
     stem = stem_of(anchor)
     if not stem:
         return e
-    siblings = [i for i in names if object_id(i).startswith(stem + "_") and not is_own(i)]
+    dev = (devices or {}).get(anchor)
+    same_device = [i for i in names if dev and (devices or {}).get(i) == dev and i != anchor and not is_own(i)]
+    by_stem = [i for i in names if object_id(i).startswith(stem + "_") and not is_own(i) and i not in same_device]
+    siblings = same_device + by_stem
 
     def rest(i: str) -> str:
-        return object_id(i)[len(stem) + 1:]
+        oid = object_id(i)
+        return oid[len(stem) + 1:] if oid.startswith(stem + "_") else oid      # en omdöpt entitet: hela id:t
 
     def pick(domain: str, want: re.Pattern, avoid: re.Pattern | None = None):
         for i in siblings:

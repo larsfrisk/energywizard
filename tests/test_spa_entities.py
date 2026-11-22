@@ -246,3 +246,41 @@ def test_writer_drops_a_hostile_or_malformed_entity_value():
         os.chdir(cwd)
     cfg = yaml.safe_load(text)
     assert cfg["spa"]["entities"] == {"climate": "climate.ok_heater"} and "hacked" not in text and "evil" not in text
+
+
+# --- samma enhet, olika namnstammar (en omdöpt entitet) ---
+
+RENAMED = {
+    "climate.spabad_heater": "Spabad Heater",                                    # omdöpt av användaren
+    "sensor.spa_xxx_current_temperature": "Spa xxx Current temperature",
+    "sensor.spa_xxx_target_temperature": "Spa xxx Target temperature",
+    "water_heater.spa_xxx_heater": "Spa xxx Heater",
+    "switch.spabad_economy_mode": "Spabad Economy mode",
+    "sensor.annat_current_temperature": "Annat Current temperature",            # ett annat bad (annan enhet)
+}
+DEV = {"climate.spabad_heater": "dev_a", "sensor.spa_xxx_current_temperature": "dev_a", "sensor.spa_xxx_target_temperature": "dev_a",
+       "water_heater.spa_xxx_heater": "dev_a", "switch.spabad_economy_mode": "dev_a", "sensor.annat_current_temperature": "dev_b"}
+
+
+def test_same_device_is_a_sibling_even_when_the_name_stems_differ():
+    done = spa_entities.complete_gecko({"climate": "climate.spabad_heater"}, RENAMED, DEV)
+    assert done["current_temp"] == "sensor.spa_xxx_current_temperature"
+    assert done["target_temp"] == "sensor.spa_xxx_target_temperature" and done["water_heater"] == "water_heater.spa_xxx_heater"
+    assert done["economy_mode"] == "switch.spabad_economy_mode"                   # samma stam som climate: hittas av båda vägarna
+
+
+def test_without_device_ids_only_the_name_stem_is_used():
+    done = spa_entities.complete_gecko({"climate": "climate.spabad_heater"}, RENAMED)
+    assert done["economy_mode"] == "switch.spabad_economy_mode" and "current_temp" not in done     # sensorerna har en annan stam
+
+
+def test_another_device_is_never_a_sibling():
+    done = spa_entities.complete_gecko({"climate": "climate.spabad_heater"}, RENAMED, DEV)
+    assert "annat" not in str(done)
+
+
+def test_discovery_uses_the_device_for_a_renamed_spa():
+    ents = [_ent(e, n, d=DEV[e], dc=("temperature" if "temperature" in e else None)) for e, n in RENAMED.items()]
+    with patch("discovery._check_configured_heat_pump", return_value=None):
+        spa = discovery.discover_house(ents)["spa"]
+    assert spa["entities"]["current_temp"] == "sensor.spa_xxx_current_temperature" and spa["entities"]["economy_mode"] == "switch.spabad_economy_mode"

@@ -971,7 +971,8 @@ def discover_house(entities: list[dict] | None = None) -> dict:
         if driver == "gecko":
             # Gecko-badet har flera entiteter med samma namnstam; drivrutinen behöver dem (#570)
             start = {"climate": spa_e["e"]} if spa_e["e"].startswith("climate.") else {"water_heater": spa_e["e"]}
-            done = spa_entities.complete_gecko(start, {e["e"]: e.get("n") or "" for e in entities})
+            done = spa_entities.complete_gecko(start, {e["e"]: e.get("n") or "" for e in entities},
+                                               {e["e"]: e.get("d") for e in entities if e.get("d")})
             spa["entities"] = {k: v for k, v in done.items() if v}
             if done.get("current_temp") and done["current_temp"].startswith("sensor."):
                 spa["current_temp_entity"] = done["current_temp"]
