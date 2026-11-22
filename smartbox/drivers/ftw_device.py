@@ -182,6 +182,8 @@ class FtwBatteryDriver(BatteryDriver):
                 "soc_sample_at": b.get("soc_sample_at") if getattr(self, "_name", None) == "ferroamp" else None,
                 "soc_source": "ferroamp_mqtt_received" if getattr(self, "_name", None) == "ferroamp" else None,
                 "modules": b.get("modules") or {},
+                "available_charge_w": b.get("available_charge_W"),
+                "available_discharge_w": b.get("available_discharge_W"),
                 "capacity_kwh": self.capacity_kwh or (cap / 1000.0 if isinstance(cap, (int, float)) and cap > 0 else None)}
 
     def set_balancing(self, active):

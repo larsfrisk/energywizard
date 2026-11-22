@@ -46,3 +46,33 @@ def test_notifier_skickar_inte_avstangd_kategori(monkeypatch, tmp_path):
     monkeypatch.setattr(notifier, "_send", lambda *a, **k: sent.append(a) or True)
     assert notifier.send_emil("🔋 Husbatteriet gör inte som det blir tillsagt", "x", key="batteri") is False
     assert notifier.send_emil("🚗 Bilen laddar", "x") is True and len(sent) == 1
+
+
+def test_batteriets_egen_gransvarde_forklarar_att_det_star_still():
+    # drivrutinen säger att batteriet just nu inte kan ge/ta emot effekt -> ingen varning
+    assert bf.mismatch("discharge", 2000, 0, 50, 10, avail_discharge_w=0) is None
+    assert bf.mismatch("charge", 3000, 0, 50, 10, avail_charge_w=100) is None
+    # fel riktning: laddar fast det skulle ladda ur varnar alltid, hur låg gränsen än är
+    assert bf.mismatch("discharge", 2000, 1500, 50, 10, avail_discharge_w=0)
+    # drivrutinen säger att det kan ge effekt men det står still -> varnar som förut
+    assert bf.mismatch("discharge", 2000, 0, 50, 10, avail_discharge_w=4000)
+    assert bf.mismatch("charge", 3000, 0, 50, 10, avail_charge_w=4000)
+    # gränsen i fel riktning förklarar inget
+    assert bf.mismatch("discharge", 2000, 0, 50, 10, avail_charge_w=0)
+
+
+def test_okanda_eller_ogiltiga_gransvarden_raknas_aldrig_som_begransning():
+    for bad in (None, "0", True, -5, float("nan")):
+        assert bf.mismatch("discharge", 2000, 0, 50, 10, avail_discharge_w=bad), bad
+
+
+def test_gransvarde_genom_followwatch_ger_following_och_ingen_notis():
+    w = bf.FollowWatch()
+    for t in (0, 5 * 60, 10 * 60):
+        st, txt, new = w.step("discharge", 2000, 0, 50, 10, t, None, 0)
+        assert st == "following" and txt is None and not new
+
+
+def test_gransen_forklarar_bara_stillastaende_inte_fel_riktning():
+    assert bf.mismatch("charge", 3000, -1500, 50, 10, avail_charge_w=0)      # laddar ur fast det skulle ladda
+    assert bf.mismatch("discharge", 2000, 1500, 50, 10, avail_discharge_w=0)  # laddar fast det skulle ladda ur

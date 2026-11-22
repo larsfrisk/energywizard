@@ -2,6 +2,9 @@
 
 ❤️ EnergyWizard är gratis och öppet. Om det sparar pengar hemma hos dig kan du hålla det så med en sponsring (runt 10 USD i månaden räcker långt): https://github.com/sponsors/murre87
 
+## 1.2.159 (2026-11-22)
+- **Färre falska "batteriet följer inte"-notiser.** Säger batteriets drivrutin att batteriet just nu inte kan ge eller ta emot effekt (FTW-drivrutinernas `available_charge_W` / `available_discharge_W`, t.ex. kall cell eller BMS-tak) och batteriet står still, räknas det som begränsat av batteriet och ingen varning skickas. Fel riktning varnar som förut, och står batteriet still fast drivrutinen säger att det kan ge effekt varnar det också som förut. Ändrar bara varningen, aldrig styrningen. Idén kommer från FTW 0.167.0-beta.1.
+
 ## 1.2.158 (2026-11-22)
 - **Står motorn still får du veta var.** En vakttråd ser efter motorns livstecken var 30:e sekund. Har huvudloopen inte gett livstecken på 15 minuter (och ingen uppgift är med flit upptagen, som veckans backtest) skriver den **en gång** i loggen och skickar som felfall **var huvudtråden står** (fil, rad och funktion, aldrig värden eller sökvägar) tillsammans med anropskedjan, och skriver när det löst sig. Så går det att se vad som hänger sig, till exempel ett nätverksanrop utan tidsgräns, i stället för att gissa. Vakten **startar inte om** något: en omstart kan ge loopar om orsaken är Home Assistant eller databasen, och först när vi sett hur ofta det händer på riktigt går det att avgöra om och hur en omstart ska ske. Containerns hälsa (`unhealthy` efter 10 minuter, 1.2.149) är oförändrad.
 

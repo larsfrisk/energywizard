@@ -122,3 +122,20 @@ def test_status_visar_enhet_som_inte_svarar(monkeypatch):
     st = ftw_device.status()
     assert st == [{"driver": "fronius", "host": "192.168.1.50", "port": 80, "ok": False,
                    "error": "ConnectionError: refused", "has": []}]
+
+
+def test_batteridrivrutinen_vidarebefordrar_tillganglig_effekt(monkeypatch):
+    """FTW-drivrutiner som skickar available_charge_W/available_discharge_W: värdena ska nå battery_follow."""
+    from drivers import ftw_device
+    drv = ftw_device.FtwBatteryDriver.__new__(ftw_device.FtwBatteryDriver)
+    drv.capacity_kwh = 10.0
+    drv._name = "x"
+    class Dev:
+        emits = {"battery": {"soc": 0.5, "w": 0, "available_charge_W": 0, "available_discharge_W": 1200}}
+        def fresh(self): return True
+    drv._dev = Dev()
+    st = drv.read_state()
+    assert st["available_charge_w"] == 0 and st["available_discharge_w"] == 1200
+    Dev.emits = {"battery": {"soc": 0.5, "w": 0}}
+    st = drv.read_state()
+    assert st["available_charge_w"] is None and st["available_discharge_w"] is None
