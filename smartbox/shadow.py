@@ -12,6 +12,7 @@ Loggen ligger i tabellen shadow_actions (senaste 7 dygnen) och visas i webben. S
 var tionde minut, så att en regel som körs varje minut inte fyller loggen.
 """
 import os
+import threading
 import time
 
 _last: dict = {}           # (vad) -> senast loggad, för att inte logga samma sak varje minut
@@ -38,7 +39,25 @@ def scoped_controls(house):
     return result
 
 
+_tl = threading.local()
+
+
+class bypass:
+    """Tillåter skrivningar i den här tråden trots skuggläge (systemtestet, när användaren uttryckligen tryckt på knappen).
+    Trådlokal: motorns övriga styrning i andra trådar förblir i skuggläge."""
+    def __enter__(self):
+        self._prev = getattr(_tl, "bypass", False)
+        _tl.bypass = True
+        return self
+
+    def __exit__(self, *exc):
+        _tl.bypass = self._prev
+        return False
+
+
 def active() -> bool:
+    if getattr(_tl, "bypass", False):
+        return False
     if os.environ.get("SHADOW_MODE", "").strip().lower() in ("1", "true", "ja", "yes"):
         return True
     try:

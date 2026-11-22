@@ -2053,6 +2053,53 @@ async function renderVarmepump() {
   };
 }
 
+// ---- "Testa ditt system" (smartbox/system_test.py): erbjuds som sista steg efter installationsguiden och under System ----
+let sysTestTimer = null;
+async function systemTestCard(host, opts) {
+  if (!host) return;
+  opts = opts || {};
+  clearTimeout(sysTestTimer);
+  let d;
+  try { d = await api("api/system_test"); } catch (e) { host.innerHTML = ""; return; }
+  const st = d.status || null, running = !!(st && st.state === "running") || d.requested;
+  const icon = (r) => r.ok === true ? "✅" : r.ok === false ? "❌" : "➖";
+  const rows = ((st && st.steps) || []).map((r) => `<div class="setrow"><span>${icon(r)} <b>${esc(r.name)}</b></span><span class="note" data-noi18n>${esc(r.note || "")}${r.measured_w != null ? ` (${r.measured_w} W)` : ""}</span></div>`).join("");
+  let body;
+  if (!d.eligible) {
+    body = `<div class="note" data-noi18n>${esc(d.reason)}</div>`;
+  } else if (running) {
+    body = `<div class="note"><span>Testet pågår. Låt batteriet vara, det tar cirka tio minuter.</span> ${st && st.step ? `<b data-noi18n>${esc(((st.steps || []).find((x) => x.intent === st.step) || {}).name || "")}</b>` : ""}</div>${rows}`;
+  } else if (st && st.state === "unavailable") {
+    body = `<div style="margin-bottom:6px" data-noi18n>${esc(st.reason || "")}</div><div class="note"><span>Har du just sparat installationen: vänta en minut tills EnergyWizard har startat om och försök igen.</span></div>
+      <div style="margin-top:10px"><button class="icobtn" id="systestgo">Försök igen</button></div>`;
+  } else if (st && (st.state === "done" || st.state === "failed")) {
+    body = `<div style="font-weight:700;margin-bottom:6px" data-noi18n>${esc(st.summary || "")}</div>${rows}
+      <div class="note" style="margin-top:6px"><span>Batteriet är tillbaka i sitt normala läge.</span></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button class="icobtn" id="systestgo">Kör om testet</button><button class="icobtn" id="systestsend">Skicka resultatet till utvecklaren</button></div><div class="note" id="systestref"></div>`;
+  } else {
+    body = `<div style="margin-bottom:8px">${opts.guide ? "Installationen och alla dina val är sparade. " : ""}Som sista steg kan du testa att batteriet gör som EnergyWizard ber om. Testet tar cirka tio minuter, skickar högst 1 kW till batteriet (håll, ladda och ladda ur, ett i taget) och sätter tillbaka allt efteråt.</div>
+      <div class="note" style="margin-bottom:10px">Du kan hoppa över det och göra det senare under System. Fungerar något inte får du veta vad, och du kan skicka resultatet till oss.</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="icobtn" id="systestgo">Starta testet</button>${opts.guide ? '<button class="icobtn" id="systestskip">Hoppa över</button>' : ""}</div>`;
+  }
+  host.innerHTML = `<div class="card" style="margin-bottom:16px;${opts.guide ? "border-color:var(--acc)" : ""}"><h2 style="margin:0 0 8px">${opts.guide ? "Sista steget: testa ditt system" : "Testa ditt system"}</h2>${body}</div>`;
+  const go = document.getElementById("systestgo");
+  if (go) go.onclick = async () => {
+    if (!confirm("Testet skickar riktiga kommandon till batteriet i cirka tio minuter, även i skuggläge. Fortsätta?")) return;
+    go.disabled = true;
+    try { await postJSON("api/system_test/start", { confirm: true }); } catch (e) { alert(e.message || "Kunde inte starta testet"); }
+    setTimeout(() => systemTestCard(host, opts), 3000);
+  };
+  const skip = document.getElementById("systestskip");
+  if (skip) skip.onclick = () => { host.innerHTML = ""; };
+  const send = document.getElementById("systestsend");
+  if (send) send.onclick = async () => {
+    send.disabled = true;
+    try { const r = await postJSON("api/support/send", {}); document.getElementById("systestref").innerHTML = `Skickat. Din referens: <b data-noi18n>${esc(r.ref || "")}</b>. Skriv den i ett ärende på GitHub.`; }
+    catch (e) { document.getElementById("systestref").textContent = "Kunde inte skicka."; send.disabled = false; }
+  };
+  if (running) sysTestTimer = setTimeout(() => { if (document.body.contains(host)) systemTestCard(host, opts); }, 4000);
+}
+
 async function renderSystem() {
   const main = document.getElementById("main");
   main.innerHTML = `<div class="placeholder">Laddar…</div>`;
@@ -2250,8 +2297,8 @@ function installsCard(d) {
 
 async function loadUpdates(force) {
   const main = document.getElementById("main");
-  main.innerHTML = '<div id="imageupdates"></div><div id="watchtowerupdates"></div>';
-  await Promise.all([loadImageUpdates(false), loadWatchtowerUpdates(force)]);
+  main.innerHTML = '<div id="systest"></div><div id="imageupdates"></div><div id="watchtowerupdates"></div>';
+  await Promise.all([systemTestCard(document.getElementById("systest")), loadImageUpdates(false), loadWatchtowerUpdates(force)]);
 }
 
 async function loadImageUpdates(force) {
@@ -2796,7 +2843,13 @@ async function generateConfig(save) {
     const rs = await fetch("api/save-house-config", { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" }, body: JSON.stringify(sel) });
     const j = await rs.json().catch(() => ({}));
     msg.textContent = rs.ok ? j.message : ("Kunde inte spara: " + (j.error || rs.status));
-    if (rs.ok) postJSON("api/discover/form", wizardForm()).catch(() => {});      // #173: valen visas igen nästa gång
+    if (rs.ok) {
+      postJSON("api/discover/form", wizardForm()).catch(() => {});      // #173: valen visas igen nästa gång
+      // Sista steget i guiden: erbjud systemtestet när installationen och alla val är sparade
+      let sg = document.getElementById("systest-guide");
+      if (!sg) { sg = document.createElement("div"); sg.id = "systest-guide"; sg.style.marginTop = "14px"; msg.insertAdjacentElement("afterend", sg); }
+      systemTestCard(sg, { guide: true });
+    }
     return;
   }
   const r = await fetch("api/generate-house-config", { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" }, body: JSON.stringify(sel) });

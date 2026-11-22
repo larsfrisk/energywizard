@@ -44,6 +44,7 @@ import learning         # AI-modeller för temperatur och avsvalning
 import mpc               # Prediktiv förvärmnings-planerare (skuggläge + veckovis självvalidering)
 import house_config      # EnergyWizard Open: drivrutinsarkitektur (bil/laddare/värmepump/sol/spa)
 import smart_plugs
+import system_test         # "Testa ditt system": kontrollerar att batteriet gör som det blir tillsagt
 import ev_schedule_auto    # nivå för automatiskt skapade laddscheman (#576)
 import spa_bath_learn      # logg över badtillfällen och förslag på badtider
 import spa_error_watch     # nytt fel från spabadet (Gecko: error-sensorn) -> notis
@@ -247,6 +248,10 @@ def _battery_to_auto(reason):
                 print(f"🔋 Batteri: tillbaka till växelriktarens eget läge ({reason}).")
         except Exception as _be:
             print(f"⚠️ Batteri: kunde inte återställa läget ({reason}): {_be}")
+
+
+def _system_test_apply(intent, power_w):
+    return battery_commands.apply(_battery_commands, battery_driver, intent, power_w)
 
 
 def _on_sigterm(signum, frame):
@@ -547,6 +552,11 @@ except Exception:
     pass
 import control_journal
 import shadow
+
+try:                                  # ett avbrutet systemtest (omstart mitt i) lämnar inte batteriet i ett provläge
+    system_test.recover(battery_driver, _system_test_apply, _ew_settings, shadow)
+except Exception as _ste:
+    print(f"⚠️ Systemtest: {_ste}")
 _journal: list = []
 _ev_hold = _ev_hold_mod.HoldWatch()
 _ev_hold_now: dict = {}
@@ -1020,7 +1030,7 @@ while True:
         # (standard 5 min) och kvartsloopen hann inte före den - laddning/håll föll tillbaka till växelriktarens läge.
         # Bara drivrutiner med keepalive_s (den självbegränsar); FTW:s vakthund sköts redan i kvartsstyrningen.
         if (battery_cfg["control"] == "styr" and getattr(battery_driver, "_keepalive", None)
-                and _battery.get("decision_rule") not in battery_control.SAFETY_RULES):
+                and _battery.get("decision_rule") not in battery_control.SAFETY_RULES and not system_test.active()):
             try:
                 battery_driver.refresh()
             except Exception as _bre:
@@ -1164,6 +1174,16 @@ while True:
                 force_ev_plan_recalc = True
                 logger.set_override("force_ev_recalc", "false")
                 print("🔄 Manuell omladdning (Tvingad av användare). Bygger om schemat!")
+
+            # --- "Testa ditt system" (system_test.py): webben begär testet, motorn kör det i en egen tråd ---
+            if all_overrides.get(system_test.OVERRIDE_REQ) == "true":
+                logger.set_override(system_test.OVERRIDE_REQ, "false")
+                try:
+                    _started, _why = system_test.start(battery_driver, battery_cfg, _system_test_apply, logger.set_override,
+                                                       _ew_settings, shadow)
+                    print("🧪 Systemtest startat." if _started else f"🧪 Systemtest startades inte: {_why}")
+                except Exception as _ste2:
+                    print(f"⚠️ Systemtest: {_ste2}")
 
             # --- SÄKERSTÄLL TVÅNGSVÄRME (Midnattsreset) ---
             try:
@@ -2397,10 +2417,10 @@ while True:
                         gpm_actions["log"].append(f"🔋 (BATTERI): {_alpha}")
                         print(f"🔋 {_alpha}")
                     battery_driver.set_balancing(_bdec.get("rule") == "balance")
-                    if _bdec.get("rule") not in battery_control.SAFETY_RULES:
+                    if _bdec.get("rule") not in battery_control.SAFETY_RULES and not system_test.active():
                         battery_driver.refresh()       # håller en pågående tvångsladdning vid liv (Solis RC m.fl.)
-                    if battery_control.should_apply(_bdec, _battery["last"], _battery["at"], now,
-                                                    battery_cfg["min_change_minutes"]):
+                    if not system_test.active() and battery_control.should_apply(    # pausas medan systemtestet pågår
+                            _bdec, _battery["last"], _battery["at"], now, battery_cfg["min_change_minutes"]):
                         if battery_commands.apply(_battery_commands, battery_driver, _bdec["intent"], _bdec.get("power_w")):
                             if _bdec["intent"] == "charge" and (not shadow.active() or getattr(battery_driver, '_live_in_shadow', False) is True):
                                 _ramp.grant("battery", ((_bdec.get("power_w") or battery_cfg["max_power_w"])

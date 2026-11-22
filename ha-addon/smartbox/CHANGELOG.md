@@ -2,6 +2,9 @@
 
 ❤️ EnergyWizard är gratis och öppet. Om det sparar pengar hemma hos dig kan du hålla det så med en sponsring (runt 10 USD i månaden räcker långt): https://github.com/sponsors/murre87
 
+## 1.2.157 (2026-11-22)
+- **Testa ditt system**: en knapp som kontrollerar att batteriet gör som EnergyWizard ber om (håll, ladda, ladda ur, högst 1 kW, högst två minuter per steg) och sedan sätter tillbaka allt. Den erbjuds som **sista steget i installationsguiden**, efter att installationen och alla val sparats, och finns kvar under *System*. Kräver att batteriet står på `styr`, skickar riktiga kommandon även i skuggläge (bara från testet) efter en bekräftelse, och återställer batteriet även efter en omstart mitt i. Resultatet kan skickas till utvecklaren med en referens, så att vi får veta om en förinställning inte fungerar på riktig hårdvara. Se `docs/system-test.md`. **Ej provat mot ett riktigt batteri**, bara med tester.
+
 ## 1.2.156 (2026-11-22)
 - **Automatiskt laddschema skriver inte längre över din laddnivå med 100 % (#576).** När en bil kopplas in utan något aktivt framtida schema skapas ett nytt för nästa avfärd. Det fick alltid 100 % och skrev över dagens sparade rad, så den som satt 50 % fick tillbaka 100 % varje gång. Nu behålls din nivå: dagens sparade nivå om den är lägre än 100, annars den vanligaste lägre nivån bland bilens övriga dagar, annars 100.
 - **`generic_climate` läser nu ute-, framlednings-, retur- och varmvattengivare samt effekt (`power_w`) om de står under `heat_pump.entities` (#577).** Förut lästes bara climate-entiteten och resten ignorerades tyst. Effekt i W eller kW summeras.
