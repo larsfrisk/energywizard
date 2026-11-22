@@ -47,11 +47,29 @@ T.ex. Solax (Gen4-6) via wills106/homeassistant-solax-modbus:
 Effekt: antingen en tecknad sensor (power, + = laddar) eller två positiva (power_charge och
 power_discharge, som Growatt via Solax Modbus har).
 
+Batterier där fjärrstyrningen först måste slås på med en brytare (Sigenergy: "Remote EMS", TypQxQ/Sigenergy-Local-Modbus)
+anger brytaren som enable_switch. EnergyWizard slår på den EN gång, väntar tills HA visar att den står på (högst
+enable_wait_s, standard 30 s, ingen omskrivning) och väljer först då läge. En fast väntetid är ingen bekräftelse:
+står den inte på i tid ändras inget läge och det syns som ett fel. EJ VERIFIERAT mot en riktig Sigenergy:
+
+    battery:
+      entities:
+        soc: sensor.sigen_plant_battery_state_of_charge
+        mode_select: select.sigen_plant_remote_ems_control_mode
+        enable_switch: switch.sigen_plant_remote_ems_controlled_by_home_assistant
+      modes:
+        auto: "Maximum Self Consumption"
+        hold: "Maximum Self Consumption"
+        charge: "Command Charging (Grid First)"
+        discharge: "Command Discharging (ESS First)"
+
 Lägesnamnen ovan är EXEMPEL - skriv exakt de alternativ din egen select-entitet visar i
 Home Assistant (Utvecklarverktyg -> Tillstånd -> entiteten -> attributet options).
 Bara de avsikter som finns under modes: används.
 """
 import math
+import time
+
 import homeassistant
 from drivers.battery import BatteryDriver, INTENTS
 
@@ -293,9 +311,35 @@ class GenericBatteryDriver(BatteryDriver):
             return bool(homeassistant.set_number(step["number"], v, **self._fkw()))
         return False
 
+    def _ensure_enabled(self) -> bool:
+        """enable_switch (t.ex. Sigenergys Remote EMS) måste stå på innan ett läge väljs. Slås på en gång, sedan väntar vi
+        på att HA visar "on" (ny avläsning, inte en fast väntetid). Aldrig omskrivning. Okänt/otillgängligt läge: skriv inte."""
+        sw = self._e.get("enable_switch")
+        if not sw:
+            return True
+        if homeassistant._get_raw_state(sw) == "on":
+            return True
+        state = homeassistant._get_raw_state(sw)
+        if state in (None, "unavailable", "unknown"):
+            print(f"⚠️ {sw} är {state or 'okänd'} - ändrar inget läge")
+            return False
+        if not homeassistant.set_switch(sw, True):
+            return False
+        wait = float(self._e.get("enable_wait_s") or 30)
+        deadline = time.monotonic() + wait
+        while time.monotonic() < deadline:
+            time.sleep(2)
+            homeassistant.update_states()
+            if homeassistant._get_raw_state(sw) == "on":
+                return True
+        print(f"⚠️ {sw} stod inte på efter {wait:.0f} s - ändrar inget läge")
+        return False
+
     def _apply(self, intent: str, power_w: float | None = None) -> bool:
         option = self._modes.get(intent)
         if not option or (not isinstance(option, (dict, list)) and not self._e.get("mode_select")):
+            return False
+        if not self._ensure_enabled():
             return False
         ok = True
         if self._rc_select and intent in ("charge", "discharge", "hold"):

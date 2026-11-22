@@ -12,7 +12,10 @@ De ser ut som appen och fungerar likadant för **HA-tillägget** och för **Dock
 
 ## Installera
 
-**HACS (rekommenderas)**
+**Marknadsplatsen i Home Assistant (HA 2026.11 eller senare, enligt andra integrationers README, ej provat här)**
+Öppna Inställningar → Marknadsplats, lägg till `https://github.com/murre87/energywizard` som eget arkiv (kategori Dashboard) och installera *EnergyWizard cards*. Befintliga HACS-installationer ska flyttas över automatiskt.
+
+**HACS (HA 2026.10 och äldre)**
 1. HACS → ⋮ → Anpassade arkiv → lägg till `https://github.com/murre87/energywizard`, kategori **Dashboard**.
 2. Sök efter *EnergyWizard cards* och installera. Det är samma arkiv som EnergyWizard själv; HACS hämtar bara `dist/energywizard-cards.js`.
 3. Ladda om webbläsaren (Ctrl+F5).
