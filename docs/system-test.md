@@ -23,7 +23,7 @@ Dessutom läses drivrutinerna direkt (värmepump, spabad, laddbox, batteri), så
 | Test | Vad som händer | Godkänt när |
 |---|---|---|
 | Batteri | håll, ladda och ladda ur med högst 1 kW, högst två minuter per steg | effekten följer beställningen i två avläsningar i rad |
-| Värmepump | rumsbörvärdet ändras 0,5 °C | värdet läses tillbaka, och sätts sedan tillbaka |
+| Värmepump | rumsbörvärdet ändras 0,5 °C (1 °C för pumpar som bara sparar hela grader, som Thermia) | värdet läses tillbaka, och sätts sedan tillbaka |
 | Spabad | målvärdet ändras 0,5 °C | värdet läses tillbaka, och sätts sedan tillbaka |
 | Laddbox | 6 A i högst 90 sekunder, bara om bilen är inkopplad och inte laddar | ström kommer, sedan 0 A igen |
 
@@ -34,7 +34,13 @@ Värmepumpen provas bara om dess börvärde går att **läsa tillbaka** (annars 
 - Allt som ändras skrivs först i en återställningslogg och sätts **alltid** tillbaka, även om ett test misslyckas eller EnergyWizard startar om mitt i (då återställs det vid nästa start).
 - Batteritestet kräver att batteriet står på **styr**. Står det på samarbete (ett annat system styr) görs inget.
 - Styrtesterna skickar **riktiga kommandon även i skuggläge**, men bara från testet och bara för det du kryssat i. All övrig styrning förblir i skuggläge. Du får en bekräftelseruta först. Väljer du inga styrtester körs bara läsningarna.
-- EnergyWizards egen batteristyrning pausas medan testet pågår. Bara ägaren kan starta det.
+- EnergyWizards egen styrning av batteri, värmepump, spabad och laddboxar pausas medan testet pågår, annars skriver motorn tillbaka sina egna värden under testet. Bara ägaren kan starta det.
+
+## Provat på riktig utrustning
+
+- Spabad (Gecko): 38,5 till 39 och tillbaka, bekräftat.
+- Värmepump (Thermia via Husdata): 20 till 21 och tillbaka, bekräftat. Thermia sparar bara hela grader, så 0,5 °C-steget syntes aldrig och drivrutinen anger nu 1 °C.
+- Laddbox: hoppades över eftersom ingen bil var inkopplad. Ej provad. Batteri: ej provat (ingen hos testhuset).
 
 ## Om något inte fungerar
 
