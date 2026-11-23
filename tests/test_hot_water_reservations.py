@@ -101,6 +101,7 @@ def test_active_database_plan_stores_reservation_and_replays_effective_limits(db
         snapshots.append(plan_snapshot.build(slots,params,result,made_at,quality=quality))
     monkeypatch.setattr(plan_snapshot,'capture',capture)
     db.execute('TRUNCATE elpriser')
+    db.execute('TRUNCATE sensor_log')     # det föregående testet lämnar rader runt "nu"; utan detta smittar den inlärda baslasten av sig beroende på klockslag
     db.execute('DROP TABLE IF EXISTS battery_plan_forecast')
     for i in range(8):db.execute('INSERT INTO elpriser VALUES (%s,%s)',(now+timedelta(minutes=i*15),1))
     engine=create_engine(f"postgresql+psycopg://postgres:test@localhost/{os.environ['POSTGRES_DB']}")
