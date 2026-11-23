@@ -20,6 +20,8 @@ class ThermiaHusdataHeatPumpDriver(HeatPumpDriver):
     def read_sensors(self) -> dict:
         return pump.read_sensors() or {}
 
+    room_target_step = 1.0                   # pumpen sparar bara hela grader (15,5 läses tillbaka som 15): systemtestet ändrar 1 °C
+
     def read_room_target(self):
         """Rumsbörvärdet ur pumpens register (room_temp_setpoint, tiondelar läses som °C). Gör att systemtestet kan prova
         styrningen och sätta tillbaka värdet efteråt."""

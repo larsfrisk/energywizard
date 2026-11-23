@@ -120,6 +120,8 @@ class HeatPumpDriver(ABC):
         return False
 
     # --- befintligt lager (main.py) -----------------------------------------------------------------------------
+    room_target_step = 0.5                   # hur stort steg systemtestet ändrar börvärdet; drivrutiner som sparar hela grader anger 1.0
+
     def read_room_target(self) -> float | None:
         """Rumsbörvärdet som pumpen/climate-entiteten har just nu, om det går att läsa tillbaka (annars None). Systemtestet
         (system_test.py) provar bara styrning av börvärdet när det går att läsa tillbaka, eftersom det måste kunna återställas."""

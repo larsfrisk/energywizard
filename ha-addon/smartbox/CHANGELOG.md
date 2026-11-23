@@ -2,6 +2,9 @@
 
 ❤️ EnergyWizard är gratis och öppet. Om det sparar pengar hemma hos dig kan du hålla det så med en sponsring (runt 10 USD i månaden räcker långt): https://github.com/sponsors/murre87
 
+## 1.2.166 (2026-11-23)
+- **Systemtestet ändrar Thermia-pumpens börvärde 1 °C i stället för 0,5 °C.** Pumpen sparar bara hela grader, så 15,5 läses tillbaka som 15 och testet såg aldrig sin ändring (hittat vid ett skarpt test: skrivningen gick igenom men värdet ändrades inte). Drivrutiner kan ange sitt eget steg (`room_target_step`).
+
 ## 1.2.165 (2026-11-23)
 - **Systemtestet pausar motorns egen skrivning till värmepump, spabad och laddboxar medan det provar dem** (som det redan gjorde för batteriet). Förut skrev motorn tillbaka sitt eget värde inom en minut, så testet av värmepumpens börvärde kunde aldrig se sin ändring. Hittat vid ett skarpt test på en Thermia via Husdata. Börvärdet läses nu som ett enda register (`pump.read_room_setpoint`) i stället för hela registerkartan, eftersom H66-gatewayen bara tål en klient åt gången.
 

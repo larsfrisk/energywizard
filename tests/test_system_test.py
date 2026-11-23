@@ -278,3 +278,17 @@ def test_motorn_skriver_inte_till_styrda_enheter_under_testet():
     assert re.search(r"if needs_update and not system_test\.active\(\)", src)
     assert re.search(r"if HAS_SPA and not system_test\.active\(\) and \(last_sent_spa_target", src)
     assert re.search(r"def charger_set_limit\(cid, amps, reason=None\):\n    if system_test\.active\(\):", src)
+
+
+def test_drivrutinen_anger_sitt_eget_steg_for_borvardet():
+    from drivers.heatpump_thermia import ThermiaHusdataHeatPumpDriver
+    from drivers.heatpump_generic import GenericClimateHeatPumpDriver
+    assert ThermiaHusdataHeatPumpDriver.room_target_step == 1.0          # sparar bara hela grader
+    assert GenericClimateHeatPumpDriver.room_target_step == 0.5
+    c = Clock(); val = {"v": 15.0}
+    def send(x): val["v"] = float(int(x)); return True              # som Thermia: 15,5 blir 15
+    row = st.run_setpoint_test("hp", "VP", lambda: val["v"], send, 0.5, 5, 30, 90, lambda v: None, lambda: None, c.sleep, c)
+    assert row["ok"] is False                                         # 0,5-steget syns aldrig: testet visar felet i stället för att gissa
+    c = Clock(); val["v"] = 15.0
+    row = st.run_setpoint_test("hp", "VP", lambda: val["v"], send, 1.0, 5, 30, 90, lambda v: None, lambda: None, c.sleep, c)
+    assert row["ok"] is True and val["v"] == 15.0                     # 1-steget syns och återställs

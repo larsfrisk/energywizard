@@ -399,7 +399,7 @@ def start(ctx, selected, set_override, ew_settings, shadow_mod, sleep=time.sleep
                     if hasattr(hp, "read_room_target") and hp.read_room_target() is not None:
                         publish(step="heatpump")
                         r = run_setpoint_test("heatpump", "Värmepump: rumsbörvärde", read_fresh(hp.read_room_target),
-                                              lambda v: hp.set_room_temp(round(v, 1)), HP_STEP_C, 5.0, 30.0, WAIT_HP_S,
+                                              lambda v: hp.set_room_temp(round(v, 1)), float(getattr(hp, "room_target_step", HP_STEP_C)), 5.0, 30.0, WAIT_HP_S,
                                               lambda v: add_restore("heatpump", v), lambda: drop_restore("heatpump"), sleep, clock)
                     else:
                         r = _row("heatpump", "Värmepump: rumsbörvärde")
