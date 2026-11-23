@@ -2,6 +2,9 @@
 
 ❤️ EnergyWizard är gratis och öppet. Om det sparar pengar hemma hos dig kan du hålla det så med en sponsring (runt 10 USD i månaden räcker långt): https://github.com/sponsors/murre87
 
+## 1.2.168 (2026-11-23)
+- **Systemtestets laddboxtest väntar fyra minuter i stället för 90 sekunder** på att strömmen ska synas. Easee styrs via molnet, och strömmen syntes vid ett skarpt test först efter ett par minuter. Förklaringen när ingen ström kommer visar nu också laddboxens status och väntetiden.
+
 ## 1.2.167 (2026-11-23)
 - **Systemtestets laddboxtest slår på laddboxen som motorn gör.** En Easee som står på `awaiting_start` fick förut bara en strömgräns och började aldrig ladda, så testet hade felaktigt rapporterat att ingen ström kom. Nu får den ett på-kommando precis som motorn ger.
 - **Systemtestet hittar varmvattentemperaturen även för Thermia** (värdet heter `water_temp_top` där). Förut varnade det felaktigt att varmvattnet saknades, fast det syns i grafen.

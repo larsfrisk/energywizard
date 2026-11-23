@@ -190,6 +190,7 @@ def test_laddbox_som_inte_slapper_fram_strom_ger_fel_och_nollas():
     row = st.run_charger_test("c", "Laddbox", lambda: {"status": "connected_finished", "current_a": 0.0}, lambda a: sent.append(a) or True,
                               lambda s: True, lambda v: None, lambda: None, c.sleep, c)
     assert row["ok"] is False and "Ingen ström" in row["note"] and sent == [6, 0]
+    assert "connected_finished" in row["note"] and str(st.WAIT_CHARGER_S) in row["note"]       # status och väntetid syns i förklaringen
 
 
 def test_aterstallning_efter_avbrutet_test_gar_igenom_alla_poster():
@@ -317,3 +318,14 @@ def test_varmvatten_hittas_aven_nar_drivrutinen_kallar_det_water_temp_top():
         def read_sensors(self): return {"water_temp_top": 60.0}
     g = st.collect_reads({"house_cfg": {}, "states": lambda: {}, "heatpump": HP()})
     assert g[-1]["worst"] == "ok" and any(i["label"] == "Varmvatten" and i["status"] == "ok" for i in g[-1]["items"])
+
+
+def test_laddboxen_far_tid_att_svara_via_molnet():
+    c = Clock(); cur = {"a": 0.0}
+    def set_limit(a): return True
+    def read():
+        if c.t >= 150:                       # strömmen syns först efter två och en halv minut (Easee via molnet)
+            cur["a"] = 6.0
+        return {"status": "charging" if cur["a"] else "awaiting_start", "current_a": cur["a"]}
+    row = st.run_charger_test("c", "Laddbox", read, set_limit, lambda s: True, lambda v: None, lambda: None, c.sleep, c)
+    assert row["ok"] is True and st.WAIT_CHARGER_S >= 240

@@ -145,7 +145,7 @@ def summary(steps) -> str:
 
 RESTORE_OPS = "system_test_restore_ops"
 HP_STEP_C, SPA_STEP_C, CHARGE_TEST_A = 0.5, 0.5, 6
-WAIT_HP_S, WAIT_SPA_S, WAIT_CHARGER_S = 90, 90, 90
+WAIT_HP_S, WAIT_SPA_S, WAIT_CHARGER_S = 90, 90, 240      # Easee styrs via molnet: strömmen syns först efter ett par minuter
 _STATUS_STATES = ("done", "failed", "unavailable", "running")
 
 
@@ -250,17 +250,19 @@ def run_charger_test(tid, name, read_state, set_limit, connected, record_restore
         if sent is False:
             row.update(ok=False, note="Kommandot gick inte att skicka till laddboxen.")
         else:
-            best = {"a": None}
+            best = {"a": None, "status": None}
 
             def amps():
-                v = (read_state() or {}).get("current_a")
+                stt = read_state() or {}
+                v = stt.get("current_a")
+                best["status"] = stt.get("status", best["status"])
                 if v is not None and (best["a"] is None or v > best["a"]):
                     best["a"] = v
                 return v
             ok, _ = _poll(amps, lambda v: v is not None and v >= CHARGE_TEST_A - 2, WAIT_CHARGER_S, sleep, clock, poll_s)
             row.update(ok=ok, measured_w=None if best["a"] is None else round(best["a"] * 230),
                        note=(f"Laddboxen släppte fram ström ({best['a']:.0f} A)." if ok else
-                             f"Ingen ström kom (mest {best['a'] if best['a'] is not None else 0:g} A). Bilen kan vara fulladdad, sova eller ha laddningen avstängd."))
+                             f"Ingen ström kom på {WAIT_CHARGER_S} s (mest {best['a'] if best['a'] is not None else 0:g} A, laddboxens status: {best['status']}). Bilen kan vara fulladdad, sova eller ha laddningen avstängd, eller så svarar laddboxen långsamt."))
     except Exception as e:
         row.update(ok=False, note=f"Kommandot gav fel ({type(e).__name__}).")
     finally:
