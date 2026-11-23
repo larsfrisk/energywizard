@@ -127,7 +127,7 @@ def test_start_utan_valda_styrtester_gor_bara_lasningar():
            "states": lambda: {"sensor.bad": {"state": "38.5", "attributes": {"unit_of_measurement": "°C"}}}}
     st.start(ctx, [], lambda k, v: ov.__setitem__(k, v), s, Sh)
     body = _wait_done(ov)
-    assert body["steps"] == [] and body["reads"][0]["device"] == "Spabad" and "Läsningar" in body["summary"]
+    assert body["steps"] == [] and body["reads"][0]["device"] == "Spabad" and "läsningar kontrollerade" in body["summary"]
 
 
 def test_vardetest_andrar_laser_tillbaka_och_aterstaller():

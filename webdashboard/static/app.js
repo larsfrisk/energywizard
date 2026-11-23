@@ -2060,7 +2060,7 @@ function sysReadsHtml(reads) {
   return (reads || []).map((g) => {
     const n = g.items.length, ok = g.items.filter((i) => i.status === "ok").length;
     return `<details${g.worst !== "ok" ? " open" : ""} style="margin:4px 0"><summary style="cursor:pointer">${SYS_ICON[g.worst] || ""} <b data-noi18n>${esc(g.device)}</b> <span class="note" data-noi18n>${ok}/${n}</span></summary>
-      ${g.items.map((i) => `<div class="setrow" style="padding:3px 0 3px 22px"><span data-noi18n>${SYS_ICON[i.status] || ""} ${esc(i.label)}</span><span class="note" data-noi18n>${esc(i.note || "")}</span></div>`).join("")}</details>`;
+      ${g.items.map((i) => `<div class="setrow" style="padding:3px 0 3px 22px;gap:10px"><span data-noi18n>${SYS_ICON[i.status] || ""} ${esc(i.label)}</span><span class="note" data-noi18n>${esc(i.note || "")}</span></div>`).join("")}</details>`;
   }).join("");
 }
 async function systemTestCard(host, opts) {
@@ -2071,7 +2071,7 @@ async function systemTestCard(host, opts) {
   try { d = await api("api/system_test"); } catch (e) { host.innerHTML = ""; return; }
   const st = opts.fresh ? null : (d.status || null), running = !opts.fresh && (!!(st && st.state === "running") || d.requested);
   const icon = (r) => r.ok === true ? "✅" : r.ok === false ? "❌" : "➖";
-  const steps = ((st && st.steps) || []).map((r) => `<div class="setrow"><span>${icon(r)} <b data-noi18n>${esc(r.name)}</b></span><span class="note" data-noi18n>${esc(r.note || "")}</span></div>`).join("");
+  const steps = ((st && st.steps) || []).map((r) => `<div class="setrow" style="gap:10px"><span>${icon(r)} <b data-noi18n>${esc(r.name)}</b></span><span class="note" data-noi18n>${esc(r.note || "")}</span></div>`).join("");
   const reads = sysReadsHtml(st && st.reads);
   let body;
   if (running) {
@@ -2079,7 +2079,7 @@ async function systemTestCard(host, opts) {
   } else if (st && (st.state === "done" || st.state === "failed")) {
     body = `<div style="font-weight:700;margin-bottom:6px" data-noi18n>${esc(st.summary || "")}</div>
       ${reads ? `<div style="margin-top:8px"><b>Läsningar</b></div>${reads}` : ""}${steps ? `<div style="margin-top:8px"><b>Styrning</b></div>${steps}` : ""}
-      <div class="note" style="margin-top:6px"><span>Det som ändrades under testet har satts tillbaka.</span></div>
+      ${steps ? '<div class="note" style="margin-top:6px"><span>Det som ändrades under testet har satts tillbaka.</span></div>' : ""}
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button class="icobtn" id="systestagain">Kör om testet</button><button class="icobtn" id="systestsend">Skicka resultatet till utvecklaren</button></div><div class="note" id="systestref"></div>`;
   } else {
     const boxes = (d.tests || []).map((t, i) => `<label style="display:flex;gap:8px;align-items:flex-start;padding:4px 0;${t.eligible ? "" : "opacity:.55"}"><input type="checkbox" class="systestpick" data-id="${esc(t.id)}" ${t.eligible ? "checked" : "disabled"}><span><span data-noi18n>${esc(t.label)}</span>${t.eligible ? "" : `<span class="note" style="display:block" data-noi18n>${esc(t.reason || "")}</span>`}</span></label>`).join("");

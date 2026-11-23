@@ -2,6 +2,9 @@
 
 ❤️ EnergyWizard är gratis och öppet. Om det sparar pengar hemma hos dig kan du hålla det så med en sponsring (runt 10 USD i månaden räcker långt): https://github.com/sponsors/murre87
 
+## 1.2.163 (2026-11-23)
+- Testa ditt system: luft mellan etikett och värde i resultatlistan, och texten om att något "satts tillbaka" visas bara när ett styrtest faktiskt ändrat något. Sammanfattningen säger inte längre "läsningar" två gånger.
+
 ## 1.2.162 (2026-11-23)
 - **Testa ditt system: färre falsklarm i läsningarna.** Skyddssensorer (på/av) flaggades som "inte ett tal", och sensorer som står still med rätta (bil som sover, laddbox som inte laddar, målvärden, inställningar) flaggades som gamla. Nu varnas för gammal data först efter 12 timmar och aldrig för börvärden, inställningar eller 0 W, och okända värden på sådant som bara har värde under körning räknas inte som problem.
 

@@ -302,7 +302,7 @@ def summary_all(reads, steps) -> str:
     import system_check as sc
     parts = []
     if reads:
-        parts.append("Läsningar: " + sc.summarize(reads))
+        parts.append(sc.summarize(reads))
     tried = [r for r in steps if r["ok"] is not None]
     if tried:
         bad = [r["name"] for r in tried if not r["ok"]]
