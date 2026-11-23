@@ -64,6 +64,7 @@ import battery_limits
 import ew_journal
 import battery_commands
 import battery_follow
+import legionella_text
 import guest_charge
 import capacity_tariff
 import ev_limits
@@ -2296,6 +2297,7 @@ while True:
                 })
             
             gpm_actions = gpm_engine.evaluate(gpm_state)
+            gpm_actions["log"] = legionella_text.explain(gpm_actions["log"], days_since_leg, leg_max_days, leg_temp, shadow.active())   # #583
             for _eh_line in electric_heat.plan((house_cfg or {}).get("electric_heat"), gpm_actions.get("pump_mode"),
                                               homeassistant.get_power_w):
                 gpm_actions["log"].append(_eh_line)   # #431: börvärde och uppmätt effekt, ingen skrivning till elementet
