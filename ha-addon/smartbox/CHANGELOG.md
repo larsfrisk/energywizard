@@ -2,6 +2,9 @@
 
 ❤️ EnergyWizard är gratis och öppet. Om det sparar pengar hemma hos dig kan du hålla det så med en sponsring (runt 10 USD i månaden räcker långt): https://github.com/sponsors/murre87
 
+## 1.2.169 (2026-11-23)
+- **Systemtestets laddboxtest använder 8 A i stället för 6 A.** Mot en riktig Easee med en Tesla startade bilen på ungefär tio sekunder med 8 A (och 16 A), men inte alls med 6 A, trots att kommandona gick fram. Testet kan då inte skilja ett startproblem från ett fel i boxen.
+
 ## 1.2.168 (2026-11-23)
 - **Systemtestets laddboxtest väntar fyra minuter i stället för 90 sekunder** på att strömmen ska synas. Easee styrs via molnet, och strömmen syntes vid ett skarpt test först efter ett par minuter. Förklaringen när ingen ström kommer visar nu också laddboxens status och väntetiden.
 

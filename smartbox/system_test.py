@@ -3,7 +3,7 @@
 Del A (system_check.py): läsningar av alla valda entiteter och drivrutiner, utan kommandon.
 Del B (här): styrtester per enhet, var och en med uttryckligt val, bekräftelse och återställning:
   batteri (håll, ladda, ladda ur), värmepump (börvärdet ändras 0,5 °C och återställs), spabad (målvärdet ändras 0,5 °C och
-  återställs) och laddbox (6 A i högst 90 s om bilen är inkopplad och inte laddar, sedan 0 A igen).
+  återställs) och laddbox (8 A i högst fyra minuter om bilen är inkopplad och inte laddar, sedan 0 A igen).
 Allt som ändras skrivs först i en återställningslogg (ew_settings system_test_restore_ops) och återställs alltid, även om
 EnergyWizard startar om mitt i (recover).
 
@@ -144,7 +144,7 @@ def summary(steps) -> str:
 
 
 RESTORE_OPS = "system_test_restore_ops"
-HP_STEP_C, SPA_STEP_C, CHARGE_TEST_A = 0.5, 0.5, 6
+HP_STEP_C, SPA_STEP_C, CHARGE_TEST_A = 0.5, 0.5, 8      # 6 A startar inte en bil från vila (provat mot en Easee med Tesla), 8 A gör det
 WAIT_HP_S, WAIT_SPA_S, WAIT_CHARGER_S = 90, 90, 240      # Easee styrs via molnet: strömmen syns först efter ett par minuter
 _STATUS_STATES = ("done", "failed", "unavailable", "running")
 
@@ -171,7 +171,7 @@ def config_tests(house_cfg: dict, battery_cfg: dict | None) -> list:
         ch = ev.get("charger") or {}
         if ch and ch.get("id") is not None:
             name = ev.get("name") or str(ev.get("id") or i + 1)
-            out.append({"id": f"charger:{ch['id']}", "label": f"Laddbox ({name}): 6 A i en minut, bara om bilen är inkopplad och inte laddar",
+            out.append({"id": f"charger:{ch['id']}", "label": f"Laddbox ({name}): 8 A i någon minut, bara om bilen är inkopplad och inte laddar",
                         "eligible": True, "reason": ""})
     return out
 
@@ -231,7 +231,7 @@ _NEEDS_START = ("awaiting_start", "paused", "off")       # samma statusord som m
 
 
 def run_charger_test(tid, name, read_state, set_limit, connected, record_restore, clear_restore, sleep, clock, poll_s=POLL_S, turn_on=None):
-    """Laddbox: bara om bilen är inkopplad och inte laddar. 6 A i högst WAIT_CHARGER_S, sedan 0 A (som motorn gör när inget ska laddas)."""
+    """Laddbox: bara om bilen är inkopplad och inte laddar. CHARGE_TEST_A i högst WAIT_CHARGER_S, sedan 0 A (som motorn gör när inget ska laddas)."""
     row = _row(tid, name)
     st = read_state() or {}
     cur_a = st.get("current_a")
@@ -431,7 +431,7 @@ def start(ctx, selected, set_override, ew_settings, shadow_mod, sleep=time.sleep
                     if not chosen(tid):
                         continue
                     publish(step=tid)
-                    r = run_charger_test(tid, c["label"] + ": 6 A", read_fresh(c["driver"].read_state),
+                    r = run_charger_test(tid, c["label"] + f": {CHARGE_TEST_A} A", read_fresh(c["driver"].read_state),
                                          lambda a, d=c["driver"]: d.set_limit_a(a, reason="systemtest"), c["connected"],
                                          lambda v, t=tid: add_restore(t, v), lambda t=tid: drop_restore(t), sleep, clock,
                                          turn_on=c["driver"].turn_on)

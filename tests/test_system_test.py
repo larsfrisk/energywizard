@@ -179,17 +179,17 @@ def test_laddbox_provas_bara_nar_bilen_ar_inkopplad_och_inte_laddar():
 
 def test_laddbox_ger_ström_och_sätts_tillbaka_till_noll():
     c = Clock(); cur = {"a": 0.0}; sent = []; rec = {}
-    def set_limit(a): sent.append(a); cur["a"] = 6.0 if a else 0.0; return True
+    def set_limit(a): sent.append(a); cur["a"] = 8.0 if a else 0.0; return True
     row = st.run_charger_test("c", "Laddbox", lambda: {"status": "connected_requesting", "current_a": cur["a"]}, set_limit,
                               lambda s: True, lambda v: rec.__setitem__("v", v), lambda: rec.pop("v"), c.sleep, c)
-    assert row["ok"] is True and sent == [6, 0] and "v" not in rec and row["measured_w"] == round(6 * 230)
+    assert row["ok"] is True and sent == [8, 0] and "v" not in rec and row["measured_w"] == round(8 * 230)
 
 
 def test_laddbox_som_inte_slapper_fram_strom_ger_fel_och_nollas():
     c = Clock(); sent = []
     row = st.run_charger_test("c", "Laddbox", lambda: {"status": "connected_finished", "current_a": 0.0}, lambda a: sent.append(a) or True,
                               lambda s: True, lambda v: None, lambda: None, c.sleep, c)
-    assert row["ok"] is False and "Ingen ström" in row["note"] and sent == [6, 0]
+    assert row["ok"] is False and "Ingen ström" in row["note"] and sent == [8, 0]
     assert "connected_finished" in row["note"] and str(st.WAIT_CHARGER_S) in row["note"]       # status och väntetid syns i förklaringen
 
 
@@ -298,15 +298,15 @@ def test_drivrutinen_anger_sitt_eget_steg_for_borvardet():
 def test_laddbox_som_vantar_pa_start_far_ett_pa_kommando():
     c = Clock(); cur = {"a": 0.0, "status": "awaiting_start"}; sent = []; started = []
     def set_limit(a): sent.append(a); return True
-    def turn_on(): started.append(1); cur["a"] = 6.0; cur["status"] = "charging"
+    def turn_on(): started.append(1); cur["a"] = 8.0; cur["status"] = "charging"
     row = st.run_charger_test("c", "Laddbox", lambda: {"status": cur["status"], "current_a": cur["a"]}, set_limit, lambda s: True,
                               lambda v: None, lambda: None, c.sleep, c, turn_on=turn_on)
-    assert row["ok"] is True and started == [1] and sent == [6, 0]          # utan på-kommandot hade boxen aldrig börjat ladda
+    assert row["ok"] is True and started == [1] and sent == [8, 0]          # utan på-kommandot hade boxen aldrig börjat ladda
 
 
 def test_laddbox_som_redan_ar_pa_far_inget_extra_pa_kommando():
     c = Clock(); cur = {"a": 0.0}; started = []
-    def set_limit(a): cur["a"] = 6.0 if a else 0.0; return True
+    def set_limit(a): cur["a"] = 8.0 if a else 0.0; return True
     row = st.run_charger_test("c", "Laddbox", lambda: {"status": "connected_requesting", "current_a": cur["a"]}, set_limit, lambda s: True,
                               lambda v: None, lambda: None, c.sleep, c, turn_on=lambda: started.append(1))
     assert row["ok"] is True and started == []
@@ -325,7 +325,7 @@ def test_laddboxen_far_tid_att_svara_via_molnet():
     def set_limit(a): return True
     def read():
         if c.t >= 150:                       # strömmen syns först efter två och en halv minut (Easee via molnet)
-            cur["a"] = 6.0
+            cur["a"] = 8.0
         return {"status": "charging" if cur["a"] else "awaiting_start", "current_a": cur["a"]}
     row = st.run_charger_test("c", "Laddbox", read, set_limit, lambda s: True, lambda v: None, lambda: None, c.sleep, c)
     assert row["ok"] is True and st.WAIT_CHARGER_S >= 240

@@ -25,7 +25,7 @@ Dessutom läses drivrutinerna direkt (värmepump, spabad, laddbox, batteri), så
 | Batteri | håll, ladda och ladda ur med högst 1 kW, högst två minuter per steg | effekten följer beställningen i två avläsningar i rad |
 | Värmepump | rumsbörvärdet ändras 0,5 °C (1 °C för pumpar som bara sparar hela grader, som Thermia) | värdet läses tillbaka, och sätts sedan tillbaka |
 | Spabad | målvärdet ändras 0,5 °C | värdet läses tillbaka, och sätts sedan tillbaka |
-| Laddbox | 6 A i högst 90 sekunder, bara om bilen är inkopplad och inte laddar | ström kommer, sedan 0 A igen |
+| Laddbox | 8 A tills strömmen syns (högst fyra minuter), bara om bilen är inkopplad och inte laddar | ström kommer, sedan 0 A igen |
 
 Värmepumpen provas bara om dess börvärde går att **läsa tillbaka** (annars går det inte att återställa), och laddboxen bara om bilen står inkopplad och inte laddar.
 
@@ -40,7 +40,7 @@ Värmepumpen provas bara om dess börvärde går att **läsa tillbaka** (annars 
 
 - Spabad (Gecko): 38,5 till 39 och tillbaka, bekräftat.
 - Värmepump (Thermia via Husdata): 20 till 21 och tillbaka, bekräftat. Thermia sparar bara hela grader, så 0,5 °C-steget syntes aldrig och drivrutinen anger nu 1 °C.
-- Laddbox: hoppades över eftersom ingen bil var inkopplad. Ej provad. Batteri: ej provat (ingen hos testhuset).
+- Laddbox (Easee med Tesla): 16 A och 8 A startade bilen på cirka 10 sekunder, **6 A startade den inte** (provat mot riktig utrustning), så testet använder 8 A. Easee styrs via molnet, därför väntar testet upp till fyra minuter. Batteri: ej provat (ingen hos testhuset).
 
 ## Om något inte fungerar
 
