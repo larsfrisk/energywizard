@@ -43,6 +43,13 @@ class GenericClimateHeatPumpDriver(HeatPumpDriver):
                   f"climate-entitet (ingen registernivå-åtkomst) - ignoreras.")
             self._warned.add(method)
 
+    def read_room_target(self):
+        """Climate-entitetens börvärde (attributet temperature)."""
+        if not self._entity:
+            return None
+        v = homeassistant._get_numeric_attribute(self._entity, "temperature")
+        return float(v) if isinstance(v, (int, float)) and v == v else None
+
     def _num(self, key):
         v = homeassistant._get_numeric_state(self._extra[key]) if key in self._extra else None
         return float(v) if isinstance(v, (int, float)) and v == v else None

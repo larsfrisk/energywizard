@@ -255,6 +255,22 @@ def _system_test_apply(intent, power_w):
     return battery_commands.apply(_battery_commands, battery_driver, intent, power_w)
 
 
+def _system_test_ctx():
+    """Det systemtestet behöver: konfigurationen, HA:s tillstånd och drivrutinerna (system_test.py)."""
+    chargers = {}
+    for ev in house_cfg.get("evs") or []:
+        ch = ev.get("charger") or {}
+        drv = physical_charger_drivers.get(ch.get("id")) or physical_charger_drivers.get(str(ch.get("id")))
+        if drv is not None and ch.get("id") is not None:
+            chargers[str(ch["id"])] = {"driver": drv, "label": f"Laddbox ({ev.get('name') or ev.get('id')})",
+                                       "connected": lambda st: charger_connected(st)}
+    return {"house_cfg": house_cfg, "states": lambda: homeassistant._states_cache,
+            "battery": None if isinstance(battery_driver, house_config.NullBatteryDriver) else
+                       {"driver": battery_driver, "cfg": battery_cfg, "apply": _system_test_apply},
+            "heatpump": None if isinstance(heat_pump_driver, house_config.NullHeatPumpDriver) else heat_pump_driver,
+            "spa": spa_driver if HAS_SPA else None, "chargers": chargers}
+
+
 def _on_sigterm(signum, frame):
     # docker stop / Watchtower-uppdatering: släpp batteriet innan vi går ner, så det aldrig
     # blir kvar i "ladda ur" eller "håll" utan att någon styr det (FTW:s dead-man-princip).
@@ -555,7 +571,7 @@ import control_journal
 import shadow
 
 try:                                  # ett avbrutet systemtest (omstart mitt i) lämnar inte batteriet i ett provläge
-    system_test.recover(battery_driver, _system_test_apply, _ew_settings, shadow)
+    system_test.recover(_system_test_ctx(), _ew_settings, shadow)
 except Exception as _ste:
     print(f"⚠️ Systemtest: {_ste}")
 _journal: list = []
@@ -1194,11 +1210,16 @@ while True:
                 print("🔄 Manuell omladdning (Tvingad av användare). Bygger om schemat!")
 
             # --- "Testa ditt system" (system_test.py): webben begär testet, motorn kör det i en egen tråd ---
-            if all_overrides.get(system_test.OVERRIDE_REQ) == "true":
+            _st_req = all_overrides.get(system_test.OVERRIDE_REQ)
+            if _st_req and _st_req != "false":
                 logger.set_override(system_test.OVERRIDE_REQ, "false")
                 try:
-                    _started, _why = system_test.start(battery_driver, battery_cfg, _system_test_apply, logger.set_override,
-                                                       _ew_settings, shadow)
+                    try:
+                        _st_j = json.loads(_st_req)
+                        _st_sel = _st_j.get("tests") if isinstance(_st_j, dict) else None      # "true" = alla
+                    except ValueError:
+                        _st_sel = None
+                    _started, _why = system_test.start(_system_test_ctx(), _st_sel, logger.set_override, _ew_settings, shadow)
                     print("🧪 Systemtest startat." if _started else f"🧪 Systemtest startades inte: {_why}")
                 except Exception as _ste2:
                     print(f"⚠️ Systemtest: {_ste2}")

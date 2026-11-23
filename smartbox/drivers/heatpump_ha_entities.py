@@ -43,6 +43,17 @@ class HaEntitiesHeatPumpDriver(HeatPumpDriver):
         v = homeassistant._get_numeric_state(ent)
         return float(v) if isinstance(v, (int, float)) else None
 
+    def read_room_target(self):
+        """Rumsbörvärdet: room_target som number-entitet (tillståndet) eller climate-entitet (attributet temperature)."""
+        ent = self._e.get("room_target")
+        if not ent:
+            return None
+        if ent.split(".", 1)[0] == "climate":
+            v = homeassistant._get_numeric_attribute(ent, "temperature")
+        else:
+            v = homeassistant._get_numeric_state(ent)
+        return float(v) if isinstance(v, (int, float)) and not isinstance(v, bool) and v == v else None
+
     def _warn_once(self, key, msg):
         if key not in self._warned:
             print(msg)

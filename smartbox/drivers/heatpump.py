@@ -120,6 +120,11 @@ class HeatPumpDriver(ABC):
         return False
 
     # --- befintligt lager (main.py) -----------------------------------------------------------------------------
+    def read_room_target(self) -> float | None:
+        """Rumsbörvärdet som pumpen/climate-entiteten har just nu, om det går att läsa tillbaka (annars None). Systemtestet
+        (system_test.py) provar bara styrning av börvärdet när det går att läsa tillbaka, eftersom det måste kunna återställas."""
+        return None
+
     @abstractmethod
     def read_sensors(self) -> dict:
         """Normaliserade nycklar, alla valfria (None om värmepumpen/protokollet saknar dem):

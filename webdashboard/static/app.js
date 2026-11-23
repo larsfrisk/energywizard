@@ -2053,41 +2053,52 @@ async function renderVarmepump() {
   };
 }
 
-// ---- "Testa ditt system" (smartbox/system_test.py): erbjuds som sista steg efter installationsguiden och under System ----
+// ---- "Testa ditt system" (smartbox/system_test.py, system_check.py): erbjuds som sista steg efter installationsguiden och under System ----
 let sysTestTimer = null;
+const SYS_ICON = { ok: "✅", warn: "⚠️", fail: "❌" };
+function sysReadsHtml(reads) {
+  return (reads || []).map((g) => {
+    const n = g.items.length, ok = g.items.filter((i) => i.status === "ok").length;
+    return `<details${g.worst !== "ok" ? " open" : ""} style="margin:4px 0"><summary style="cursor:pointer">${SYS_ICON[g.worst] || ""} <b data-noi18n>${esc(g.device)}</b> <span class="note" data-noi18n>${ok}/${n}</span></summary>
+      ${g.items.map((i) => `<div class="setrow" style="padding:3px 0 3px 22px"><span data-noi18n>${SYS_ICON[i.status] || ""} ${esc(i.label)}</span><span class="note" data-noi18n>${esc(i.note || "")}</span></div>`).join("")}</details>`;
+  }).join("");
+}
 async function systemTestCard(host, opts) {
   if (!host) return;
   opts = opts || {};
   clearTimeout(sysTestTimer);
   let d;
   try { d = await api("api/system_test"); } catch (e) { host.innerHTML = ""; return; }
-  const st = d.status || null, running = !!(st && st.state === "running") || d.requested;
+  const st = opts.fresh ? null : (d.status || null), running = !opts.fresh && (!!(st && st.state === "running") || d.requested);
   const icon = (r) => r.ok === true ? "✅" : r.ok === false ? "❌" : "➖";
-  const rows = ((st && st.steps) || []).map((r) => `<div class="setrow"><span>${icon(r)} <b>${esc(r.name)}</b></span><span class="note" data-noi18n>${esc(r.note || "")}${r.measured_w != null ? ` (${r.measured_w} W)` : ""}</span></div>`).join("");
+  const steps = ((st && st.steps) || []).map((r) => `<div class="setrow"><span>${icon(r)} <b data-noi18n>${esc(r.name)}</b></span><span class="note" data-noi18n>${esc(r.note || "")}</span></div>`).join("");
+  const reads = sysReadsHtml(st && st.reads);
   let body;
-  if (!d.eligible) {
-    body = `<div class="note" data-noi18n>${esc(d.reason)}</div>`;
-  } else if (running) {
-    body = `<div class="note"><span>Testet pågår. Låt batteriet vara, det tar cirka tio minuter.</span> ${st && st.step ? `<b data-noi18n>${esc(((st.steps || []).find((x) => x.intent === st.step) || {}).name || "")}</b>` : ""}</div>${rows}`;
-  } else if (st && st.state === "unavailable") {
-    body = `<div style="margin-bottom:6px" data-noi18n>${esc(st.reason || "")}</div><div class="note"><span>Har du just sparat installationen: vänta en minut tills EnergyWizard har startat om och försök igen.</span></div>
-      <div style="margin-top:10px"><button class="icobtn" id="systestgo">Försök igen</button></div>`;
+  if (running) {
+    body = `<div class="note" style="margin-bottom:6px"><span>Testet pågår. Låt installationen vara, det tar några minuter.</span></div>${reads ? `<div style="margin-top:8px"><b>Läsningar</b></div>${reads}` : ""}${steps ? `<div style="margin-top:8px"><b>Styrning</b></div>${steps}` : ""}`;
   } else if (st && (st.state === "done" || st.state === "failed")) {
-    body = `<div style="font-weight:700;margin-bottom:6px" data-noi18n>${esc(st.summary || "")}</div>${rows}
-      <div class="note" style="margin-top:6px"><span>Batteriet är tillbaka i sitt normala läge.</span></div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button class="icobtn" id="systestgo">Kör om testet</button><button class="icobtn" id="systestsend">Skicka resultatet till utvecklaren</button></div><div class="note" id="systestref"></div>`;
+    body = `<div style="font-weight:700;margin-bottom:6px" data-noi18n>${esc(st.summary || "")}</div>
+      ${reads ? `<div style="margin-top:8px"><b>Läsningar</b></div>${reads}` : ""}${steps ? `<div style="margin-top:8px"><b>Styrning</b></div>${steps}` : ""}
+      <div class="note" style="margin-top:6px"><span>Det som ändrades under testet har satts tillbaka.</span></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"><button class="icobtn" id="systestagain">Kör om testet</button><button class="icobtn" id="systestsend">Skicka resultatet till utvecklaren</button></div><div class="note" id="systestref"></div>`;
   } else {
-    body = `<div style="margin-bottom:8px">${opts.guide ? "Installationen och alla dina val är sparade. " : ""}Som sista steg kan du testa att batteriet gör som EnergyWizard ber om. Testet tar cirka tio minuter, skickar högst 1 kW till batteriet (håll, ladda och ladda ur, ett i taget) och sätter tillbaka allt efteråt.</div>
-      <div class="note" style="margin-bottom:10px">Du kan hoppa över det och göra det senare under System. Fungerar något inte får du veta vad, och du kan skicka resultatet till oss.</div>
+    const boxes = (d.tests || []).map((t, i) => `<label style="display:flex;gap:8px;align-items:flex-start;padding:4px 0;${t.eligible ? "" : "opacity:.55"}"><input type="checkbox" class="systestpick" data-id="${esc(t.id)}" ${t.eligible ? "checked" : "disabled"}><span><span data-noi18n>${esc(t.label)}</span>${t.eligible ? "" : `<span class="note" style="display:block" data-noi18n>${esc(t.reason || "")}</span>`}</span></label>`).join("");
+    body = `<div style="margin-bottom:8px">${opts.guide ? "Installationen och alla dina val är sparade. " : ""}Som sista steg kontrollerar EnergyWizard allt du har valt. Först läser den av alla valda enheter och sensorer, utan att ändra något. Sedan kan den prova styrningen av det du kryssar i nedan, och sätter tillbaka allt den ändrat.</div>
+      ${boxes ? `<div style="margin:8px 0"><b>Styrtester</b>${boxes}</div>` : `<div class="note" style="margin:8px 0"><span>Inga styrbara enheter är valda, så bara läsningarna kontrolleras.</span></div>`}
+      <div class="note" style="margin-bottom:10px"><span>Du kan hoppa över det och göra det senare under System. Det tar några minuter och skickar riktiga kommandon även i skuggläge, men bara för det du kryssat i.</span></div>
       <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="icobtn" id="systestgo">Starta testet</button>${opts.guide ? '<button class="icobtn" id="systestskip">Hoppa över</button>' : ""}</div>`;
   }
   host.innerHTML = `<div class="card" style="margin-bottom:16px;${opts.guide ? "border-color:var(--acc)" : ""}"><h2 style="margin:0 0 8px">${opts.guide ? "Sista steget: testa ditt system" : "Testa ditt system"}</h2>${body}</div>`;
+  const again = document.getElementById("systestagain");
+  if (again) again.onclick = () => { host.innerHTML = ""; systemTestCard(host, Object.assign({}, opts, { fresh: true })); };
   const go = document.getElementById("systestgo");
   if (go) go.onclick = async () => {
-    if (!confirm("Testet skickar riktiga kommandon till batteriet i cirka tio minuter, även i skuggläge. Fortsätta?")) return;
+    const picked = [...host.querySelectorAll(".systestpick:checked")].map((x) => x.dataset.id);
+    const hasControl = picked.length > 0;
+    if (hasControl && !confirm("Testet skickar riktiga kommandon till det du kryssat i, även i skuggläge, och sätter tillbaka allt efteråt. Fortsätta?")) return;
     go.disabled = true;
-    try { await postJSON("api/system_test/start", { confirm: true }); } catch (e) { alert(e.message || "Kunde inte starta testet"); }
-    setTimeout(() => systemTestCard(host, opts), 3000);
+    try { await postJSON("api/system_test/start", { confirm: true, tests: picked }); } catch (e) { alert(e.message || "Kunde inte starta testet"); }
+    setTimeout(() => systemTestCard(host, Object.assign({}, opts, { fresh: false })), 3000);
   };
   const skip = document.getElementById("systestskip");
   if (skip) skip.onclick = () => { host.innerHTML = ""; };

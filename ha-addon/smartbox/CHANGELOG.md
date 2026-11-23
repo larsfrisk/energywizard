@@ -2,6 +2,9 @@
 
 ❤️ EnergyWizard är gratis och öppet. Om det sparar pengar hemma hos dig kan du hålla det så med en sponsring (runt 10 USD i månaden räcker långt): https://github.com/sponsors/murre87
 
+## 1.2.161 (2026-11-23)
+- **Testa ditt system testar nu allt du valt, inte bara batteriet.** Del A läser av alla valda entiteter och drivrutiner (värmepump, spabad, solceller, batteri, elmätare, bilar, laddboxar, maskiner, väder) och säger vad som saknas, inte svarar, är text där tal väntas, orimligt eller gammalt, utan att skicka något. Det fångar bland annat en laddbox utan effektsensor (0 kr i kostnadskortet) och valda givare som aldrig används. Del B är valfria styrtester du kryssar i: batteri (håll, ladda, ladda ur), värmepump (rumsbörvärdet ändras 0,5 °C), spabad (målvärdet ändras 0,5 °C) och laddbox (6 A i högst 90 s, bara om bilen är inkopplad och inte laddar). Varje test läser tillbaka och sätter alltid tillbaka det som ändrats, även efter en omstart mitt i. Värmepumpen provas bara om börvärdet går att läsa tillbaka. Se `docs/system-test.md`. **Styrtesterna är inte provade mot riktig hårdvara**, bara med tester.
+
 ## 1.2.160 (2026-11-23)
 - **Varmvattenraden i Översikten säger det verkliga läget (#583).** Den stod "14 dagar passerade – Tvingande körning till 60°C" varje varv, med gränsen i stället för det verkliga antalet dagar, och även i skuggläge där inget skickas. Nu står antal dagar sedan varmvattnet senast mättes på legionellatemperaturen (eller att det aldrig mätts), och i skuggläge att ingen tvingande körning skickas.
 - **Inställningarna kraschar inte efter en uppgradering (#585).** När en ny version lägger till en kolumn i inställningstabellen kunde motorns långlivade databasanslutningar fortsätta felas med "cached plan must not change result type" tills motorn startades om. Anslutningspoolerna förbereder nu aldrig frågor på servern.

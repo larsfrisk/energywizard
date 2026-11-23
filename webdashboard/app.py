@@ -1999,57 +1999,63 @@ async def set_notification(key: str, request: Request):
     return {"ok": True}
 
 
+def _system_test_tests():
+    """Styrtesterna som går att välja (system_test.config_tests) ur installationen."""
+    import system_test
+    try:
+        hc = house_config.load_house_config(HOUSE_CONFIG_FILE)
+        bs = house_config.battery_settings(hc)
+    except Exception:
+        return []
+    return system_test.config_tests(hc, bs)
+
+
 @app.get("/api/system_test")
 async def api_system_test(request: Request):
-    """"Testa ditt system": går det att prova, och hur det gick (smartbox/system_test.py). Motorn skriver förloppet i
+    """"Testa ditt system": vilka tester som finns och hur det gick (smartbox/system_test.py). Motorn skriver förloppet i
     överstyrningen system_test_status; webben läser bara."""
     role, _ = AUTH.session(request)
     if role != "owner":
         return JSONResponse({"detail": "Bara ägaren"}, status_code=403)
     import json as _json
     import system_test
-    try:
-        cfg = house_config.battery_settings(house_config.load_house_config(HOUSE_CONFIG_FILE))
-    except Exception:
-        cfg = {}
-    ok, why = system_test.eligibility(cfg, set(system_test._ORDER))      # intents avgörs av motorn när testet startar
+    tests = _system_test_tests()
     with ENGINE.connect() as c:
         ov = _overrides(c, (system_test.OVERRIDE_STATUS, system_test.OVERRIDE_REQ))
     try:
         status = _json.loads(ov.get(system_test.OVERRIDE_STATUS) or "null")
     except ValueError:
         status = None
-    return {"ok": True, "eligible": ok, "reason": why, "status": status,
-            "requested": str(ov.get(system_test.OVERRIDE_REQ)).lower() == "true"}
+    req = ov.get(system_test.OVERRIDE_REQ)
+    return {"ok": True, "tests": tests, "eligible": True, "reason": "", "status": status,
+            "requested": bool(req) and str(req).lower() != "false"}
 
 
 @app.post("/api/system_test/start")
 async def api_system_test_start(request: Request):
-    """Begär testet (bara ägaren, och bara med uttryckligt bekräftande). Motorn startar det inom tio sekunder."""
+    """Begär testet (bara ägaren, och bara med uttryckligt bekräftande). Läsningarna körs alltid; styrtesterna väljs i tests.
+    Motorn startar det inom tio sekunder."""
     role, _ = AUTH.session(request)
     if role != "owner":
         return JSONResponse({"detail": "Bara ägaren kan starta testet"}, status_code=403)
     body = await request.json()
     if body.get("confirm") is not True:
         return JSONResponse({"detail": "Bekräfta att testet får skicka kommandon till batteriet"}, status_code=400)
+    import json as _json
     import system_test
-    try:
-        cfg = house_config.battery_settings(house_config.load_house_config(HOUSE_CONFIG_FILE))
-    except Exception:
-        cfg = {}
-    ok, why = system_test.eligibility(cfg, set(system_test._ORDER))
-    if not ok:
-        return JSONResponse({"detail": why}, status_code=409)
+    avail = {t["id"] for t in _system_test_tests() if t["eligible"]}
+    picked = body.get("tests")
+    picked = [t for t in picked if t in avail] if isinstance(picked, list) else sorted(avail)
     with ENGINE.begin() as c:
         cur = _overrides(c, (system_test.OVERRIDE_STATUS,))
         try:
-            running = (__import__("json").loads(cur.get(system_test.OVERRIDE_STATUS) or "null") or {}).get("state") == "running"
+            running = (_json.loads(cur.get(system_test.OVERRIDE_STATUS) or "null") or {}).get("state") == "running"
         except ValueError:
             running = False
         if running:
             return JSONResponse({"detail": "Ett test pågår redan"}, status_code=409)
-        c.execute(text("INSERT INTO overrides (device, mode) VALUES (:d, 'true') ON CONFLICT (device) DO UPDATE SET mode = 'true', updated_at = now()"),
-                  {"d": system_test.OVERRIDE_REQ})
+        c.execute(text("INSERT INTO overrides (device, mode) VALUES (:d, :m) ON CONFLICT (device) DO UPDATE SET mode = :m, updated_at = now()"),
+                  {"d": system_test.OVERRIDE_REQ, "m": _json.dumps({"tests": picked})})
         c.execute(text("DELETE FROM overrides WHERE device = :d"), {"d": system_test.OVERRIDE_STATUS})     # gammalt resultat ur vägen
     return {"ok": True, "message": "Testet startar inom några sekunder."}
 
