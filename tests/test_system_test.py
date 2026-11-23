@@ -247,3 +247,15 @@ def test_shadow_bypass_ar_trådlokal():
         t.start(); t.join()
     assert seen["inne"] is False
     assert shadow.active() == seen["annan_trad"]                  # andra trådar påverkas inte
+
+
+def test_thermia_borvarde_gar_att_lasa_tillbaka():
+    from unittest.mock import patch
+    from drivers.heatpump_thermia import ThermiaHusdataHeatPumpDriver
+    drv = ThermiaHusdataHeatPumpDriver()
+    with patch("drivers.heatpump_thermia.pump.read_sensors", return_value={"room_temp_setpoint": 15.5}):
+        assert drv.read_room_target() == 15.5
+    with patch("drivers.heatpump_thermia.pump.read_sensors", return_value={}):
+        assert drv.read_room_target() is None
+    with patch("drivers.heatpump_thermia.pump.read_sensors", return_value=None):
+        assert drv.read_room_target() is None

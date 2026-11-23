@@ -2,6 +2,9 @@
 
 ❤️ EnergyWizard är gratis och öppet. Om det sparar pengar hemma hos dig kan du hålla det så med en sponsring (runt 10 USD i månaden räcker långt): https://github.com/sponsors/murre87
 
+## 1.2.164 (2026-11-23)
+- **Testa ditt system kan nu prova styrningen av Thermia-värmepumpar (Husdata).** Rumsbörvärdet läses ur pumpens register (`room_temp_setpoint`), så testet kan ändra det 0,5 °C, läsa tillbaka och sätta tillbaka det. Förut hoppades testet över eftersom drivrutinen inte kunde läsa tillbaka börvärdet. Spabadstestet är körd på en riktig Gecko (Spabad: 38,5 till 39 och tillbaka, bekräftat).
+
 ## 1.2.163 (2026-11-23)
 - Testa ditt system: luft mellan etikett och värde i resultatlistan, och texten om att något "satts tillbaka" visas bara när ett styrtest faktiskt ändrat något. Sammanfattningen säger inte längre "läsningar" två gånger.
 
