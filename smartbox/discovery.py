@@ -571,6 +571,22 @@ def _battery_control_preset(ents, all_ents=None):
                               "discharge": {"service": "huawei_solar.forcible_discharge", "data": data, "power_field": "power"}},
                     "note": "Huawei LUNA2000: styrs med integrationens tjänster (tvångsladdning 30 min i taget). Provad mot "
                             "källkoden, inte på riktig hårdvara - börja i skuggläge."}
+    # Emaldo Power Core/Power Store via wertigpar/ha-emaldo (services.yaml, README, läst 2026-11-23, issue #580):
+    # styrningen är 15-minuterspass: set_slot_range(start_time, end_time, action) med charge-100 (ladda mot 100 %) eller
+    # discharge-low (ladda ur mot lägre markören). {slot_start}/{slot_end} fylls i av drivrutinen (30 min framåt, omskrivning
+    # var 5:e minut). Slutar EnergyWizard skriva löper fönstret ut och batteriet går på sitt eget AI-schema. Auto =
+    # reset_to_internal(all). Effekten sätts inte (batteriet väljer själv). Batterieffektens tecken är + = URladdning (README).
+    # Ingen "håll": idle stänger både ladd och urladdning, vilket inte är samma sak. EJ VERIFIERAT mot ett riktigt batteri.
+    if any(_has(x.get("m"), re.compile(r"emaldo", re.I)) or _has(x.get("e"), re.compile(r"power_store_", re.I)) for x in ents) \
+            and _find(ents, "sensor", re.compile(r"battery soc$|battery_soc$", re.I)):
+        slot = {"start_time": "{slot_start}", "end_time": "{slot_end}"}
+        return {"name": "emaldo", "entities": {}, "keepalive_s": 300, "power_invert": True,
+                "modes": {"auto": {"service": "emaldo.reset_to_internal", "data": {"all": True}},
+                          "charge": {"service": "emaldo.set_slot_range", "data": {**slot, "action": "charge-100"}},
+                          "discharge": {"service": "emaldo.set_slot_range", "data": {**slot, "action": "discharge-low"}}},
+                "note": "Emaldo: styrs med 15-minuterspass via integrationens tjänster. Inte verifierat mot ett riktigt batteri - "
+                        "börja i skuggläge. Stäng av ha-battery-optimizer (och andra som skriver Emaldos schema) innan "
+                        "EnergyWizard tar över, annars skriver de över varandra."}
     # --- 2026-11-06: Sonnen, Victron och Kostal (integrationernas källkod lästa samma dag) ---
     # Sonnen via weltmeyer/ha_sonnenbatterie (services.yaml/service.py): charge_battery/discharge_battery(device_id, power)
     # skriver API:ets börvärde, som bara gäller i manuellt läge - därför först set_operating_mode manual. Auto = automatic.
@@ -844,8 +860,14 @@ def discover_house(entities: list[dict] | None = None) -> dict:
     # Delsensorer på samma mätare (t.ex. HomeWizard P1: "Power phase 1", "Battery group power", "Average demand")
     # är inte husets nettoeffekt - förut kunde den första av dem väljas.
     not_total = re.compile(r"phase|fas\b|l[123]\b|battery|batteri|production|produktion|reactive|apparent|average|peak|demand|target", re.I)
+    # Emaldo (ha-emaldo): "Grid power" är nätet (+ = import, README), "Consumption" och "...load power" är husets last, inte nätet.
+    emaldo_grid = re.compile(r"(^|\.)power_store_grid_power$", re.I)
+    emaldo_load = re.compile(r"(^|\.)power_store_(consumption|additional_load_power|other_load_power)$", re.I)
     for e in power:
-        if e is solar_e or not _has(_candidate(e) + " " + (e.get("n") or ""), GRID) or _has(e.get("n"), not_total):
+        if _has(e["e"], emaldo_load):
+            continue
+        if e is solar_e or not (_has(_candidate(e) + " " + (e.get("n") or ""), GRID) or _has(e["e"], emaldo_grid)) \
+                or (_has(e.get("n"), not_total) and not _has(e["e"], emaldo_grid)):
             continue
         kind = "pulse" if _has(_candidate(e), re.compile("tibber", re.I)) else "smartmätare"
         grid_meters.append({"power_entity": e["e"], "maker": e.get("m"), "kind": kind})

@@ -133,3 +133,52 @@ def test_sigenergy_utan_normalt_lage_ger_ingen_styrning():
               "options": ["PCS Remote Control"]},
              E("switch.sg_ems", "Remote EMS", m="Sigenergy", st="off")])
     assert not (b.get("generic_suggestion") or {}).get("modes")         # ingen styrning föreslås utan normalläget
+
+
+def test_emaldo_via_ha_med_tjänster_och_slot_tider():
+    b = bat([E("sensor.power_store_battery_soc", "Power Store Battery SoC", m="Emaldo", dc="battery", u="%"),
+             E("sensor.power_store_battery_power", "Power Store Battery power", m="Emaldo", dc="power", u="W", st="-1200"),
+             E("sensor.power_store_grid_power", "Power Store Grid power", m="Emaldo", dc="power", u="W", st="300")])
+    gs = b["generic_suggestion"]
+    assert gs["preset"] == "emaldo" and gs["power_invert"] is True and gs["keepalive_s"] == 300
+    assert gs["modes"]["charge"] == {"service": "emaldo.set_slot_range",
+                                     "data": {"start_time": "{slot_start}", "end_time": "{slot_end}", "action": "charge-100"}}
+    assert gs["modes"]["discharge"]["data"]["action"] == "discharge-low" and "hold" not in gs["modes"]
+    assert gs["modes"]["auto"] == {"service": "emaldo.reset_to_internal", "data": {"all": True}}
+    assert "skuggläge" in b["note"] and b["control_preset"] == "emaldo"
+
+
+def test_emaldo_slot_tider_fylls_i_per_kvart():
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+
+    from drivers.battery_generic import _fill_slot_times
+    d = {"start_time": "{slot_start}", "end_time": "{slot_end}", "action": "charge-100", "all": True}
+    out = _fill_slot_times(d, now=datetime(2026, 11, 23, 14, 22, 40, tzinfo=ZoneInfo("Europe/Stockholm")))
+    assert out == {"start_time": "14:15", "end_time": "14:45", "action": "charge-100", "all": True}
+    assert _fill_slot_times({"all": True}) == {"all": True}
+    out = _fill_slot_times(d, now=datetime(2026, 11, 23, 23, 50, tzinfo=ZoneInfo("Europe/Stockholm")))
+    assert out["start_time"] == "23:45" and out["end_time"] == "00:15"
+
+
+def test_emaldo_nätmätare_är_grid_power_inte_consumption():
+    r = discover_house([E("sensor.power_store_battery_soc", "Power Store Battery SoC", m="Emaldo", dc="battery", u="%"),
+                        E("sensor.power_store_battery_power", "Power Store Battery power", m="Emaldo", dc="power", u="W"),
+                        E("sensor.power_store_grid_power", "Power Store Grid power", m="Emaldo", dc="power", u="W", st="300"),
+                        E("sensor.power_store_consumption", "Power Store Consumption", m="Emaldo", dc="power", u="W", st="900")])
+    assert [m["power_entity"] for m in r["grid_meters"]] == ["sensor.power_store_grid_power"]
+    assert r["power_meter"]["entities"]["power_w"] == "sensor.power_store_grid_power"
+
+
+def test_emaldo_laddar_med_slot_fönster():
+    from drivers.battery_generic import GenericBatteryDriver
+    calls = []
+    modes = {"charge": {"service": "emaldo.set_slot_range",
+                        "data": {"start_time": "{slot_start}", "end_time": "{slot_end}", "action": "charge-100"}}}
+    with patch("drivers.battery_generic.homeassistant") as ha:
+        ha.call_service.side_effect = lambda dom, svc, data: calls.append((dom, svc, data)) or True
+        d = GenericBatteryDriver(entities={}, modes=modes)
+        assert d.apply_intent("charge", 3000.0)
+    dom, svc, data = calls[0]
+    assert (dom, svc) == ("emaldo", "set_slot_range") and data["action"] == "charge-100"
+    assert len(data["start_time"]) == 5 and data["start_time"][3:] in ("00", "15", "30", "45") and ":" in data["end_time"]

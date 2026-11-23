@@ -74,6 +74,28 @@ from drivers.battery import BatteryDriver, INTENTS
 
 SOLIS_RC_CHARGE = "Solis RC Force Battery Charge"
 KEEPALIVE_INTENTS = ("charge", "discharge", "hold")
+SLOT_WINDOW_MIN = 30           # {slot_start}..{slot_end}: nuvarande kvart och nästa, så att en omskrivning var 5-10 min aldrig lämnar glapp
+
+
+def _fill_slot_times(data: dict, now=None) -> dict:
+    """Tjänster som tar ett tidsfönster (Emaldos set_slot_range: start_time/end_time som HH:MM) får {slot_start} = början av
+    nuvarande kvart och {slot_end} = SLOT_WINDOW_MIN minuter senare, i husets tidszon. Tystnar EnergyWizard tar batteriet
+    sitt eget schema när fönstret löpt ut. Andra värden lämnas orörda."""
+    if not any(isinstance(v, str) and "{slot_" in v for v in data.values()):
+        return data
+    from datetime import datetime, timedelta
+    import nordpool
+    now = now or datetime.now(nordpool.price_timezone())
+    start = now.replace(minute=now.minute // 15 * 15, second=0, microsecond=0)
+    end = start + timedelta(minutes=SLOT_WINDOW_MIN)
+    rep = {"{slot_start}": start.strftime("%H:%M"), "{slot_end}": end.strftime("%H:%M")}
+    out = {}
+    for k, v in data.items():
+        if isinstance(v, str):
+            for a, b in rep.items():
+                v = v.replace(a, b)
+        out[k] = v
+    return out
 
 
 class GenericBatteryDriver(BatteryDriver):
@@ -281,7 +303,7 @@ class GenericBatteryDriver(BatteryDriver):
         p = int(round(abs(power_w))) if power_w is not None else int(self.max_power_w or 2500)
         if step.get("service"):
             domain, _, svc = str(step["service"]).partition(".")
-            data = dict(step.get("data") or {})
+            data = _fill_slot_times(dict(step.get("data") or {}))
             if step.get("power_field"):
                 data[step["power_field"]] = p
             return bool(domain and svc) and bool(homeassistant.call_service(domain, svc, data))

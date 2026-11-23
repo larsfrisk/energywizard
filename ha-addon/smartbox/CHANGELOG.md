@@ -2,6 +2,9 @@
 
 ❤️ EnergyWizard är gratis och öppet. Om det sparar pengar hemma hos dig kan du hålla det så med en sponsring (runt 10 USD i månaden räcker långt): https://github.com/sponsors/murre87
 
+## 1.2.174 (2026-11-23)
+- **Emaldo-förinställning (ny, ej provad på riktigt batteri).** Installationsguiden känner igen Emaldo-batterier via `wertigpar/ha-emaldo` och föreslår styrning med integrationens 15-minuterspass (`emaldo.set_slot_range`, ladda mot 100 % eller ladda ur), omskrivet var femte minut. Slutar EnergyWizard skriva tar batteriets eget schema över efter högst 30 minuter. Batterieffektens tecken (plus = urladdning) och nätmätaren (`power_store_grid_power`, inte husets last) väljs rätt. Börja i skuggläge. Tack till testaren i #580.
+
 ## 1.2.173 (2026-11-23)
 - **Tillsatsen syns i mobilappen.** På Hus-sidan, under Värme inne, visas en röd rad när värmepumpen går på tillsats (steg, procent och hur länge den gått idag), och annars hur många minuter den gått idag. Bara för pumpar som rapporterar tillsatsen (Thermia Diplomat via Husdata).
 - **Värmepumpsrutan i flödesbilden (Just nu) visar tillsats eller ingen tillsats**, till exempel "Går · inne 21,6 °C · ingen tillsats" eller "tillsats 1 34 %". Samma ruta finns på webben, i appen och i Home Assistant-kortet.
