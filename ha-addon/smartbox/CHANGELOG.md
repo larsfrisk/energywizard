@@ -2,6 +2,9 @@
 
 ❤️ EnergyWizard är gratis och öppet. Om det sparar pengar hemma hos dig kan du hålla det så med en sponsring (runt 10 USD i månaden räcker långt): https://github.com/sponsors/murre87
 
+## 1.2.171 (2026-11-23)
+- **Notis när värmepumpen kör på tillsats (elpatron).** Pumpen har egna räknare för tillsatsdrift. Stiger någon av dem skickas en notis med gradminuter och elpris (kategorin Värmepump, kan stängas av under Notiser). Räknaren tickar i hela enheter, så notisen kommer när räknaren stiger och inte i samma sekund tillsatsen kopplas in.
+
 ## 1.2.170 (2026-11-23)
 - **Tillsatsvakt i rumsåterkopplingen.** När elen är dyr och värmepumpen redan ligger på −700 gradminuter eller lägre (pumpen kopplar in elpatronen nära −1200) höjer EnergyWizard inte längre börvärdet över golvet. Höjningen kräver mer än kompressorn orkar och bara tillsatsvärmen kan leverera, och den kostade en Thermia-ägare ca 150 kr på nio dygn. Gränsen kan ändras med inställningen `heat_aux_guard_dm` (standard −700). Under golvet gäller den hårda stoppen som förut.
 

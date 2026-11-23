@@ -47,6 +47,7 @@ import smart_plugs
 import system_test         # "Testa ditt system": kontrollerar att batteriet gör som det blir tillsagt
 import ev_schedule_auto    # nivå för automatiskt skapade laddscheman (#576)
 import spa_bath_learn      # logg över badtillfällen och förslag på badtider
+import aux_heat_watch    # tillsats (elpatron) i värmepumpen -> notis
 import spa_error_watch     # nytt fel från spabadet (Gecko: error-sensorn) -> notis
 import spa_filter          # #447: filtercykeln vilar på dyr el, skugga tills control är true
 import plug_presence
@@ -1453,6 +1454,19 @@ while True:
                                            f"kan vara påverkad.", {"tag": "spa_error"}, key="spabad")
             except Exception as _see:
                 print(f"⚠️ Spabadets felkod: {_see}")
+            # Värmepumpens tillsats (elpatron): meddela när pumpens räknare för tillsatsdrift stiger
+            try:
+                if pump_data:
+                    _aseen = _ew_settings.get(aux_heat_watch.KEY)
+                    _anew, _ainc = aux_heat_watch.step(pump_data.get("aux_runtime_h"), pump_data.get("aux_runtime_2_h"), _aseen)
+                    if _anew != _aseen:
+                        _ew_settings.update(**{aux_heat_watch.KEY: _anew})
+                    if _ainc:
+                        notifier.send_emil("🔥⚡ Värmepumpen kör på tillsats",
+                                           aux_heat_watch.message(_ainc, pump_data.get("degree_minutes"), current_price),
+                                           {"tag": "aux_heat"}, key="varmepump")
+            except Exception as _ahe:
+                print(f"⚠️ Tillsatsbevakning: {_ahe}")
             # Hushållsmaskiner ur installationen (appliances: [{name, entity}]) - "startad"-notis, inget fast märke
             appliance_states = {a["name"]: homeassistant._get_raw_state(a["entity"])
                                 for a in (house_cfg.get("appliances") or []) if isinstance(a, dict) and a.get("name") and a.get("entity")}

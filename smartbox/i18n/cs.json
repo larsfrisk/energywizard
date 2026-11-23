@@ -820,7 +820,7 @@
   "Lampor": "Světla",
   "Lampor - Verifierad På/Av (retry vid zigbee-tapp": "Světla – ověřené zapnutí/vypnutí (opakování při výpadku Zigbee",
   "Land": "Země",
-  "Larm, avstängd pump, sommarläge, kallt inne, innegivare tystnat": "Alarm, vypnuté čerpadlo, letní režim, chlad v domě, neodpovídající vnitřní senzor",
+  "Larm, avstängd pump, sommarläge, kallt inne, innegivare tystnat, tillsats (elpatron)": "Alarm, vypnuté čerpadlo, letní režim, chlad v domě, neodpovídající vnitřní senzor, přídavné topení (elektrická patrona)",
   "Letar efter prissensorer i Home Assistant": "Hledání cenových senzorů v Home Assistantu",
   "Letar efter prissensorer i Home Assistant…": "Hledání cenových senzorů v Home Assistantu…",
   "Ligger kvar i läge 'CHEAP'": "Zůstávám v režimu 'CHEAP'",

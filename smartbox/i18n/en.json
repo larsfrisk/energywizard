@@ -820,7 +820,7 @@
  "Lampor": "Lamps",
  "Lampor - Verifierad På/Av (retry vid zigbee-tapp": "Lamps - Verified On/Off (retry when Zigbee drops",
  "Land": "Country",
- "Larm, avstängd pump, sommarläge, kallt inne, innegivare tystnat": "Alarm, pump turned off, summer mode, cold indoors, indoor sensor silent",
+ "Larm, avstängd pump, sommarläge, kallt inne, innegivare tystnat, tillsats (elpatron)": "Alarm, pump turned off, summer mode, cold indoors, indoor sensor silent, auxiliary heat (electric element)",
  "Letar efter prissensorer i Home Assistant": "Looking for price sensors in Home Assistant",
  "Letar efter prissensorer i Home Assistant…": "Looking for price sensors in Home Assistant…",
  "Ligger kvar i läge 'CHEAP'": "Staying in mode 'CHEAP'",

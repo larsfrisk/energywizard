@@ -12,7 +12,7 @@ CATEGORIES = [
     ("elbil", "🚗 Elbil", "Laddning startar/klar, kabeln lossnade, laddar inte trots order, bilvärmen startade inte"),
     ("batteri", "🔋 Husbatteri", "Batteriet gör inte som det blir tillsagt"),
     ("sol", "☀️ Solceller", "Exportgränsen sätts/släpps, växelriktarfel, gränsen går inte att läsa"),
-    ("varmepump", "♨️ Värmepump", "Larm, avstängd pump, sommarläge, kallt inne, innegivare tystnat"),
+    ("varmepump", "♨️ Värmepump", "Larm, avstängd pump, sommarläge, kallt inne, innegivare tystnat, tillsats (elpatron)"),
     ("spabad", "🛁 Spabad", "Spabadet redo, skyddssensorer, tappad kontakt, locket"),
     ("pris", "💰 Elpris", "Morgonens eltips, extremt högt/lågt pris, reservpriser"),
     ("effekt", "⚡ Effekt", "Effektvakten, hög nätimport, ovanlig baslast"),
