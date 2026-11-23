@@ -1862,6 +1862,31 @@ async def api_consumption():
                            "extra": [x for x in _json_list(lb.get("extra_w")) if isinstance(x, dict) and x.get("name")]} if lb else None)}
 
 
+@app.get("/api/pump-modes")
+async def api_pump_modes(hours: int = 24):
+    """Värmepumpens driftläge per tiominuters ruta ur sensor_log: tillsats 2 > tillsats 1 > varmvatten > värme > vilar.
+    Tillsatsen kommer från Husdatas register för Add heat step 1/2 (Thermia Diplomat); saknas de visas inget tillsatsläge."""
+    hours = max(1, min(int(hours), 72))
+    q = """SELECT (floor(extract(epoch FROM timestamp) / 600) * 600)::bigint t,
+                  {aux}
+                  max(hotwater_valve * compressor_running) hw, max(compressor_running) comp, {n}
+           FROM sensor_log WHERE timestamp > now() - make_interval(hours => :h) GROUP BY 1 ORDER BY 1"""
+    with ENGINE.connect() as c:
+        try:
+            rows = c.execute(text(q.format(aux="max(add_heat_2) a2, max(add_heat_1) a1, max(add_heat_pct) pct,",
+                                           n="count(add_heat_1) n_add")), {"h": hours}).fetchall()
+        except Exception:          # kolumnerna skapas av motorn vid första loggningen efter uppdateringen
+            c.rollback()
+            rows = [(t, None, None, None, hw, comp, 0) for t, hw, comp, _ in
+                    c.execute(text(q.format(aux="", n="0")), {"h": hours}).fetchall()]
+    out, have_add = [], False
+    for t, a2, a1, pct, hw, comp, n_add in rows:
+        have_add = have_add or bool(n_add)
+        mode = ("aux2" if a2 else "aux1" if a1 else "hotwater" if hw else "heat" if comp else "idle")
+        out.append({"t": int(t), "m": mode, "pct": _n(pct) if mode in ("aux1", "aux2") else None})
+    return {"ok": True, "hours": hours, "step_s": 600, "has_aux": have_add, "slots": out}
+
+
 @app.get("/api/spa")
 async def api_spa():
     """Spabad-sidan: temperatur, mål, värmarstatus och signalstyrka (RF-kanal till

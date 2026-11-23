@@ -2,6 +2,10 @@
 
 ❤️ EnergyWizard är gratis och öppet. Om det sparar pengar hemma hos dig kan du hålla det så med en sponsring (runt 10 USD i månaden räcker långt): https://github.com/sponsors/murre87
 
+## 1.2.172 (2026-11-23)
+- **Tillsatsen (elpatronen) syns i realtid.** Thermia Diplomat via Husdata visar tillsats steg 1 och steg 2 samt hur mycket tillsatsen går (register 26, 27 och 31). Motorn läste redan värdena men sparade dem inte. Nu loggas de, och fliken Värmepump har en färgremsa för senaste 24 timmarna: vilar, värme, varmvatten, tillsats 1 och tillsats 2 (röd).
+- **Notisen om tillsats kommer nu när den slår på**, inte först när pumpens timräknare stiger. En notis per tillsatsperiod, ny först när tillsatsen varit av i tio minuter. Pumpar utan de registren använder som förut räknarna.
+
 ## 1.2.171 (2026-11-23)
 - **Notis när värmepumpen kör på tillsats (elpatron).** Pumpen har egna räknare för tillsatsdrift. Stiger någon av dem skickas en notis med gradminuter och elpris (kategorin Värmepump, kan stängas av under Notiser). Räknaren tickar i hela enheter, så notisen kommer när räknaren stiger och inte i samma sekund tillsatsen kopplas in.
 

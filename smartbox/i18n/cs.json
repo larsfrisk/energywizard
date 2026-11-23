@@ -3122,5 +3122,8 @@
  "Skickar loggen (2 dygn, sanerad) till EnergyWizards utvecklare. Den raderas efter 7 dagar och kan bara läsas av dem. Du får en referens att skriva i ärendet. Fortsätta?": "Odešle log (2 dny, očištěný) vývojářům EnergyWizard. Po 7 dnech se smaže a mohou ho číst jen oni. Dostanete referenci, kterou napíšete do hlášení. Pokračovat?",
  "Skickar den sanerade loggen (2 dygn) till utvecklarna och ger en referens att skriva i ärendet. Raderas efter 7 dagar.": "Odešle očištěný log (2 dny) vývojářům a dá referenci pro hlášení. Smaže se po 7 dnech.",
  "Skickat. Din referens:": "Odesláno. Vaše reference:",
- "(skriv den i ärendet).": "(napište ji do hlášení)."
+ "(skriv den i ärendet).": "(napište ji do hlášení).",
+ "Kunde inte läsa driftläget.": "Provozní režim se nepodařilo načíst.",
+ "ingen data": "žádná data",
+ "🔥 Driftläge, senaste 24 timmarna": "🔥 Provozní režim, posledních 24 hodin"
 }

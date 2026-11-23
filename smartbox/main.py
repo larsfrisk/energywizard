@@ -1454,17 +1454,30 @@ while True:
                                            f"kan vara påverkad.", {"tag": "spa_error"}, key="spabad")
             except Exception as _see:
                 print(f"⚠️ Spabadets felkod: {_see}")
-            # Värmepumpens tillsats (elpatron): meddela när pumpens räknare för tillsatsdrift stiger
+            # Värmepumpens tillsats (elpatron): notis när steg 1/2 slår på (realtid, Husdata-register 26/27); pumpar utan
+            # de registren faller tillbaka på räknarna för tillsatsdrift
             try:
                 if pump_data:
-                    _aseen = _ew_settings.get(aux_heat_watch.KEY)
-                    _anew, _ainc = aux_heat_watch.step(pump_data.get("aux_runtime_h"), pump_data.get("aux_runtime_2_h"), _aseen)
-                    if _anew != _aseen:
-                        _ew_settings.update(**{aux_heat_watch.KEY: _anew})
-                    if _ainc:
-                        notifier.send_emil("🔥⚡ Värmepumpen kör på tillsats",
-                                           aux_heat_watch.message(_ainc, pump_data.get("degree_minutes"), current_price),
-                                           {"tag": "aux_heat"}, key="varmepump")
+                    if pump_data.get("add_heat_1") is not None or pump_data.get("add_heat_2") is not None:
+                        _ast = _ew_settings.get(aux_heat_watch.STATE_KEY)
+                        _anst, _asteps = aux_heat_watch.realtime(pump_data.get("add_heat_1"), pump_data.get("add_heat_2"),
+                                                                 _ast, now.timestamp())
+                        if _anst != _ast:
+                            _ew_settings.update(**{aux_heat_watch.STATE_KEY: _anst})
+                        if _asteps:
+                            notifier.send_emil("🔥⚡ Värmepumpen kör på tillsats",
+                                               aux_heat_watch.message_realtime(_asteps, pump_data.get("add_heat_pct"),
+                                                                               pump_data.get("degree_minutes"), current_price),
+                                               {"tag": "aux_heat"}, key="varmepump")
+                    else:
+                        _aseen = _ew_settings.get(aux_heat_watch.KEY)
+                        _anew, _ainc = aux_heat_watch.step(pump_data.get("aux_runtime_h"), pump_data.get("aux_runtime_2_h"), _aseen)
+                        if _anew != _aseen:
+                            _ew_settings.update(**{aux_heat_watch.KEY: _anew})
+                        if _ainc:
+                            notifier.send_emil("🔥⚡ Värmepumpen kör på tillsats",
+                                               aux_heat_watch.message(_ainc, pump_data.get("degree_minutes"), current_price),
+                                               {"tag": "aux_heat"}, key="varmepump")
             except Exception as _ahe:
                 print(f"⚠️ Tillsatsbevakning: {_ahe}")
             # Hushållsmaskiner ur installationen (appliances: [{name, entity}]) - "startad"-notis, inget fast märke

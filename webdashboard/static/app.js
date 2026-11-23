@@ -1975,6 +1975,37 @@ function pumpCardHtml(p) {
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:14px;margin-top:8px">${tiles.join("")}</div>${hour}</div>`;
 }
 
+// Driftläge som färgremsa: en ruta per tio minuter. Tillsatsen (elpatron) är röd så att den syns direkt.
+const PUMP_MODES = { aux2: ["Tillsats 2", "#b91c1c"], aux1: ["Tillsats 1", "#f97316"], hotwater: ["Varmvatten", "#2563eb"],
+                     heat: ["Värme", "#16a34a"], idle: ["Vilar", "#9ca3af"] };
+async function loadPumpModes() {
+  const el = document.getElementById("pumpmodes");
+  if (!el) return;
+  try {
+    const d = await api("api/pump-modes?hours=24");
+    if (!d.ok || !d.slots.length) { el.querySelector(".note").textContent = "Ingen data än."; return; }
+    const step = d.step_s, t0 = d.slots[0].t, t1 = d.slots[d.slots.length - 1].t;
+    const byT = {}; d.slots.forEach((s) => { byT[s.t] = s; });
+    let cells = "";
+    const secs = {};
+    for (let t = t0; t <= t1; t += step) {
+      const s = byT[t], m = s ? s.m : null, def = m ? PUMP_MODES[m] : null;
+      if (m) secs[m] = (secs[m] || 0) + step;
+      const hh = new Date(t * 1000).toLocaleTimeString("sv-SE", { hour: "2-digit", minute: "2-digit" });
+      cells += `<span title="${hh} ${def ? def[0] + (s.pct != null ? " " + Math.round(s.pct) + " %" : "") : "ingen data"}" style="flex:1 1 0;min-width:1px;background:${def ? def[1] : "transparent"}"></span>`;
+    }
+    const lab = (t) => new Date(t * 1000).toLocaleTimeString("sv-SE", { hour: "2-digit", minute: "2-digit" });
+    const dur = (s) => (s >= 3600 ? Math.floor(s / 3600) + " h " : "") + Math.round((s % 3600) / 60) + " min";
+    const legend = Object.keys(PUMP_MODES).filter((k) => k !== "aux2" || d.has_aux).map((k) =>
+      `<span style="white-space:nowrap;margin-right:12px"><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${PUMP_MODES[k][1]};margin-right:4px"></span>${PUMP_MODES[k][0]}${secs[k] ? " " + dur(secs[k]) : ""}</span>`).join("");
+    el.innerHTML = `<h2>🔥 Driftläge, senaste 24 timmarna</h2>
+      <div style="display:flex;height:34px;border-radius:6px;overflow:hidden;background:var(--card-2,#eee);margin-top:8px">${cells}</div>
+      <div style="display:flex;justify-content:space-between" class="note"><span>${lab(t0)}</span><span>${lab(t1)}</span></div>
+      <div class="note" style="margin-top:6px">${legend}</div>
+      ${d.has_aux ? "" : `<div class="note" style="margin-top:6px">Tillsats visas bara för pumpar som rapporterar den (Thermia Diplomat via Husdata). Historiken börjar när funktionen kom.</div>`}`;
+  } catch (e) { el.querySelector(".note").textContent = "Kunde inte läsa driftläget."; }
+}
+
 async function renderVarmepump() {
   const main = document.getElementById("main");
   main.innerHTML = `<div class="placeholder">Laddar…</div>`;
@@ -1986,6 +2017,7 @@ async function renderVarmepump() {
       <div class="note" style="margin-top:4px">Ute ${fmt(d.outdoor_temp, 1, "°C")} · Inne ${fmt(d.indoor_temp, 1, "°C")} (mål ${fmt(d.indoor_target, 1, "°C")})</div>
     </div>
     ${pumpCardHtml(d.pump)}
+    <div class="card" style="margin-bottom:16px" id="pumpmodes"><h2>🔥 Driftläge, senaste 24 timmarna</h2><div class="note">Laddar…</div></div>
     <div class="card" style="margin-bottom:16px">
       <h2>🔋 Varmvattenberedaren som värmebatteri</h2>
       <div class="note">Laddas till ${d.heat_battery ? d.heat_battery.ceiling.toFixed(0) : "–"}°C när elen är billig eller solen räcker - töms (kompressorn vilar) när elen är dyr.</div>
@@ -2040,6 +2072,7 @@ async function renderVarmepump() {
   };
   api("api/heat-feedback").then((r) => { document.querySelectorAll("#hfseg button").forEach((b) => b.classList.toggle("on", b.dataset.hf === r.mode));
     if (r.min_sp != null) document.getElementById("hfmin").value = r.min_sp; if (r.max_sp != null) document.getElementById("hfmax").value = r.max_sp; }).catch(() => {});
+  loadPumpModes();
   document.getElementById("hfsave").onclick = async () => {
     try { await postJSON("api/heat-feedback", { min_sp: document.getElementById("hfmin").value, max_sp: document.getElementById("hfmax").value }); toast("Sparat - gäller från nästa beslut (inom 15 min)"); }
     catch (e) { toast(e.message); } };

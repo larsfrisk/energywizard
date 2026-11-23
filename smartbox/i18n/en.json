@@ -3122,5 +3122,8 @@
  "Skickar loggen (2 dygn, sanerad) till EnergyWizards utvecklare. Den raderas efter 7 dagar och kan bara läsas av dem. Du får en referens att skriva i ärendet. Fortsätta?": "Sends the log (2 days, scrubbed) to the EnergyWizard developers. It is deleted after 7 days and only they can read it. You get a reference to write in the issue. Continue?",
  "Skickar den sanerade loggen (2 dygn) till utvecklarna och ger en referens att skriva i ärendet. Raderas efter 7 dagar.": "Sends the scrubbed log (2 days) to the developers and gives a reference to write in the issue. Deleted after 7 days.",
  "Skickat. Din referens:": "Sent. Your reference:",
- "(skriv den i ärendet).": "(write it in the issue)."
+ "(skriv den i ärendet).": "(write it in the issue).",
+ "Kunde inte läsa driftläget.": "Could not read the operating mode.",
+ "ingen data": "no data",
+ "🔥 Driftläge, senaste 24 timmarna": "🔥 Operating mode, last 24 hours"
 }

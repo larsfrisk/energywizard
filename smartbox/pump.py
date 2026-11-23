@@ -220,6 +220,9 @@ def _read_sensors_once():
             "compressor_running":   reg[25],        # 25: Compressor
             "pump_heat_running":    reg[29],        # 29: Pump Radiator
             "pump_radiator_running":reg[29],
+            "add_heat_1":           reg[26],        # 26 (1A02): Add heat step 1 (0/1), elpatron steg 1
+            "add_heat_2":           reg[27],        # 27 (1A03): Add heat step 2 (0/1)
+            "add_heat_pct":         reg[31] / 10.0, # 31 (3104): Add heat status, procent
             "hotwater_valve":       reg[30],        # 30: Switch valve 1 (1A07): 0 = husvärme, 1 = varmvatten
 
             # Larm & Historik
