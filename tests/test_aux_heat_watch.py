@@ -54,3 +54,15 @@ def test_realtid_saknade_värden_ändrar_inget():
 def test_realtidstext():
     m = w.message_realtime([1, 2], 34, -1045, 2.5)
     assert "steg 1 och steg 2" in m and "34 %" in m and "-1045" in m
+
+
+def test_flödesnoden_visar_tillsats_eller_ingen_tillsats():
+    import live_flow
+    base = {"compressor_running": 1, "compressor_power_kw": 2.0, "indoor_temp": 21.6}
+
+    def det(extra):
+        return [n for n in live_flow.nodes({**base, **extra}, [])["nodes"] if n["key"] == "varmepump"][0]["detail"]
+    assert "ingen tillsats" in det({"add_heat_1": 0, "add_heat_2": 0})
+    d = det({"add_heat_1": 1, "add_heat_2": 0, "add_heat_pct": 34})
+    assert "tillsats 1 34 %" in d and "ingen" not in d
+    assert "tillsats" not in det({})

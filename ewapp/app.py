@@ -975,6 +975,22 @@ def spa_bath_set(request: Request, body: dict):
     return {"ok": True, "msg": spa_bath.summary(saved, mode)}
 
 
+def _aux_heat():
+    """Värmepumpens tillsats (elpatron) ur sensor_log: {on, steps, pct, today_min} eller None om pumpen inte rapporterar den."""
+    try:
+        with ENGINE.connect() as c:
+            r = c.execute(text("SELECT add_heat_1, add_heat_2, add_heat_pct FROM sensor_log WHERE add_heat_1 IS NOT NULL "
+                               "AND timestamp > now() - interval '10 minutes' ORDER BY timestamp DESC LIMIT 1")).fetchone()
+            if r is None:
+                return None
+            today = c.execute(text(local_sql("SELECT count(*) FROM sensor_log WHERE (add_heat_1 > 0 OR add_heat_2 > 0) AND "
+                                             "timestamp >= date_trunc('day', now() AT TIME ZONE __EW_TIMEZONE__) AT TIME ZONE __EW_TIMEZONE__"))).scalar()
+        steps = [i + 1 for i, v in enumerate((r[0], r[1])) if v and float(v) > 0]
+        return {"on": bool(steps), "steps": steps, "pct": None if r[2] is None else round(float(r[2])), "today_min": int(today or 0)}
+    except Exception:
+        return None
+
+
 @app.get("/api/home")
 def home():
     st = states()
@@ -982,7 +998,7 @@ def home():
     cfg = get_settings_row()
     return {"ok": True,
             "heat": {"inside": num(st, "sensor.smartbox_inomhustemp"), "target": num(st, "sensor.smartbox_maltemperatur"), "outside": num(st, "sensor.smartbox_utetemperatur"), "mode": ov.get("heat", "auto"),
-                     "pump_w": num(st, "sensor.smartbox_effekt_varmepump"), "price_mode": val(st, "sensor.smartbox_lage"), "cop": num(st, "sensor.smartbox_cop"), "temp_cheap": cfg.get("temp_cheap"), "temp_expensive": cfg.get("temp_expensive")},
+                     "pump_w": num(st, "sensor.smartbox_effekt_varmepump"), "price_mode": val(st, "sensor.smartbox_lage"), "cop": num(st, "sensor.smartbox_cop"), "temp_cheap": cfg.get("temp_cheap"), "temp_expensive": cfg.get("temp_expensive"), "aux": _aux_heat()},
             "water": {"temp": num(st, "sensor.smartbox_varmvatten"), "mode": ov.get("hotwater", "auto"),
                       "until": intval(ov.get("hotwater_until")) or None if ov.get("hotwater") == "on" else None},
             "spa": {"bath_suggestion": _spa_bath_suggestion(), "bath_windows": _spa_bath_listing(), "bath_mode": (ew_settings.get("spa_bath_mode") if ew_settings else None) or "bath", "temp": spa_temps(st)[0], "target": spa_temps(st)[1], "heater": spa_temps(st)[2],

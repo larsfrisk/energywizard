@@ -2,6 +2,10 @@
 
 ❤️ EnergyWizard är gratis och öppet. Om det sparar pengar hemma hos dig kan du hålla det så med en sponsring (runt 10 USD i månaden räcker långt): https://github.com/sponsors/murre87
 
+## 1.2.173 (2026-11-23)
+- **Tillsatsen syns i mobilappen.** På Hus-sidan, under Värme inne, visas en röd rad när värmepumpen går på tillsats (steg, procent och hur länge den gått idag), och annars hur många minuter den gått idag. Bara för pumpar som rapporterar tillsatsen (Thermia Diplomat via Husdata).
+- **Värmepumpsrutan i flödesbilden (Just nu) visar tillsats eller ingen tillsats**, till exempel "Går · inne 21,6 °C · ingen tillsats" eller "tillsats 1 34 %". Samma ruta finns på webben, i appen och i Home Assistant-kortet.
+
 ## 1.2.172 (2026-11-23)
 - **Tillsatsen (elpatronen) syns i realtid.** Thermia Diplomat via Husdata visar tillsats steg 1 och steg 2 samt hur mycket tillsatsen går (register 26, 27 och 31). Motorn läste redan värdena men sparade dem inte. Nu loggas de, och fliken Värmepump har en färgremsa för senaste 24 timmarna: vilar, värme, varmvatten, tillsats 1 och tillsats 2 (röd).
 - **Notisen om tillsats kommer nu när den slår på**, inte först när pumpens timräknare stiger. En notis per tillsatsperiod, ny först när tillsatsen varit av i tio minuter. Pumpar utan de registren använder som förut räknarna.

@@ -184,12 +184,19 @@ function limitChip(pw) {
   if (pw.solar_limit_pct >= 99.5) return `<span class="chip">SolarEdge: ingen begränsning</span>`;
   return `<span class="chip warn">SolarEdge begränsad till ${Math.round(pw.solar_limit_pct)} %${pw.price_now != null && pw.price_now <= 0 ? " (minuspris)" : ""}</span>`;
 }
+// Tillsatsen (elpatron) i värmepumpen: röd rad när den går, annars hur länge den gått idag (bara pumpar som rapporterar den)
+function auxNote(a) {
+  if (!a) return "";
+  const t = a.today_min >= 60 ? `${Math.floor(a.today_min / 60)} h ${a.today_min % 60} min` : `${a.today_min} min`;
+  if (a.on) return `<div class="note limnote">🔥⚡ Tillsats ${a.steps.join(" + ")} går${a.pct != null ? ` · ${a.pct} %` : ""} · idag ${t}</div>`;
+  return a.today_min ? `<div class="note">Tillsats idag ${t}</div>` : "";
+}
 function pageHus() {
   if (!H) return `<div class="note" style="text-align:center;margin-top:20dvh">Laddar…</div>`;
   const h = H.heat, w = H.water, sp = H.spa, pw = H.power;
   const pct = pw.limit_kw && pw.total_w != null ? Math.min(100, (pw.total_w / 1000 / pw.limit_kw) * 100) : 0;
   return `<div class="page"><div class="grid2">
-  <section class="card tile"><h4>Värme inne <button class="link" data-a="rooms" style="padding:0 0 0 6px;font-size:.8rem">alla rum</button></h4><div class="v">${f1(h.inside)}<small> °C</small></div><div class="note">Mål ${f1(h.target)}° · ute ${f1(h.outside, 0)}° · pump ${h.pump_w != null ? Math.round(h.pump_w) : "–"} W</div>${seg("heat", h.mode, [["auto", "Auto"], ["on", "Varm"], ["off", "Sänkt"]])}</section>
+  <section class="card tile"><h4>Värme inne <button class="link" data-a="rooms" style="padding:0 0 0 6px;font-size:.8rem">alla rum</button></h4><div class="v">${f1(h.inside)}<small> °C</small></div><div class="note">Mål ${f1(h.target)}° · ute ${f1(h.outside, 0)}° · pump ${h.pump_w != null ? Math.round(h.pump_w) : "–"} W</div>${auxNote(h.aux)}${seg("heat", h.mode, [["auto", "Auto"], ["on", "Varm"], ["off", "Sänkt"]])}</section>
   <section class="card tile"><h4>Varmvatten</h4><div class="v">${f1(w.temp, 0)}<small> °C</small></div><div class="note">COP ${f1(h.cop)}${w.until ? ` · Auto om ${hwLeft(w.until)}` : ""}</div>${seg("hotwater", w.mode, [["auto", "Auto"], ["on", "Till"], ["off", "Från"]])}</section>
   <section class="card tile wide"><h4>Spabad</h4><div class="v">${f1(sp.temp)}<small> °C</small></div><div class="note">Mål ${f1(sp.target)}° · ${esc(sp.heater || "")}${sp.error && sp.error !== "None" ? ` · ${esc(sp.error)}` : ""}</div>
     <div class="tilelink"><button class="link" data-a="spaready" style="padding:0;font-size:.82rem">${sp.ready_at ? `Klart ${esc(sp.ready_at)} (${f1(sp.ready_temp)}°) – ändra` : "Ställ in: klart kl…"}</button>${ROLE !== "guest" ? ` · <button class="link" data-a="spabath" style="padding:0;font-size:.82rem">Badtider${(sp.bath_windows || []).some((w) => w.on) ? ` (${(sp.bath_windows || []).filter((w) => w.on).length})` : ""}</button>` : ""}</div><div class="seg"><button data-a="spa" data-k="spa_auto" data-v="1" class="${!sp.force_heat && !sp.eco ? "on" : ""}" title="Följer sitt eget schema, som Home Assistant styr">Auto</button><button data-a="spa" data-k="spa_heat" data-v="${sp.force_heat ? 0 : 1}" class="${sp.force_heat ? "on" : ""}">Värm nu</button><button data-a="spa" data-k="spa_eco" data-v="${sp.eco ? 0 : 1}" class="${sp.eco ? "on" : ""}">Eco</button></div></section>

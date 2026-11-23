@@ -97,10 +97,16 @@ def nodes(row, decision_items=None, cars=None, has_spa=None, pump_w=None, manual
         if pump_w is not None and math.isfinite(pump_w):           # uppmätt el går före kompressorns värmeeffekt
             kw = max(pump_w, 0.0) / 1000.0
         indoor = _f(r.get("indoor_temp"))
+        # Tillsatsen (elpatron) för pumpar som rapporterar den (Thermia Diplomat via Husdata): steg 1/2 eller "ingen tillsats"
+        a1, a2, apct = _f(r.get("add_heat_1")), _f(r.get("add_heat_2")), _f(r.get("add_heat_pct"))
+        aux = ""
+        if a1 is not None or a2 is not None:
+            steps = [str(i + 1) for i, v in enumerate((a1, a2)) if v and v > 0]
+            aux = (f"tillsats {' + '.join(steps)}" + (f" {apct:.0f} %" if apct else "")) if steps else "ingen tillsats"
         add("varmepump", "Värmepump", "🌡️", kw * 1000.0, (comp or 0) > 0 or kw > 0.1,
             # #184: utan kompressorgivare vet vi inte om pumpen går - då står inget läge (förut "Vilar")
             " · ".join(p for p in ("Går" if (comp or 0) > 0 or kw > 0.1 else "Vilar" if comp is not None else "",
-                                   f"inne {indoor:.1f} °C" if indoor is not None else "") if p),
+                                   f"inne {indoor:.1f} °C" if indoor is not None else "", aux) if p),
             "varmepump")
         wt = _f(r.get("water_temp"))
         if wt is not None:
