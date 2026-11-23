@@ -2,6 +2,10 @@
 
 ❤️ EnergyWizard är gratis och öppet. Om det sparar pengar hemma hos dig kan du hålla det så med en sponsring (runt 10 USD i månaden räcker långt): https://github.com/sponsors/murre87
 
+## 1.2.167 (2026-11-23)
+- **Systemtestets laddboxtest slår på laddboxen som motorn gör.** En Easee som står på `awaiting_start` fick förut bara en strömgräns och började aldrig ladda, så testet hade felaktigt rapporterat att ingen ström kom. Nu får den ett på-kommando precis som motorn ger.
+- **Systemtestet hittar varmvattentemperaturen även för Thermia** (värdet heter `water_temp_top` där). Förut varnade det felaktigt att varmvattnet saknades, fast det syns i grafen.
+
 ## 1.2.166 (2026-11-23)
 - **Systemtestet ändrar Thermia-pumpens börvärde 1 °C i stället för 0,5 °C.** Pumpen sparar bara hela grader, så 15,5 läses tillbaka som 15 och testet såg aldrig sin ändring (hittat vid ett skarpt test: skrivningen gick igenom men värdet ändrades inte). Drivrutiner kan ange sitt eget steg (`room_target_step`).
 

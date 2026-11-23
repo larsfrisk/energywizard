@@ -227,7 +227,10 @@ def run_setpoint_test(tid, name, read, send, step, lo, hi, wait_s, record_restor
     return row
 
 
-def run_charger_test(tid, name, read_state, set_limit, connected, record_restore, clear_restore, sleep, clock, poll_s=POLL_S):
+_NEEDS_START = ("awaiting_start", "paused", "off")       # samma statusord som motorn slår på laddboxen vid (main.py)
+
+
+def run_charger_test(tid, name, read_state, set_limit, connected, record_restore, clear_restore, sleep, clock, poll_s=POLL_S, turn_on=None):
     """Laddbox: bara om bilen är inkopplad och inte laddar. 6 A i högst WAIT_CHARGER_S, sedan 0 A (som motorn gör när inget ska laddas)."""
     row = _row(tid, name)
     st = read_state() or {}
@@ -242,6 +245,8 @@ def run_charger_test(tid, name, read_state, set_limit, connected, record_restore
     t0 = clock()
     try:
         sent = set_limit(CHARGE_TEST_A)
+        if sent is not False and turn_on is not None and str(st.get("status") or "").lower() in _NEEDS_START:
+            turn_on()                      # som motorn: en box som väntar på start får ett på-kommando, annars blir strömgränsen ensam verkningslös
         if sent is False:
             row.update(ok=False, note="Kommandot gick inte att skicka till laddboxen.")
         else:
@@ -279,7 +284,13 @@ def collect_reads(ctx, now=None):
                    "note": f"Kunde inte läsa installationen ({type(e).__name__})."}], "worst": sc.FAIL}]
     probes = []
     if ctx.get("heatpump") is not None:
-        probes.append(("Värmepump, drivrutinens läsning", ctx["heatpump"].read_state, [("indoor_temp", "Innetemperatur"), ("outdoor_temp", "Utetemperatur"),
+        def hp_state(hp=ctx["heatpump"]):
+            st = dict(hp.read_state() or {})
+            if st.get("dhw_temp") is None:                       # Thermia (Husdata) kallar varmvattentemperaturen water_temp_top
+                sens = (hp.read_sensors() if hasattr(hp, "read_sensors") else None) or {}
+                st["dhw_temp"] = next((sens[k] for k in ("water_temp", "water_temp_top", "water_temp_mid") if sens.get(k) is not None), None)
+            return st
+        probes.append(("Värmepump, drivrutinens läsning", hp_state, [("indoor_temp", "Innetemperatur"), ("outdoor_temp", "Utetemperatur"),
                        ("forward_temp", "Framledning"), ("return_temp", "Retur"), ("dhw_temp", "Varmvatten")]))
     if ctx.get("spa") is not None:
         probes.append(("Spabad, drivrutinens läsning", ctx["spa"].read_state, [("current_temp", "Vattentemperatur"), ("target_temp", "Målvärde")]))
@@ -420,7 +431,8 @@ def start(ctx, selected, set_override, ew_settings, shadow_mod, sleep=time.sleep
                     publish(step=tid)
                     r = run_charger_test(tid, c["label"] + ": 6 A", read_fresh(c["driver"].read_state),
                                          lambda a, d=c["driver"]: d.set_limit_a(a, reason="systemtest"), c["connected"],
-                                         lambda v, t=tid: add_restore(t, v), lambda t=tid: drop_restore(t), sleep, clock)
+                                         lambda v, t=tid: add_restore(t, v), lambda t=tid: drop_restore(t), sleep, clock,
+                                         turn_on=c["driver"].turn_on)
                     body["steps"].append(r); publish()
             print("🧪 Systemtest klart: " + "; ".join(f"{r['id']}={'ok' if r['ok'] else 'fel' if r['ok'] is False else 'hoppad'}"
                                                      for r in body["steps"]) + "; " + __import__("system_check").summarize(body["reads"]))

@@ -292,3 +292,28 @@ def test_drivrutinen_anger_sitt_eget_steg_for_borvardet():
     c = Clock(); val["v"] = 15.0
     row = st.run_setpoint_test("hp", "VP", lambda: val["v"], send, 1.0, 5, 30, 90, lambda v: None, lambda: None, c.sleep, c)
     assert row["ok"] is True and val["v"] == 15.0                     # 1-steget syns och återställs
+
+
+def test_laddbox_som_vantar_pa_start_far_ett_pa_kommando():
+    c = Clock(); cur = {"a": 0.0, "status": "awaiting_start"}; sent = []; started = []
+    def set_limit(a): sent.append(a); return True
+    def turn_on(): started.append(1); cur["a"] = 6.0; cur["status"] = "charging"
+    row = st.run_charger_test("c", "Laddbox", lambda: {"status": cur["status"], "current_a": cur["a"]}, set_limit, lambda s: True,
+                              lambda v: None, lambda: None, c.sleep, c, turn_on=turn_on)
+    assert row["ok"] is True and started == [1] and sent == [6, 0]          # utan på-kommandot hade boxen aldrig börjat ladda
+
+
+def test_laddbox_som_redan_ar_pa_far_inget_extra_pa_kommando():
+    c = Clock(); cur = {"a": 0.0}; started = []
+    def set_limit(a): cur["a"] = 6.0 if a else 0.0; return True
+    row = st.run_charger_test("c", "Laddbox", lambda: {"status": "connected_requesting", "current_a": cur["a"]}, set_limit, lambda s: True,
+                              lambda v: None, lambda: None, c.sleep, c, turn_on=lambda: started.append(1))
+    assert row["ok"] is True and started == []
+
+
+def test_varmvatten_hittas_aven_nar_drivrutinen_kallar_det_water_temp_top():
+    class HP:
+        def read_state(self): return {"indoor_temp": 21.0, "outdoor_temp": -2.0, "forward_temp": 41.0, "return_temp": 32.0, "dhw_temp": None}
+        def read_sensors(self): return {"water_temp_top": 60.0}
+    g = st.collect_reads({"house_cfg": {}, "states": lambda: {}, "heatpump": HP()})
+    assert g[-1]["worst"] == "ok" and any(i["label"] == "Varmvatten" and i["status"] == "ok" for i in g[-1]["items"])
