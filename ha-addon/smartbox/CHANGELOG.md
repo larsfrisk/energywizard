@@ -2,6 +2,9 @@
 
 ❤️ EnergyWizard är gratis och öppet. Om det sparar pengar hemma hos dig kan du hålla det så med en sponsring (runt 10 USD i månaden räcker långt): https://github.com/sponsors/murre87
 
+## 1.2.170 (2026-11-23)
+- **Tillsatsvakt i rumsåterkopplingen.** När elen är dyr och värmepumpen redan ligger på −700 gradminuter eller lägre (pumpen kopplar in elpatronen nära −1200) höjer EnergyWizard inte längre börvärdet över golvet. Höjningen kräver mer än kompressorn orkar och bara tillsatsvärmen kan leverera, och den kostade en Thermia-ägare ca 150 kr på nio dygn. Gränsen kan ändras med inställningen `heat_aux_guard_dm` (standard −700). Under golvet gäller den hårda stoppen som förut.
+
 ## 1.2.169 (2026-11-23)
 - **Systemtestets laddboxtest använder 8 A i stället för 6 A.** Mot en riktig Easee med en Tesla startade bilen på ungefär tio sekunder med 8 A (och 16 A), men inte alls med 6 A, trots att kommandona gick fram. Testet kan då inte skilja ett startproblem från ett fel i boxen.
 

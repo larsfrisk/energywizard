@@ -1163,6 +1163,19 @@ class GlobalPriorityManager:
                 fb_sp, fb_why = fb_lo, f"Dyrt och huset har värme att ge av, {indoor_temp:.1f} °C inne"
             else:
                 fb_sp, fb_why = fb_floor, f"Dyrt, {indoor_temp:.1f} °C inne"
+            # Tillsatsvakt (2026-11-23, Emil: elpatronen gick i dyr el, ~150 kr på 9 dygn): när dyr el råder och pumpen redan
+            # ligger djupt i gradminuter (nära golvet -1200 kopplar den in elpatronen) höjs börvärdet inte över golvet.
+            # Höjningen kräver mer än kompressorn orkar och bara tillsatsen kan leverera. Gäller inte under golvet (hård stopp ovan).
+            try:
+                aux_dm = float(state.get('heat_aux_guard_dm') if state.get('heat_aux_guard_dm') is not None else -700.0)
+                dm_now = state.get('degree_minutes')
+                dm_now = float(dm_now) if dm_now is not None else None
+            except (TypeError, ValueError):
+                aux_dm, dm_now = -700.0, None
+            if (actions["pump_mode"] == "EXPENSIVE" and dm_now is not None and dm_now <= aux_dm
+                    and float(state.get('current_price') or 0) > 0 and fb_sp > fb_floor):
+                fb_why += f". Tillsatsvakt: gradminuter {dm_now:.0f} (gräns {aux_dm:.0f}), börvärdet höjs inte över golvet för att undvika elpatronen"
+                fb_sp = fb_floor
             if fb_mode == "på":
                 actions["pump_target_temp"] = fb_sp
                 actions["log"].append(f"🌡️ Prio 5b (HUS): Rumsåterkoppling sätter börvärdet till {fb_sp:.1f} °C. {fb_why}.")

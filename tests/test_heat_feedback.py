@@ -152,3 +152,14 @@ def test_glidtiden_är_en_inställning():
     assert a["pump_target_temp"] == 20.0
     a, _ = run(20.3, 2.0, heat_horizon=(2.0, 6.0), heat_glide_hours=1)
     assert a["pump_target_temp"] == 21.0
+
+
+def test_tillsatsvakt_höjer_inte_i_dyr_el_vid_låga_gradminuter():
+    a, log = run(20.3, 2.0, degree_minutes=-900)
+    assert a["pump_target_temp"] == 20.0 and "Tillsatsvakt" in log[0]
+    a, _ = run(20.3, 2.0, degree_minutes=-300)
+    assert a["pump_target_temp"] == 21.0
+    a, _ = run(20.3, 2.0)
+    assert a["pump_target_temp"] == 21.0
+    a, _ = run(20.3, 2.0, degree_minutes=-900, heat_aux_guard_dm=-1100)
+    assert a["pump_target_temp"] == 21.0

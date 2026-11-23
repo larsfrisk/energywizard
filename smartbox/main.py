@@ -2245,7 +2245,7 @@ while True:
                 'solar_auto_export': str(all_overrides.get("solar_auto_export", "true")).lower() != "false",
                 'sun_soon': _sun_cache.get("soon"), 'sun_day': _sun_cache.get("day"),
                 'indoor_temp': indoor_temp, 'indoor_humidity': ha_temps.get('indoor_humidity'), 'indoor_min': cfg.get("indoor_min", 19.0),
-                'indoor_low2': indoor_low2, 'heat_ml_w': heat_ml.model(now) if _ew_settings.get('heat_feedback') == "på" else None,
+                'indoor_low2': indoor_low2, 'degree_minutes': (pump_data or {}).get('degree_minutes'), 'heat_aux_guard_dm': _ew_settings.get('heat_aux_guard_dm'), 'heat_ml_w': heat_ml.model(now) if _ew_settings.get('heat_feedback') == "på" else None,
                 'heat_horizon': _heat_horizon(now, dynamic_limit), 'heat_ml_bias': _heat_bias.value,
                 'indoor_cold_confirmed': _cold_gpm_watch.update(indoor_temp is not None and indoor_temp < cfg.get("indoor_min", 19.0), now), 'indoor_max': cfg.get("indoor_max", 22.5),
                 'water_temp': water_temp or 50.0, 'water_target_normal': wt_norm,
