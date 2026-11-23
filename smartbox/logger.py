@@ -25,6 +25,11 @@ from psycopg_pool import ConnectionPool
 
 _pool = None
 _pool_lock = threading.Lock()
+def _no_prepare(conn):
+    """#585: se settings._no_prepare - SELECT * mot en tabell som en uppgradering ändrar får annars bestående fel."""
+    conn.prepare_threshold = None
+
+
 def get_db_pool():
     global _pool
     if _pool is None:
@@ -35,7 +40,8 @@ def get_db_pool():
                 # #457: samma kontroll som settings-poolen, så en död anslutning inte används till loggen.
                 _pool = ConnectionPool(
                     f"host={DB_HOST} user={DB_USER} password={DB_PASS} dbname={DB_NAME}",
-                    min_size=1, max_size=20, open=True, check=ConnectionPool.check_connection)
+                    min_size=1, max_size=20, open=True, check=ConnectionPool.check_connection,
+                    configure=_no_prepare)
     return _pool
 
 @contextmanager

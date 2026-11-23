@@ -12,13 +12,22 @@ DB_NAME = os.environ.get("POSTGRES_DB")
 from psycopg_pool import ConnectionPool, PoolTimeout
 
 _pool = None
+
+
+def _no_prepare(conn):
+    """#585: efter fem likadana frågor förbereder psycopg dem på servern. Lägger en uppgradering till en kolumn
+    (SELECT * FROM system_settings) felar frågan med "cached plan must not change result type" på varje
+    anslutning som redan förberett den, tills anslutningen byts. Frågorna här är få och billiga: förbered aldrig."""
+    conn.prepare_threshold = None
+
+
 def get_db_pool():
     global _pool
     if _pool is None:
         # #457: en anslutning som Postgres redan stängt (omstart, avbruten session) slängs innan frågan.
         _pool = ConnectionPool(
             f"host={DB_HOST} user={DB_USER} password={DB_PASS} dbname={DB_NAME}",
-            min_size=1, max_size=20, open=True, check=ConnectionPool.check_connection)
+            min_size=1, max_size=20, open=True, check=ConnectionPool.check_connection, configure=_no_prepare)
     return _pool
 
 @contextmanager

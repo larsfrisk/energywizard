@@ -2,6 +2,10 @@
 
 ❤️ EnergyWizard är gratis och öppet. Om det sparar pengar hemma hos dig kan du hålla det så med en sponsring (runt 10 USD i månaden räcker långt): https://github.com/sponsors/murre87
 
+## 1.2.160 (2026-11-23)
+- **Varmvattenraden i Översikten säger det verkliga läget (#583).** Den stod "14 dagar passerade – Tvingande körning till 60°C" varje varv, med gränsen i stället för det verkliga antalet dagar, och även i skuggläge där inget skickas. Nu står antal dagar sedan varmvattnet senast mättes på legionellatemperaturen (eller att det aldrig mätts), och i skuggläge att ingen tvingande körning skickas.
+- **Inställningarna kraschar inte efter en uppgradering (#585).** När en ny version lägger till en kolumn i inställningstabellen kunde motorns långlivade databasanslutningar fortsätta felas med "cached plan must not change result type" tills motorn startades om. Anslutningspoolerna förbereder nu aldrig frågor på servern.
+
 ## 1.2.159 (2026-11-22)
 - **Färre falska "batteriet följer inte"-notiser.** Säger batteriets drivrutin att batteriet just nu inte kan ge eller ta emot effekt (FTW-drivrutinernas `available_charge_W` / `available_discharge_W`, t.ex. kall cell eller BMS-tak) och batteriet står still, räknas det som begränsat av batteriet och ingen varning skickas. Fel riktning varnar som förut, och står batteriet still fast drivrutinen säger att det kan ge effekt varnar det också som förut. Ändrar bara varningen, aldrig styrningen. Idén kommer från FTW 0.167.0-beta.1.
 
