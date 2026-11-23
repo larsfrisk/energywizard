@@ -207,6 +207,8 @@ battery_driver = _build_or_null("Batteriet", house_config.build_battery_driver, 
 # Laddboxar: skriv via laddarens drivrutin (Easee: samma tjänster som förut; generisk/OCPP: switch +
 # sessionens strömgräns, se drivers/charger_generic.py). Utan drivrutin för id:t: Easee-anropen som förut.
 def charger_set_limit(cid, amps, reason=None):
+    if system_test.active():              # systemtestet provar laddboxen: motorns egen skrivning pausas så att den inte ändrar under testet
+        return False
     drv = physical_charger_drivers.get(cid)
     return drv.set_limit_a(amps, reason=reason) if drv else homeassistant.set_ev_dynamic_limit(cid, amps, reason=reason)
 
@@ -2684,7 +2686,7 @@ while True:
                 elif last_sent_temp != current_chosen_temp:
                     needs_update = True
                 
-                if needs_update:
+                if needs_update and not system_test.active():          # pausas medan systemtestet provar börvärdet
                     print(f"🔧 Sätter pumpens måltemp till {current_chosen_temp/10.0}°C...")
                     # Drivrutinerna tar °C (HeatPumpDriver.set_room_temp); current_chosen_temp är i tiondelar (issue #151:
                     # NIBE/myUplink/climate fick 200 °C i stället för 20,0). Thermia räknar om till tiondelar själv.
@@ -2748,7 +2750,7 @@ while True:
             if HAS_SPA and cfg.get('spa_force_heat', False):
                 print(f"🔥 [TVÅNGSVÄRME AKTIV] GPM Mål: {new_spa_target}°C, Eco: {new_spa_eco} | Faktiskt i HA: {actual_spa_target}°C")
 
-            if HAS_SPA and (last_sent_spa_target != new_spa_target or last_sent_spa_eco != new_spa_eco or 
+            if HAS_SPA and not system_test.active() and (last_sent_spa_target != new_spa_target or last_sent_spa_eco != new_spa_eco or 
                 (actual_spa_target is not None and abs(actual_spa_target - new_spa_target) > 0.1) or
                 (actual_spa_eco is not None and actual_spa_eco != new_spa_eco)):
                 print(f"🛁 => SKICKAR NYA VÄRDEN TILL SPABADET! (Eco: {new_spa_eco}, Target: {new_spa_target}°C)")

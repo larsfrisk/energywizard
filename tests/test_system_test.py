@@ -253,9 +253,28 @@ def test_thermia_borvarde_gar_att_lasa_tillbaka():
     from unittest.mock import patch
     from drivers.heatpump_thermia import ThermiaHusdataHeatPumpDriver
     drv = ThermiaHusdataHeatPumpDriver()
-    with patch("drivers.heatpump_thermia.pump.read_sensors", return_value={"room_temp_setpoint": 15.5}):
+    with patch("drivers.heatpump_thermia.pump.read_room_setpoint", return_value=15.5):
         assert drv.read_room_target() == 15.5
-    with patch("drivers.heatpump_thermia.pump.read_sensors", return_value={}):
+    with patch("drivers.heatpump_thermia.pump.read_room_setpoint", return_value=None):
         assert drv.read_room_target() is None
-    with patch("drivers.heatpump_thermia.pump.read_sensors", return_value=None):
-        assert drv.read_room_target() is None
+
+
+def test_pump_las_enda_registret_for_borvardet():
+    from unittest.mock import patch
+    import pump
+    with patch.object(pump, "PUMP_IPS", ["1.2.3.4"]), patch.object(pump, "_read_holding", return_value=[155]) as rh, \
+            patch("shadow.active", return_value=False):
+        assert pump.read_room_setpoint() == 15.5
+        rh.assert_called_once_with(15, count=1)                     # ett register, inte hela kartan
+    with patch.object(pump, "PUMP_IPS", ["1.2.3.4"]), patch.object(pump, "_read_holding", return_value=None), \
+            patch("shadow.active", return_value=False), patch("pump.time.sleep"):
+        assert pump.read_room_setpoint() is None
+
+
+def test_motorn_skriver_inte_till_styrda_enheter_under_testet():
+    """Källkontroll: de tre skrivvägarna (värmepump, spabad, laddbox) frågar system_test.active() (annars skriver motorn över testet)."""
+    import re
+    src = open("smartbox/main.py", encoding="utf-8").read()
+    assert re.search(r"if needs_update and not system_test\.active\(\)", src)
+    assert re.search(r"if HAS_SPA and not system_test\.active\(\) and \(last_sent_spa_target", src)
+    assert re.search(r"def charger_set_limit\(cid, amps, reason=None\):\n    if system_test\.active\(\):", src)

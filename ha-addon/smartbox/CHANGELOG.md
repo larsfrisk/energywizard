@@ -2,6 +2,9 @@
 
 ❤️ EnergyWizard är gratis och öppet. Om det sparar pengar hemma hos dig kan du hålla det så med en sponsring (runt 10 USD i månaden räcker långt): https://github.com/sponsors/murre87
 
+## 1.2.165 (2026-11-23)
+- **Systemtestet pausar motorns egen skrivning till värmepump, spabad och laddboxar medan det provar dem** (som det redan gjorde för batteriet). Förut skrev motorn tillbaka sitt eget värde inom en minut, så testet av värmepumpens börvärde kunde aldrig se sin ändring. Hittat vid ett skarpt test på en Thermia via Husdata. Börvärdet läses nu som ett enda register (`pump.read_room_setpoint`) i stället för hela registerkartan, eftersom H66-gatewayen bara tål en klient åt gången.
+
 ## 1.2.164 (2026-11-23)
 - **Testa ditt system kan nu prova styrningen av Thermia-värmepumpar (Husdata).** Rumsbörvärdet läses ur pumpens register (`room_temp_setpoint`), så testet kan ändra det 0,5 °C, läsa tillbaka och sätta tillbaka det. Förut hoppades testet över eftersom drivrutinen inte kunde läsa tillbaka börvärdet. Spabadstestet är körd på en riktig Gecko (Spabad: 38,5 till 39 och tillbaka, bekräftat).
 

@@ -23,7 +23,7 @@ class ThermiaHusdataHeatPumpDriver(HeatPumpDriver):
     def read_room_target(self):
         """Rumsbörvärdet ur pumpens register (room_temp_setpoint, tiondelar läses som °C). Gör att systemtestet kan prova
         styrningen och sätta tillbaka värdet efteråt."""
-        v = (pump.read_sensors() or {}).get("room_temp_setpoint")
+        v = pump.read_room_setpoint()
         return float(v) if isinstance(v, (int, float)) and not isinstance(v, bool) and v == v else None
 
     def set_room_temp(self, target_c: float) -> bool:

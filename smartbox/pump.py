@@ -477,6 +477,22 @@ def read_water_setpoints():
         time.sleep(1)
     return None
 
+def read_room_setpoint():
+    """Rumsbörvärdet (Holding 15) i °C, eller None. Läser bara det enda registret, inte hela kartan: systemtestet frågar
+    var tionde sekund medan motorn själv läser pumpen, och H66-gatewayen tål bara en klient åt gången."""
+    if not PUMP_IPS:
+        return None
+    import shadow
+    if shadow.active():
+        return None
+    for attempt in range(2):
+        regs = _read_holding(15, count=1)
+        if regs:
+            return _to_signed(regs[0]) / 10.0
+        time.sleep(1)
+    return None
+
+
 def set_water_stop_temp(target_temp):
     """Sätter maxtemperatur för Varmvatten (Holding 13)."""
     return _write_holding(13, int(target_temp * 10))
