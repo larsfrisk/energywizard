@@ -53,7 +53,6 @@ evs:
       plugged_in: binary_sensor.tesla_model_y_charger
       charging: binary_sensor.tesla_model_y_charging
       charging_amps: number.tesla_model_y_charging_amps   # bilens begärda ström: syns i kontrolljournalen när laddningen ligger under beställningen
-      charging_state: sensor.tesla_model_y_charging_state
       climate: climate.tesla_model_y_hvac_climate_system
       shift_state: sensor.tesla_model_y_shift_state   # P/D/R/N - värmen räknas inte som förvärmning under körning
       inside_temp: sensor.tesla_model_y_temperature_inside
@@ -99,8 +98,8 @@ solar:
   driver: solaredge
   entities:
     # Modbus (snabb) först, molnet (var 15:e min) som reserv
-    pv_power_w: [sensor.solaredge_i1_ac_power, sensor.solaredge_aktuell_effekt]
-    today_kwh: sensor.solaredge_el_i_dag
+    pv_power_w: [sensor.solaredge_i1_ac_power]      # 2026-11-23: sensor.solaredge_aktuell_effekt finns inte i HA (systemtestet)
+    today_kwh: sensor.solaredge_sol_idag            # 2026-11-23: var sensor.solaredge_el_i_dag, som inte finns i HA (systemtestet)
   curtailment:
     mode: solaredge_modbus_proprietary
     entity: number.solaredge_modbus_active_power_limit
