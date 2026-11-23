@@ -48,7 +48,7 @@ def test_saknad_otillganglig_och_icke_numerisk_entitet():
 
 
 def test_orimliga_varden_och_gammal_data_varnas():
-    st = dict(STATES); st["sensor.inne"] = S("250", "°C"); st["sensor.ute"] = S("-2.0", "°C", age_min=400); st["sensor.soc"] = S("162", "%")
+    st = dict(STATES); st["sensor.inne"] = S("250", "°C"); st["sensor.ute"] = S("-2.0", "°C", age_min=1500); st["sensor.soc"] = S("162", "%")
     gs = sc.check_entities(CFG, st, NOW)
     it = {i["label"]: i for i in _g(gs, "Värmepump")["items"]}
     assert it["Innetemperatur"]["status"] == sc.WARN and "Orimlig" in it["Innetemperatur"]["note"]
@@ -81,3 +81,22 @@ def test_drivrutinsrader_och_sammanfattning():
     s = sc.summarize([g])
     assert "2 läsningar" in s and "1 fungerar" in s and "1 varningar" in s
     assert sc.summarize([]) == "Inga entiteter att kontrollera."
+
+
+def test_falsklarm_som_ska_vara_borta():
+    cfg = {"spa": {"enabled": True, "driver": "gecko", "entities": {
+        "current_temp": "sensor.bad", "target_temp": "sensor.mal", "safety": {"overcurrent": "binary_sensor.skydd", "power_exceeded": "binary_sensor.skydd2"}}},
+        "evs": [{"id": "t", "name": "Tesla", "entities": {"charging_amps": "number.amps", "distance_to_arrival": "sensor.dist", "soc": "sensor.soc"},
+                 "charger": {"entities": {"power_kw": "sensor.effekt", "current_a": "sensor.strom"}}}]}
+    st = {"sensor.bad": S("38.5", "°C"), "sensor.mal": S("38.5", "°C", age_min=900), "binary_sensor.skydd": S("off"), "binary_sensor.skydd2": S("off"),
+          "number.amps": S("16", "A", age_min=1000), "sensor.dist": S("unknown"), "sensor.soc": S("60", "%", age_min=200),
+          "sensor.effekt": S("0", "kW", age_min=1200), "sensor.strom": S("0", "A", age_min=1200)}
+    gs = sc.check_entities(cfg, st, NOW)
+    bad = [(g["device"], i["label"], i["note"]) for g in gs for i in g["items"] if i["status"] != sc.OK and "0 kr" not in i["note"]]
+    assert bad == [], bad
+
+
+def test_riktig_gammal_data_varnas_fortfarande_efter_tolv_timmar():
+    cfg = {"spa": {"enabled": True, "driver": "gecko", "entities": {"current_temp": "sensor.bad"}}}
+    gs = sc.check_entities(cfg, {"sensor.bad": S("38.5", "°C", age_min=900)}, NOW)
+    assert gs[0]["worst"] == sc.WARN and "uppdaterad" in gs[0]["items"][0]["note"]

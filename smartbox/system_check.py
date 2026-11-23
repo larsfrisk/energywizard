@@ -9,8 +9,10 @@ import re
 from datetime import datetime, timezone
 
 OK, WARN, FAIL = "ok", "warn", "fail"
-STALE_MIN = 90                  # äldre än så (för temperatur-, effekt-, laddnivå- och statusgivare) varnar vi för
+STALE_MIN = 720                 # äldre än så (12 h) varnar vi för. HA uppdaterar en sensor bara när värdet ändras, så en bil som sover eller
+                                # en laddbox som inte laddar står still länge utan att något är fel.
 _NO_STATE_DOMAINS = ("button", "scene", "script", "automation")
+_FLAG_DOMAINS = ("binary_sensor", "switch", "input_boolean", "light", "fan", "lock", "cover", "update", "device_tracker")   # på/av, aldrig ett tal
 _TRACKERS = ("device_tracker", "lock", "cover", "light", "fan", "update")
 _LABELS = {
     "indoor_temp": "Innetemperatur", "outdoor_temp": "Utetemperatur", "forward_temp": "Framledning", "return_temp": "Retur",
@@ -50,8 +52,10 @@ def label_for(path) -> str:
     return _LABELS.get(key, key.replace("_", " ").capitalize() if key else "Entitet")
 
 
-def _kind(path):
+def _kind(path, domain=""):
     key = (path[-1] if path else "").lower()
+    if domain in _FLAG_DOMAINS:
+        return "other"
     if any(x in key for x in ("lifetime", "today_kwh", "session")):
         return "energy"
     if "soc" in key or key.endswith("level"):
@@ -100,7 +104,7 @@ def evaluate(path, entity, states, now):
         return row
     if domain in _NO_STATE_DOMAINS:
         return row                                               # knappar m.m.: att de finns räcker
-    kind = _kind(path)
+    kind = _kind(path, domain)
     attrs = st.get("attributes") or {}
     val = _num(raw)
     if domain in ("climate", "water_heater") and kind == "temp":
@@ -108,7 +112,7 @@ def evaluate(path, entity, states, now):
         if val is None:
             row.update(status=WARN, note="En climate-entitet: temperaturen ska läsas ur dess attribut, men inget värde finns just nu.")
             return row
-    elif raw in ("unknown", "") and domain not in _TRACKERS:
+    elif raw in ("unknown", "") and domain not in _TRACKERS and kind != "other":
         row.update(status=WARN, note="Värdet är okänt just nu (unknown).")
         return row
     if kind in ("temp", "percent", "power", "energy"):
@@ -123,7 +127,9 @@ def evaluate(path, entity, states, now):
                 row.update(status=WARN, note=f"Procentvärdet {val:g} ligger utanför 0 till 100. Fel entitet eller skala?")
             elif kind == "energy" and val < 0:
                 row.update(status=WARN, note=f"Negativ energi ({val:g}).")
-    if row["status"] == OK and kind in ("temp", "power", "percent") and domain not in _TRACKERS:
+    key = (path[-1] if path else "").lower()
+    still_ok = domain == "number" or "target" in key or (kind == "power" and val is not None and val == 0)    # börvärden, inställningar och 0 W står still med rätta
+    if row["status"] == OK and kind in ("temp", "power", "percent") and domain not in _TRACKERS and not still_ok:
         age = _age_min(st, now)
         if age is not None and age > STALE_MIN:
             row.update(status=WARN, note=f"Inte uppdaterad på {age / 60:.0f} h. Har givaren slutat rapportera?")

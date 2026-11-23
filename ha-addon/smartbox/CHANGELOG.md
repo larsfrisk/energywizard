@@ -2,6 +2,9 @@
 
 ❤️ EnergyWizard är gratis och öppet. Om det sparar pengar hemma hos dig kan du hålla det så med en sponsring (runt 10 USD i månaden räcker långt): https://github.com/sponsors/murre87
 
+## 1.2.162 (2026-11-23)
+- **Testa ditt system: färre falsklarm i läsningarna.** Skyddssensorer (på/av) flaggades som "inte ett tal", och sensorer som står still med rätta (bil som sover, laddbox som inte laddar, målvärden, inställningar) flaggades som gamla. Nu varnas för gammal data först efter 12 timmar och aldrig för börvärden, inställningar eller 0 W, och okända värden på sådant som bara har värde under körning räknas inte som problem.
+
 ## 1.2.161 (2026-11-23)
 - **Testa ditt system testar nu allt du valt, inte bara batteriet.** Del A läser av alla valda entiteter och drivrutiner (värmepump, spabad, solceller, batteri, elmätare, bilar, laddboxar, maskiner, väder) och säger vad som saknas, inte svarar, är text där tal väntas, orimligt eller gammalt, utan att skicka något. Det fångar bland annat en laddbox utan effektsensor (0 kr i kostnadskortet) och valda givare som aldrig används. Del B är valfria styrtester du kryssar i: batteri (håll, ladda, ladda ur), värmepump (rumsbörvärdet ändras 0,5 °C), spabad (målvärdet ändras 0,5 °C) och laddbox (6 A i högst 90 s, bara om bilen är inkopplad och inte laddar). Varje test läser tillbaka och sätter alltid tillbaka det som ändrats, även efter en omstart mitt i. Värmepumpen provas bara om börvärdet går att läsa tillbaka. Se `docs/system-test.md`. **Styrtesterna är inte provade mot riktig hårdvara**, bara med tester.
 
