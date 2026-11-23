@@ -2455,7 +2455,8 @@ while True:
                     if battery_cfg["control"] == "styr" and _battery.get("last"):
                         _bl = _battery["last"]
                         _st, _txt, _new = _battery_follow.step(_bl.get("intent"), _bl.get("power_w"), battery_state.get("power_w"),
-                                                              battery_state.get("soc_pct"), battery_cfg.get("reserve_soc"), time.time())
+                                                              battery_state.get("soc_pct"), battery_cfg.get("reserve_soc"), time.time(),
+                                                              battery_state.get("available_charge_w"), battery_state.get("available_discharge_w"))
                         _stored = json.dumps({"status": _st, "text": _txt}, ensure_ascii=False) if _st in ("not_following",) else "ok"
                         _journal.append(control_journal.check_battery(_st, _txt, _bl.get("intent")))
                         if _stored != _battery.get("follow_stored"):
