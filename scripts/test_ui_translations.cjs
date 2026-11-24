@@ -19,6 +19,8 @@ const cases = [
   ['🟢 Låglast', '🟢 Low load', '🟢 Nízké zatížení'],
   ['⚡ Tidstariff just nu: 🟢 Låglast', '⚡ Current time-of-use tariff: 🟢 Low load', '⚡ Aktuální časový tarif: 🟢 Nízké zatížení'],
   ['Ändra', 'Change', 'Změnit'],
+  ['Bilar i house_config.yaml', 'Cars in house_config.yaml', 'Auta v souboru house_config.yaml'],
+  ['Bilar hittade i Home Assistant', 'Cars found in Home Assistant', 'Auta nalezená v Home Assistantu'],
   ['solvärme', 'solar heating', 'solární ohřev'],
   ['pumpen går', 'pump running', 'čerpadlo běží'],
   ['Ladda en bil som inte är din på den här laddboxen', 'Charge someone else’s car on this charger', 'Nabíjet na této nabíječce cizí auto'],
@@ -136,6 +138,22 @@ function checkScreenshotCards(lang,tr) {
 }
 
 (async () => {
+  const panel = {};
+  let cars = [{id: 'IONIQ & Traveller', driver: 'generic_ev', battery_kwh: 38, soc: 'sensor.ioniq'}];
+  const carsContext = vm.createContext({esc, document: {getElementById: id => id === 'configuredCars' ? panel : null},
+    api: async path => {
+      assert.equal(path, 'api/house-config/cars');
+      return {cars};
+    }});
+  vm.runInContext(web.slice(web.indexOf('async function mountConfiguredCars('), web.indexOf('async function renderInstallningar(')), carsContext);
+  await carsContext.mountConfiguredCars();
+  assert.match(panel.innerHTML, /IONIQ &amp; Traveller/);
+  assert.match(panel.innerHTML, /38 kWh/);
+  assert.match(panel.innerHTML, /sensor\.ioniq/);
+  cars = [];
+  await carsContext.mountConfiguredCars();
+  assert.match(panel.innerHTML, /Inga bilar är konfigurerade/);
+
   const catalogs = ['en', 'cs'].map(lang => JSON.parse(fs.readFileSync(`smartbox/i18n/${lang}.json`, 'utf8')));
   for (const key of Object.keys(catalogs[0])) assert.ok(key in catalogs[1], `Missing Czech key: ${key}`);
   for (const dict of catalogs) for (const [key, value] of Object.entries(dict)) {

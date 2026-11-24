@@ -91,6 +91,37 @@ def _cookie(wd, role="owner"):
 SEL = {"cars": [], "heat_pump": None, "solar": None, "spa": None, "battery": None}
 
 
+def test_configured_cars_read_current_yaml_without_discovery(wd, tmp_path, monkeypatch):
+    import yaml
+
+    config = tmp_path / "house_config.yaml"
+    monkeypatch.setattr(wd, "HOUSE_CONFIG_FILE", str(config))
+    monkeypatch.setattr(wd, "_last_discovery_path", lambda: str(tmp_path / "last_discovery.json"))
+    (tmp_path / "last_discovery.json").write_text('{"ok":true,"cars":[{"id":"old-scan"}]}', encoding="utf-8")
+    request = _FakeRequest(cookies=_cookie(wd))
+    assert asyncio.run(wd.api_configured_cars(request)) == {"cars": []}
+
+    car = {"id": "IONIQ", "driver": "generic_ev", "battery_kwh": 38, "entities": {
+        "soc": "sensor.ioniq_ev_battery_level", "plugged_in": "binary_sensor.ioniq_ev_battery_plug",
+        "climate": "climate.ioniq", "private": "omit",
+    }}
+    config.write_text(yaml.safe_dump({"evs": [car]}), encoding="utf-8")
+    assert asyncio.run(wd.api_configured_cars(request)) == {"cars": [{
+        "id": "IONIQ", "driver": "generic_ev", "battery_kwh": 38, "soc": "sensor.ioniq_ev_battery_level",
+        "plugged_in": "binary_sensor.ioniq_ev_battery_plug", "climate": "climate.ioniq",
+    }]}
+    denied = asyncio.run(wd.api_configured_cars(_FakeRequest(cookies=_cookie(wd, "guest"))))
+    assert denied.status_code == 403
+
+    config.write_text(yaml.safe_dump({"evs": [{**car, "id": "Traveller", "battery_kwh": 65}]}), encoding="utf-8")
+    updated = asyncio.run(wd.api_configured_cars(request))["cars"]
+    assert [(row["id"], row["battery_kwh"]) for row in updated] == [("Traveller", 65)]
+    config.write_text("evs: []\n", encoding="utf-8")
+    assert asyncio.run(wd.api_configured_cars(request)) == {"cars": []}
+    config.write_text("evs: [broken\n", encoding="utf-8")
+    assert asyncio.run(wd.api_configured_cars(request)).status_code == 500
+
+
 def test_save_refused_without_installer_flag(wd, tmp_path, monkeypatch):
     p = tmp_path / "house_config.yaml"
     p.write_text('house_id: "mitt"\n')
