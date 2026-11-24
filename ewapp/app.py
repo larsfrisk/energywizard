@@ -1171,12 +1171,12 @@ async def set_climate_schedule(request: Request):
     if not CARS[car].get("climate"):
         raise HTTPException(409, "Ingen värme vald för bilen - välj bilens klimatentitet i installationen")
     try:
-        row = cc.normalize(b.get("enabled"), b.get("time"), b.get("temp"))
+        row = cc.normalize(b.get("enabled"), b.get("time"), b.get("temp"), b.get("hold_min"))
     except ValueError as e:
         raise HTTPException(400, str(e)) from None
-    if not settings.save_climate_schedule_db(car, row["enabled"], row["time"], row["temp"]):
+    if not settings.save_climate_schedule_db(car, row["enabled"], row["time"], row["temp"], row["hold_min"]):
         raise HTTPException(502, "Kunde inte spara värmeschemat")
-    logact(request, f"Kupévärme {car}: {'på' if row['enabled'] else 'av'} {row['time']} {row['temp']} °C")
+    logact(request, f"Kupévärme {car}: {'på' if row['enabled'] else 'av'} {row['time']} {row['temp']} °C, håll {row['hold_min']} min")
     return {"ok": True, **row}
 
 

@@ -2,6 +2,9 @@
 
 ❤️ EnergyWizard är gratis och öppet. Om det sparar pengar hemma hos dig kan du hålla det så med en sponsring (runt 10 USD i månaden räcker långt): https://github.com/sponsors/murre87
 
+## 1.2.176 (2026-11-24)
+- **Håll bilen varm en vald tid efter sluttiden (kupévärme).** Ny inställning per bil, "Håll varm efter tiden" (0 minuter till 6 timmar, av som standard), i webben under Elbil och i appen under Planen. Är bilen varm kl 06:45 men du kommer kl 07:10 värmer EnergyWizard igen när kupén svalnat mer än en grad under måltemperaturen, och stänger av den när den är varm. Hålltiden avslutas när du hämtat bilen: när laddkabeln dras ur efter att den varit inkopplad, eller när bilen flyttas från huset. Bilar som aldrig kopplas in avslutas inte av en signal utan håller på hela tiden. En sovande bil kan visa gammal kupétemperatur, då startar inte värmen igen (#598).
+
 ## 1.2.175 (2026-11-24)
 - **Bilens laddnivå: 12 V-batteriet väljs inte längre före traktionsbatteriet.** Kia och Hyundai har både "Car battery level" (12 V) och "EV battery level" (laddnivån), och guiden kunde ta fel. Namn som 12 V, auxiliary och car battery går sist, och namn som EV battery eller state of charge går först (#596).
 - **Nätverksfel mot Home Assistant i styrfunktionerna är varningar, inte fel.** När HA var nere, startade om eller hade en ogiltig adress skrevs ❌ för spabadets plugg, Gecko-temperatur, SolarEdge-gräns m.fl., och varje sådant blev ett automatiskt GitHub-ärende (#588-#595). Nu är det ⚠️. HTTP-fel som 401 och 500 är fortfarande fel.

@@ -415,7 +415,9 @@ function schemaInner() {
   const hx = CLIM && CLIM[schCar];
   const heat = hx && hx.has_climate ? `<section class="card" style="margin-top:12px"><h4>Kupévärme</h4>
     <div class="note">Varje dag, varm till klockan när bilen är hemma eller inkopplad.</div>
-    <div class="card srow"><b>På</b><button class="sw ${hx.enabled ? "on" : ""}" data-a="clim" data-f="enabled" aria-label="Kupévärme på/av"></button><button class="tm" data-a="climclock" aria-label="Varm kl"><span>${hx.time}</span></button><div class="step"><button data-a="clim" data-f="t-">−</button><span>${hx.temp}°</span><button data-a="clim" data-f="t+">+</button></div></div></section>` : "";
+    <div class="card srow"><b>På</b><button class="sw ${hx.enabled ? "on" : ""}" data-a="clim" data-f="enabled" aria-label="Kupévärme på/av"></button><button class="tm" data-a="climclock" aria-label="Varm kl"><span>${hx.time}</span></button><div class="step"><button data-a="clim" data-f="t-">−</button><span>${hx.temp}°</span><button data-a="clim" data-f="t+">+</button></div></div>
+    <div class="card srow"><b>Håll varm</b><span class="note" style="flex:1">${hx.hold_min ? "efter tiden" : "av"}</span><div class="step"><button data-a="clim" data-f="h-">−</button><span>${hx.hold_min ? hx.hold_min + " min" : "av"}</span><button data-a="clim" data-f="h+">+</button></div></div>
+    <div class="note">Värmer igen när bilen svalnat, och slutar när du hämtat bilen (kabeln ur eller bilen flyttad).</div></section>` : "";
   return `<div class="seg">${_cs.map((c) => `<button data-a="schcar" data-v="${esc(c.key)}" class="${schCar === c.key ? "on" : ""}">${esc(c.name)}</button>`).join("")}</div>
   <div class="note" style="text-align:center">Klar till vald tid och batterinivå. Av = laddar bara enligt pris/Auto.</div>
   <div class="sched">${DAYS.map((d, i) => { const x = s[i]; return `<div class="card srow"><b>${d}</b><button class="sw ${x.enabled ? "on" : ""}" data-a="sch" data-d="${i}" data-f="enabled" aria-label="${d} på/av"></button><button class="tm" data-a="schclock" data-d="${i}" aria-label="${d} klar kl"><span>${x.time}</span></button><div class="step"><button data-a="sch" data-d="${i}" data-f="soc-">−</button><span>${x.soc}%</span><button data-a="sch" data-d="${i}" data-f="soc+">+</button></div></div>`; }).join("")}</div>${heat}`;
@@ -918,7 +920,7 @@ function climClockSheet() {
 }
 async function climSave() {
   const x = CLIM && CLIM[schCar]; if (!x) return;
-  try { await api("schedule/climate", { car: schCar, enabled: x.enabled, time: x.time, temp: x.temp }); toast("Sparat"); }
+  try { await api("schedule/climate", { car: schCar, enabled: x.enabled, time: x.time, temp: x.temp, hold_min: x.hold_min || 0 }); toast("Sparat"); }
   catch (e) { toast(e.message); }
 }
 document.addEventListener("click", async (e) => {
@@ -963,7 +965,7 @@ document.addEventListener("click", async (e) => {
   if (a === "ser") { const [ck, ix] = v.split(":"); const h = hiddenSer(ck), n = +ix; LS.set("ew_hide_" + ck, (h.includes(n) ? h.filter((x) => x !== n) : [...h, n]).join(",")); render(); return; }
   if (a === "schclock") { schClockSheet(+b.dataset.d); return; }
   if (a === "climclock") { climClockSheet(); return; }
-  if (a === "clim") { const x = CLIM && CLIM[schCar]; if (!x) return; const f = b.dataset.f; buzz(8); if (f === "enabled") x.enabled = !x.enabled; else if (f === "t+") x.temp = Math.min(28, Math.round((Number(x.temp) + 1) * 10) / 10); else if (f === "t-") x.temp = Math.max(15, Math.round((Number(x.temp) - 1) * 10) / 10); render(); return climSave(); }
+  if (a === "clim") { const x = CLIM && CLIM[schCar]; if (!x) return; const f = b.dataset.f; buzz(8); if (f === "enabled") x.enabled = !x.enabled; else if (f === "t+") x.temp = Math.min(28, Math.round((Number(x.temp) + 1) * 10) / 10); else if (f === "t-") x.temp = Math.max(15, Math.round((Number(x.temp) - 1) * 10) / 10); else if (f === "h+") x.hold_min = Math.min(360, (Number(x.hold_min) || 0) + 15); else if (f === "h-") x.hold_min = Math.max(0, (Number(x.hold_min) || 0) - 15); render(); return climSave(); }
   if (a === "lights") { buzz(25); try { const r = await api("lights", { action: v }); toast(r.msg); LJ = await api("lights"); render(); } catch (er) { toast(er.message); } return; }
   if (a === "viewas") { VIEWAS = v; LS.set("ew_viewas", v); grAt = 0; closeSheet(); loadGreeting(); return; }
   if (a === "trip") return tripSheet(c);

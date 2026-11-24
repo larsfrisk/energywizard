@@ -3125,5 +3125,7 @@
  "(skriv den i ärendet).": "(write it in the issue).",
  "Kunde inte läsa driftläget.": "Could not read the operating mode.",
  "ingen data": "no data",
- "🔥 Driftläge, senaste 24 timmarna": "🔥 Operating mode, last 24 hours"
+ "🔥 Driftläge, senaste 24 timmarna": "🔥 Operating mode, last 24 hours",
+ "Håll varm": "Keep warm",
+ "Håll varm efter tiden": "Keep warm after the time"
 }

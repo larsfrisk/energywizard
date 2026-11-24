@@ -48,6 +48,7 @@ import system_test         # "Testa ditt system": kontrollerar att batteriet gö
 import ev_schedule_auto    # nivå för automatiskt skapade laddscheman (#576)
 import spa_bath_learn      # logg över badtillfällen och förslag på badtider
 import aux_heat_watch    # tillsats (elpatron) i värmepumpen -> notis
+import car_climate_schedule   # kupévärme: normalisering och hålltid efter sluttiden (#598)
 import spa_error_watch     # nytt fel från spabadet (Gecko: error-sensorn) -> notis
 import spa_filter          # #447: filtercykeln vilar på dyr el, skugga tills control är true
 import plug_presence
@@ -444,6 +445,7 @@ spa_offline_since = None
 last_pump_zero_notify_time = None
 last_peak_shaving_notify_time = None
 last_valid_ha_temp_time = datetime.now(SWE_TZ)
+_climate_hold = {}                 # håll bilen varm efter sluttiden: tillstånd per bil (#598)
 last_valid_ha_temp = None          # senaste innetemp ur rumsgivarna (indoor_hold.py)
 
 # Senast kända batterinivå per bil. En sovande bil ger 'unknown' i HA (och HA glömmer värdet vid omstart),
@@ -1708,6 +1710,25 @@ while True:
                 except Exception as e:
                     print(f"❌ Fel i klimatschema för {car_id}: {e}")
 
+            def climate_hold(car_id, sched, c_data, charger_data, climate_entity, dist_to_home):
+                """Håll bilen varm en vald tid efter sluttiden (#598): värm igen när kupén svalnat, sluta när bilen hämtats."""
+                if not sched.get('enabled') or not sched.get('hold_min') or away_mode_enabled:
+                    return
+                try:
+                    c_state = c_data.get("climate_state") if c_data else "off"
+                    c_temp = c_data.get("climate_temp") if c_data else None
+                    act, why = car_climate_schedule.hold_step(
+                        _climate_hold.setdefault(car_id, {}), now, sched['target_time'], int(sched['hold_min']),
+                        float(sched['target_temp']), c_state, c_temp, charger_connected(charger_data), dist_to_home > 0.5)
+                    if why:
+                        print(f"🚗🔥 {car_id}: {why}")
+                    if act == "on":
+                        homeassistant.set_car_climate(climate_entity, "heat_cool", sched['target_temp'])
+                    elif act == "off":
+                        homeassistant.set_car_climate(climate_entity, "off")
+                except Exception as e:
+                    print(f"❌ Fel i hålltid för bilvärme {car_id}: {e}")
+
             # Varje bil med en klimatentitet i installationen (ingen hårdkodad bil, 2026-11-04). Avståndet ur bilens
             # device_tracker om den valts (entities.tracker), annars de gamla trackers-nycklarna.
             for _ev in house_cfg.get("evs", []) or []:
@@ -1726,6 +1747,8 @@ while True:
                                "climate_temp": homeassistant._get_numeric_attribute(_cent, "current_temperature")}
                     handle_car_climate(_cid, climate_schedules.get(_cid, {'enabled': False}), _cstate, car_charger_data.get(_cid),
                                        _cent, outdoor_temp_for_climate, _dist)
+                    climate_hold(_cid, climate_schedules.get(_cid, {'enabled': False}), _cstate, car_charger_data.get(_cid),
+                                 _cent, _dist)
                 except Exception as _hce:
                     print(f"❌ Klimatschemat för {_cid}: {_hce}")
 

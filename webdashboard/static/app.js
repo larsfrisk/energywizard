@@ -596,6 +596,9 @@ async function renderElbil() {
         <input type="text" inputmode="numeric" maxlength="5" placeholder="TT:MM" autocomplete="off" class="cl-t hhmm" data-car="${c.id}" value="${esc(h.time)}" style="flex:0 0 5.6em;width:5.6em;min-width:0;text-align:center">
         <input type="number" class="cl-c" data-car="${c.id}" min="15" max="28" step="0.5" value="${esc(h.temp)}" style="width:72px"> <span>°C</span>
       </div>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap"><span>Håll varm efter tiden</span>
+        <input type="number" class="cl-h" data-car="${c.id}" min="0" max="360" step="5" value="${esc(h.hold_min || 0)}" style="width:72px"> <span>min</span></div>
+      <div class="note" style="margin-top:4px">0 = av. Värmer igen när bilen hunnit svalna, och slutar när du hämtat bilen (kabeln dras ur eller bilen flyttas).</div>
       <button class="icobtn cl-save" data-car="${c.id}" style="margin-top:8px">Spara värmen</button>
     </div>`;
   };
@@ -703,7 +706,8 @@ async function renderElbil() {
     const car = b.dataset.car;
     const body = { car, enabled: document.querySelector(`.cl-en[data-car="${car}"]`).checked,
       time: document.querySelector(`.cl-t[data-car="${car}"]`).value,
-      temp: parseFloat(document.querySelector(`.cl-c[data-car="${car}"]`).value) };
+      temp: parseFloat(document.querySelector(`.cl-c[data-car="${car}"]`).value),
+      hold_min: parseInt(document.querySelector(`.cl-h[data-car="${car}"]`).value || "0", 10) };
     try { await postJSON("api/schedule/climate", body); toast("Värmeschemat sparat"); }
     catch (e) { toast(e.message); }
     renderElbil();

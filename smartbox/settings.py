@@ -303,7 +303,7 @@ def _migrate_schedule_car_id(cur, table_name):
 
 def get_climate_schedule(car_ids=None):
     """Hämtar klimatschemat från databasen - en rad per bil i installationen (car_ids), inga fasta bilnamn."""
-    schedule = {c: {'enabled': False, 'target_time': '07:00', 'target_temp': 21.0} for c in (car_ids or [])}
+    schedule = {c: {'enabled': False, 'target_time': '07:00', 'target_temp': 21.0, 'hold_min': 0} for c in (car_ids or [])}
     try:
         with get_db() as conn:
             with conn.cursor() as cur:
@@ -315,6 +315,7 @@ def get_climate_schedule(car_ids=None):
                         enabled BOOLEAN DEFAULT FALSE
                     )
                 """)
+                cur.execute("ALTER TABLE climate_schedule ADD COLUMN IF NOT EXISTS hold_min INTEGER DEFAULT 0")
                 _migrate_schedule_car_id(cur, "climate_schedule")
             conn.commit()
             df = pd.read_sql("SELECT * FROM climate_schedule", conn)
@@ -324,7 +325,8 @@ def get_climate_schedule(car_ids=None):
                     schedule[car] = {
                         'enabled': row['enabled'],
                         'target_time': row['target_time'].strftime('%H:%M'),
-                        'target_temp': float(row['target_temp'])
+                        'target_temp': float(row['target_temp']),
+                        'hold_min': int(row['hold_min']) if 'hold_min' in row and row['hold_min'] == row['hold_min'] and row['hold_min'] is not None else 0
                     }
     except Exception as e:
         print(f"❌ Kunde inte ladda klimatschema: {e}")
@@ -440,7 +442,7 @@ def save_ev_schedule_day(car_id, day_of_week, target_time, target_soc, enabled, 
     except Exception as e:
         print(f"❌ Fel vid auto-schema för {car_id}: {e}")
 
-def save_climate_schedule_db(car_id, enabled, target_time, target_temp):
+def save_climate_schedule_db(car_id, enabled, target_time, target_temp, hold_min=0):
     """Sparar klimatschemat för en elbil."""
     try:
         with get_db() as conn:
@@ -453,12 +455,14 @@ def save_climate_schedule_db(car_id, enabled, target_time, target_temp):
                         enabled BOOLEAN DEFAULT FALSE
                     )
                 """)
+                cur.execute("ALTER TABLE climate_schedule ADD COLUMN IF NOT EXISTS hold_min INTEGER DEFAULT 0")
                 _migrate_schedule_car_id(cur, "climate_schedule")
                 cur.execute("""
-                    INSERT INTO climate_schedule (car_id, target_time, target_temp, enabled)
-                    VALUES (%s, %s, %s, %s)
-                    ON CONFLICT (car_id) DO UPDATE SET target_time = EXCLUDED.target_time, target_temp = EXCLUDED.target_temp, enabled = EXCLUDED.enabled
-                """, (car_id, target_time, target_temp, enabled))
+                    INSERT INTO climate_schedule (car_id, target_time, target_temp, enabled, hold_min)
+                    VALUES (%s, %s, %s, %s, %s)
+                    ON CONFLICT (car_id) DO UPDATE SET target_time = EXCLUDED.target_time, target_temp = EXCLUDED.target_temp,
+                        enabled = EXCLUDED.enabled, hold_min = EXCLUDED.hold_min
+                """, (car_id, target_time, target_temp, enabled, int(hold_min or 0)))
             conn.commit()
         return True
     except Exception as e:

@@ -102,7 +102,7 @@ def test_climate_schedule_long_ids(schedule_db, legacy):
     settings.get_climate_schedule([car])
     settings.save_climate_schedule_db(car, True, '08:15', 22)
     loaded = settings.get_climate_schedule()
-    assert loaded[car] == dict(enabled=True, target_time='08:15', target_temp=22.0)
+    assert loaded[car] == dict(enabled=True, target_time='08:15', target_temp=22.0, hold_min=0)
     assert db.execute('SELECT target_time FROM climate_schedule WHERE car_id=%s', (car,)).fetchone()[0] == time(8, 15)
     if legacy:
         assert loaded['old_car']['target_temp'] == 21.0

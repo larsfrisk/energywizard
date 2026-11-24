@@ -3125,5 +3125,7 @@
  "(skriv den i ärendet).": "(napište ji do hlášení).",
  "Kunde inte läsa driftläget.": "Provozní režim se nepodařilo načíst.",
  "ingen data": "žádná data",
- "🔥 Driftläge, senaste 24 timmarna": "🔥 Provozní režim, posledních 24 hodin"
+ "🔥 Driftläge, senaste 24 timmarna": "🔥 Provozní režim, posledních 24 hodin",
+ "Håll varm": "Udržovat teplé",
+ "Håll varm efter tiden": "Udržovat teplé po této době"
 }
