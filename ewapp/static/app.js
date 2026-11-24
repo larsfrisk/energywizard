@@ -56,6 +56,7 @@ const ICON = {
   plan: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 10h18M8 14h3M8 17h6"/></svg>',
   historik: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 20V11M12 20V5M19 20v-7"/></svg>',
   grafer: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V4M4 20h16M8 16l4-5 3 3 5-7"/></svg>',
+  nyheter: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h13v14H6a2 2 0 0 1-2-2zM17 9h3v8a2 2 0 0 1-2 2M8 9h5M8 13h5"/></svg>',
   gear: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>',
 };
 function showLogin(msg) {
@@ -67,8 +68,8 @@ const ER = () => (ROLE === "owner" && VIEWAS) ? VIEWAS : ROLE;                  
 const CAN = { family: ["battery", "theme", "ser", "refreshsoc", "installapp", "tab", "swap", "power", "start", "stop", "auto", "heat_on", "heat_off", "access", "cardata", "lights", "trip", "sch", "schcar", "schtime", "schclock", "clim", "climclock", "climall", "rooms", "greet", "log", "health", "settings", "hp", "hr", "bigchart", "bigrange", "planall", "planview", "histview", "solarsheet", "insights", "peaks", "closesheet", "nowsheet"],
               guest: ["theme", "ser", "tab", "health", "settings", "swap", "schcar", "cardata", "rooms", "greet", "log", "report", "hp", "hr", "bigchart", "bigrange", "planall", "planview", "histview", "solarsheet", "insights", "peaks", "closesheet", "nowsheet"] };
 const can = (a) => ER() === "owner" || (ROLE === "owner" && a === "viewas") || (CAN[ER()] || []).includes(a);   // ägaren kan alltid byta tillbaka från förhandsvisningen
-const TABS = { owner: ["hem", "bil", "hus", "plan", "historik"], family: ["hem", "bil", "plan"], guest: ["hem", "bil", "hus", "plan", "historik"] };
-const TABNAME = { hem: "Hem", bil: "Bil", hus: "Hus", plan: "Plan", historik: "Historik" };
+const TABS = { owner: ["hem", "bil", "hus", "plan", "historik", "nyheter"], family: ["hem", "bil", "plan", "nyheter"], guest: ["hem", "bil", "hus", "plan", "historik", "nyheter"] };
+const TABNAME = { hem: "Hem", bil: "Bil", hus: "Hus", plan: "Plan", historik: "Historik", nyheter: "Nyheter" };
 const primary = () => LS.get("ew_primary", "");
 function chooseCar() {
   app.innerHTML = `<div class="card" style="text-align:center;display:grid;gap:14px;margin-top:10dvh"><h2 style="margin:0">Vilken bil kör du mest?</h2><div class="note">Den visas stor överst. Du kan byta senare.</div>${((S && S.cars) || []).map((c, i) => `<button class="big" data-p="${esc(c.key)}">${esc(c.name)}</button>`).join("")}</div>`;
@@ -330,6 +331,35 @@ function flowCard() {                    // delad med webbens Översikt (smartbo
   return `<section class="card flowcard"><div class="flh"><b>Just nu</b><span class="note">${esc(FL.ts || "")}</span></div>${EWLiveFlow.svg(FL, { compact: true, icons: CL(), attrs, hubAttrs: 'data-a="insights"' })}</section>`;
 }
 
+// ---- Veckobrevet (2026-11-24, Emil): en liten rad längst ner på Hem; anmälan görs i ett ark så att inget skrivs in i en sida som ritas om ----
+function newsLine() {
+  if (ER() !== "owner" || !NEWS || NEWS.status !== "none" || NEWS.dismissed) return "";
+  return `<section class="card newsline" data-a="newsopen"><span>Vill du få de senaste nyheterna om EnergyWizard i din inkorg, varje torsdag?</span><b>Anmäl</b><button class="nlx" data-a="newsx" aria-label="Dölj">×</button></section>`;
+}
+function newsSheet(msg) {
+  const st = NEWS || { status: "none" }, em = esc(st.email || "");
+  const body = st.status === "confirmed"
+    ? `<div class="note">Du får veckobrevet till <b>${em}</b> varje torsdag kl 11.</div><div class="crow"><button class="mini" data-a="newscancel">Avsluta prenumerationen</button><button class="mini" data-a="closesheet">Stäng</button></div>`
+    : st.status === "pending"
+      ? `<div class="note">Vi har skickat ett mejl till <b>${em}</b>. Klicka på länken i mejlet för att bekräfta. Hittar du det inte, titta i skräpposten.</div><div class="crow"><button class="mini" data-a="newscancel">Ändra adress</button><button class="mini" data-a="closesheet">Stäng</button></div>`
+      : `<div class="note">En kort sammanfattning av nyheterna i EnergyWizard, varje torsdag kl 11. Du skriver bara in din e-postadress och bekräftar via ett mejl. Du kan avsluta när du vill med länken i varje brev.</div>
+         <div class="setrow"><input id="newsmail" type="email" inputmode="email" autocomplete="email" placeholder="din@epost.se" style="flex:1;min-width:0"></div>
+         <div class="note" style="margin-top:6px">Personuppgiftsansvarig är EnergyWizards skapare. Adressen används bara för veckobrevet, lämnas inte vidare och raderas när du avslutar. Den kopplas inte till telemetrin.</div>
+         <div class="crow"><button class="mini" data-a="newssub">Anmäl</button><button class="mini" data-a="closesheet">Stäng</button></div>`;
+  sheet(`<h3>Veckobrev med nyheter</h3>${msg ? `<div class="note" style="color:var(--bad)">${esc(window.I18N ? I18N.tr(msg) : msg)}</div>` : ""}${body}`);
+}
+// ---- Nyheter (2026-11-24, Emil): veckobreven som en egen flik för alla roller (api/news/issues, samma text som i mejlet) ----
+let NF = null;
+function pageNyheter() {
+  if (!NF) return `<div class="page"><div class="note" style="text-align:center;margin-top:20dvh">Laddar…</div></div>`;
+  const sub = ER() === "owner" && NEWS && NEWS.status === "none"
+    ? `<section class="card newsline" data-a="newsopen"><span>Få nyheterna i din inkorg, varje torsdag kl 11.</span><b>Anmäl</b></section>` : "";
+  if (!NF.length) return `<div class="page">${sub}<section class="card"><div class="note">Inga veckobrev ännu. Det första kommer på en torsdag kl 11.</div></section></div>`;
+  const cards = NF.map((i) => `<section class="card nyh" data-noi18n><h4>${esc(I18N.tr("Vecka"))} ${esc(String(i.id).split("-w")[1] || "")}${i.period ? ` · ${esc(i.period)}` : ""}</h4>
+    ${(i.items || []).map(([t, x]) => `<div class="nyr"><b>${esc(t)}</b><div class="note">${esc(x)}</div></div>`).join("")}
+    ${i.versions ? `<div class="note" style="margin-top:6px">${esc(I18N.tr("version"))} ${esc(i.versions)}</div>` : ""}</section>`).join("");
+  return `<div class="page">${sub}${cards}</div>`;
+}
 function pageHem() {
   if (!EN) return `<div class="note" style="text-align:center;margin-top:20dvh">Laddar…</div>`;
   const s = EN.solar, g = EN.grid, net = g.net_w;
@@ -337,7 +367,7 @@ function pageHem() {
     ? `<section class="card" style="border:1.5px solid ${a.level === "info" ? "#38bdf8" : "#ef4444"}"><b>${a.level === "info" ? "ℹ️" : "⚠️"} <span>${esc(a.device)}</span>: <span>${esc(a.title)}</span></b><div style="margin-top:4px">${esc(a.text)}</div><div class="note">${esc(a.hint)}</div></section>`
     : `<section class="card"><b><span class="alertdot ${a.level === "info" ? "info" : ""}"></span><span>${esc(a.device)}</span>: <span>${esc(a.title)}</span></b><div style="margin-top:4px">${esc(a.text)}</div><div class="note">${esc(a.hint)}</div></section>`).join("");
   // Planklockan/Skyline ligger bara under Plan (Emil 2026-11-08: framsidan visar vad som händer just nu)
-  return `<div class="page">${alerts}${flowCard()}${planNow()}${quickGrid(s, g, net, !!(FL && FL.ok))}${carsRow()}${ljusRow()}</div>`;
+  return `<div class="page">${alerts}${flowCard()}${planNow()}${quickGrid(s, g, net, !!(FL && FL.ok))}${carsRow()}${ljusRow()}${newsLine()}</div>`;
 }
 async function spaBathSheet() {                           // badtider (smartbox/spa_bath.py) - samma som webben
   if (!H || !H.spa || !H.spa.bath_windows) { try { H = await api("home"); } catch (e) { toast(e.message); return; } }
@@ -576,6 +606,7 @@ function pageHistorik() {
 // ---- ram, render, laddning ----------------------------------------------------------------------------------------------------------
 // Version i sidhuvudet: "✓ senaste" bara när det är bekräftat, annars en knapp om en nyare finns (update_check.py)
 let UPD = null, updAt = 0;
+let NEWS = null, newsAt = 0;            // veckobrevet: {status: none|pending|confirmed, email, dismissed} (api/news, bara ägaren)
 function verBadge() {
   const u = UPD && UPD.status, v = (u && u.running) || (S && S.version);
   if (u && u.outdated && u.latest) return `<button class="ver" data-a="update" style="color:var(--warn);background:none;border:0;padding:0;font:inherit;cursor:pointer">⬆️ Ny version ${esc(u.latest)} · tryck här</button>`;
@@ -598,7 +629,7 @@ function render() {
   if (page === "bil" && !primary() && S && S.cars.length) return chooseCar();
   const warn = S && S.health && S.health.length;
   if (!TABS[ER()].includes(page)) page = "bil";
-  const body = { hem: pageHem, bil: pageBil, hus: pageHus, plan: pagePlan, historik: pageHistorik }[page]();
+  const body = { hem: pageHem, bil: pageBil, hus: pageHus, plan: pagePlan, historik: pageHistorik, nyheter: pageNyheter }[page]();
   const ok = S ? S.ok : true;
   const tabs = TABS[ER()].map((k) => [k, TABNAME[k]]);
   // Scrollar sidan (stor text, tscroll) ska omritningen var 5:e sekund inte kasta en tillbaka till toppen
@@ -730,9 +761,12 @@ async function load() {
     if (page === "hus") H = await api("home");
     if (page === "hem") { if (!S || Date.now() - (S._t || 0) > 30000) { S = await api("state").catch(() => S); if (S) S._t = Date.now(); }
       [EN, PL, SV, FL] = await Promise.all([api("energy"), api("plan").catch(() => PL), ER() === "owner" ? api("savings").catch(() => null) : null, api("flow").catch(() => FL)]); if (!LJ && can("lights")) LJ = await api("lights").catch(() => null); await loadClock(); }
+    if (ER() === "owner" && Date.now() - newsAt > 600000) { newsAt = Date.now(); api("news").then((d) => { const ch = !NEWS || NEWS.status !== d.status || NEWS.dismissed !== d.dismissed; NEWS = d; if (ch) render(); }).catch(() => {}); }
     if (Date.now() - updAt > 3600000) { updAt = Date.now(); api("update-status").then((d) => { UPD = d; render(); }).catch(() => {}); }
     if (page === "bil" && Date.now() - ecAt > 300000) { ecAt = Date.now(); api("ev-cost").then((d) => { EC = d; if (page === "bil") render(); }).catch(() => {}); }
     if (page === "plan") { PL = await api("plan").catch(() => PL); if (!SCH) SCH = await api("schedule"); if (!CLIM) CLIM = await api("schedule/climate").catch(() => CLIM); await loadClock(); }
+    if (page === "nyheter") { api("news/issues?lang=" + I18N.lang).then((d) => { const ch = !NF || JSON.stringify(NF) !== JSON.stringify(d.issues); NF = d.issues; if (ch && page === "nyheter") render(); }).catch(() => { if (!NF) { NF = []; if (page === "nyheter") render(); } });
+      if (ER() === "owner") api("news").then((d) => { const ch = !NEWS || NEWS.status !== d.status; NEWS = d; if (ch && page === "nyheter") render(); }).catch(() => {}); }
     if (page === "historik") {
       if (histView === "energi") { HX = await api("energyhistory?range=" + hxRange); JR = await api("control-journal?back=" + jBack).catch(() => JR); }
       else if (histView === "pris") { if (!TL || Date.now() - TLAt > 60000) { TL = await api("timeline").catch(() => TL); if (TL) TLAt = Date.now(); } }
@@ -878,6 +912,7 @@ async function settingsSheet() {
     appen: () => `<div class="note" style="margin-top:2px">Stil</div><div class="seg"><button data-s="style:new" class="${CL() ? "" : "on"}">Ny (standard)</button><button data-s="style:classic" class="${CL() ? "on" : ""}">Klassisk</button></div><div class="seg">${((S && S.cars) || []).map((c) => `<button data-s="car:${esc(c.key)}" class="${primary() === c.key ? "on" : ""}">Huvudbil: ${esc(c.name)}</button>`).join("")}</div><div class="seg"><button data-s="glass" class="${LS.get("ew_glass", CL() ? "1" : "0") === "1" ? "on" : ""}">Glasdesign</button><button data-s="ambient" class="${LS.get("ew_ambient", CL() ? "1" : "0") === "1" ? "on" : ""}">Dygnsfärger</button></div><div class="seg"><button data-s="simple" class="${LS.get("ew_simple", "") === "1" ? "on" : ""}">Enkel vy (bara huvudbilen)</button>${standalone ? "" : `<button data-s="install">${installEvt ? "Installera appen" : "Lägg till på hemskärmen"}</button>`}</div><div class="seg"><button data-s="reload">Ladda om appen</button></div>
       <div class="note" style="margin-top:6px">Språk / Language</div><div class="seg" data-noi18n>${Object.entries(I18N.languages).map(([k, v]) => `<button data-s="lang:${k}" class="${I18N.lang === k ? "on" : ""}">${esc(v)}</button>`).join("")}</div>
       <div class="seg"><a class="mini" href="${I18N.TRANSLATE_URL}" target="_blank" rel="noopener">Hjälp till att översätta</a><a class="mini" href="${SPONSOR_URL}" target="_blank" rel="noopener">❤️ Sponsra EnergyWizard</a></div>
+      ${ER() === "owner" ? `<div class="setrow"><span>Veckobrev med nyheter<div class="note">${NEWS && NEWS.status === "confirmed" ? "Du får det varje torsdag kl 11" : NEWS && NEWS.status === "pending" ? "Väntar på att du bekräftar via mejlet" : "Varje torsdag kl 11, via e-post"}</div></span><button class="mini" data-a="newsopen">${NEWS && NEWS.status !== "none" ? "Visa" : "Anmäl"}</button></div>` : ""}
       ${ER() === "owner" ? `<div class="seg"><button data-s="sponsornotice" class="${SPONSOR && SPONSOR.enabled ? "on" : ""}">Påminn mig en gång i månaden</button></div>` : ""}`,
     konto: () => `${ROLE === "owner" ? `<div class="seg"><button data-a="viewas" data-v="" class="${!VIEWAS ? "on" : ""}">Jag (admin)</button><button data-a="viewas" data-v="family" class="${VIEWAS === "family" ? "on" : ""}">Visa som familj</button><button data-a="viewas" data-v="guest" class="${VIEWAS === "guest" ? "on" : ""}">Visa som gäst</button></div>` : ""}${ER() !== "owner" ? `<div class="note">${ER() === "guest" ? "Gästläge: du kan titta på allt men inte ändra." : "Dina inställningar är bara bil, schema och ljus."}</div>` : ""}<button class="mini" data-a="log">Visa familjelogg</button><div class="note" style="text-align:center">Inloggad som ${esc(ME === "owner" ? "ägare" : ME)}</div><div class="seg"><button data-s="logout">Logga ut</button></div>`,
   }[setSec]();
@@ -975,6 +1010,10 @@ document.addEventListener("click", async (e) => {
   if (a === "report") return reportSheet();
   if (a === "closesheet") return closeSheet();
   if (a === "nowsheet") return nowSheet();
+  if (a === "newsopen") return newsSheet();
+  if (a === "newsx") { NEWS = { ...(NEWS || { status: "none" }), dismissed: true }; render(); api("news/dismiss", {}).catch(() => {}); return; }
+  if (a === "newssub") { const em = ($("#newsmail") || {}).value || ""; try { const r = await api("news/subscribe", { email: em, lang: I18N.lang }); NEWS = { ...r, dismissed: true }; newsSheet(); render(); } catch (er) { newsSheet(er.message); } return; }
+  if (a === "newscancel") { try { await api("news/cancel", {}); NEWS = { status: "none", email: null, dismissed: true }; newsSheet(); render(); } catch (er) { toast(er.message); } return; }
   if (a === "solarsheet") { if (EN) solarSheet(); return; }
   if (a === "insights") { if (EN) insightsSheet(); return; }
   if (a === "svp") { svPeriod = v; LS.set("ew_sv_period", v); return render(); }

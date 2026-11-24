@@ -6,7 +6,15 @@ Tar bara emot och lagrar det smartbox/telemetry.py redan sanerat: en hashad
 husidentifierare, drivrutinkategorier, feltyper, version, tidsstämpel. Inget UI
 än - bara lagring + /api/recent för att själv fråga ut det senaste.
 """
-import log_scrub  # noqa: E402  (samma sanering som motorn, smartbox/log_scrub.py)
+import os as _os
+import sys as _sys
+# Veckobrevets moduler (news*.py) ligger bredvid den här filen. Sist i sökvägen: när testerna laddar app.py via filsökväg ska
+# samlarens mappar inte gå före ewapp/webdashboard för andra moduler (t.ex. "app").
+_here = _os.path.dirname(_os.path.abspath(__file__))
+if _here not in _sys.path:
+    _sys.path.append(_here)
+import log_scrub  # noqa: E402
+import news  # noqa: E402  (veckobrevet: anmälan, bekräftelse, avregistrering)  (samma sanering som motorn, smartbox/log_scrub.py)
 # Fel i användarens miljö (full disk, databasen nere): inga felgrupper, inga ärenden, inte rött på Installationer.
 # Samma lista som smartbox/env_errors.py (Emil 2026-11-13).
 ENV_ERROR_TYPES = {"DiskFull", "PoolTimeout", "OperationalError", "TooManyConnections", "AdminShutdown",
@@ -78,6 +86,8 @@ def _db():
         # #559: felsökningsinfo som användaren skickat med ett tryck, med en kort referens att nämna i ett ärende
         conn.execute("""CREATE TABLE IF NOT EXISTS support_bundles (
             ref TEXT PRIMARY KEY, received_at TEXT, house TEXT, version TEXT, text TEXT)""")
+        conn.execute(news.SCHEMA)
+        conn.execute(news.SENDS_SCHEMA)
         # Vem som hämtat supportutdrag (granskningslogg)
         conn.execute("""CREATE TABLE IF NOT EXISTS admin_access (
             id INTEGER PRIMARY KEY AUTOINCREMENT, at TEXT, admin TEXT, what TEXT, detail TEXT)""")
@@ -518,3 +528,18 @@ async def admin_logs_page():
 @app.get("/api/ping")
 async def ping():
     return {"ok": True}
+
+
+def _news_smtp_send(msg) -> None:
+    """Skickar ett mejl från samlaren (veckobrevets bekräftelse). Kastar vid fel så att anropet kan svara ärligt."""
+    if not SMTP_HOST:
+        raise RuntimeError("SMTP saknas")
+    msg["From"] = SMTP_FROM
+    with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=15) as s:
+        s.starttls()
+        if SMTP_USER:
+            s.login(SMTP_USER, SMTP_PASSWORD)
+        s.send_message(msg)
+
+
+news.register(app, _db, _news_smtp_send)

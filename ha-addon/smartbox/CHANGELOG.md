@@ -2,6 +2,9 @@
 
 ❤️ EnergyWizard är gratis och öppet. Om det sparar pengar hemma hos dig kan du hålla det så med en sponsring (runt 10 USD i månaden räcker långt): https://github.com/sponsors/murre87
 
+## 1.2.179 (2026-11-24)
+- **Veckobrev med nyheter, om du vill (valfritt).** En liten rad längst ner på appens första sida (och Inställningar › Appen, installationsguiden och System på webben) där du kan skriva in din e-postadress för att få en kort sammanfattning av nyheterna i EnergyWizard varje torsdag kl 11. Du bekräftar via ett mejl och kan avsluta med länken i varje brev eller i appen. Adressen används bara till veckobrevet, lämnas inte vidare, raderas när du avslutar och kopplas inte till telemetrin. Raden går att klicka bort. Veckobreven ligger också som en egen flik, **Nyheter**, i appen och webben för alla (även familj och gäst), så att du kan läsa dem utan att anmäla dig. Mejlet kommer på svenska, engelska eller tjeckiska efter appens språk. Se `newsletter/README.md`.
+
 ## 1.2.178 (2026-11-24)
 - **Kupévärme med två tider per dag och olika tider varje veckodag**, som laddschemat. Till exempel morgon kl 06:45 och hemresa från jobbet kl 16:30, och en annan tid på onsdagar. I webben under Elbil och i appen under Planen finns sju rader med två tider vardera (på/av och klockslag), en knapp "Samma som måndag alla dagar", och temperatur och "Håll varm" som gäller bilen. Hålltiden räknas från varje tid. Befintliga inställningar flyttas över automatiskt: den gamla tiden gäller som första tid alla dagar (#598).
 

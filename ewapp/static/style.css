@@ -212,6 +212,11 @@ html[data-ambient][data-tod=night] body { background: radial-gradient(900px 520p
 .svline { flex:none; display:flex; justify-content:space-between; align-items:center; gap:10px; padding:10px 14px; }
 .svline h4 { margin:0; font-size:.8rem; color:var(--mut); font-weight:600; } .svline .v { font-size:1.5rem; font-weight:800; line-height:1.1; } .svline .v small { font-size:.78rem; font-weight:600; }
 .svline .seg button { min-height:34px; font-size:.8rem; padding:0 8px; }
+.nyh { flex:none; display:grid; gap:10px; padding:14px; } .nyh h4 { margin:0; font-size:.8rem; color:var(--mut); font-weight:700; letter-spacing:.04em; text-transform:uppercase; }
+.nyh .nyr b { font-size:.95rem; } .nyh .nyr .note { margin-top:2px; line-height:1.45; }
+.newsline { flex:none; display:flex; align-items:center; gap:10px; padding:9px 12px; font-size:.82rem; color:var(--mut); cursor:pointer; }
+.newsline span { flex:1; min-width:0; } .newsline b { color:var(--acc); font-weight:700; white-space:nowrap; }
+.newsline .nlx { flex:none; border:0; background:transparent; color:var(--mut); font-size:1.2rem; line-height:1; min-width:32px; min-height:32px; cursor:pointer; }
 .ljquick { flex:none; display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:6px; } .ljquick .mini { min-height:42px; font-size:.8rem; padding:0 4px; } .ljquick .night { border-color:#a5b4fc; color:#a5b4fc; }
 .page > .seg { flex:none; }
 .planlist { flex:1; display:flex; flex-direction:column; gap:8px; min-height:0; }

@@ -1,0 +1,111 @@
+{
+ "id": "2026-w48",
+ "period": {
+  "sv": "17–24 november 2026",
+  "en": "17–24 November 2026",
+  "cs": "17.–24. listopadu 2026"
+ },
+ "versions": "1.2.153–1.2.178",
+ "subject": {
+  "sv": "EnergyWizard: veckans nyheter (v. 48)",
+  "en": "EnergyWizard: this week's news (wk 48)",
+  "cs": "EnergyWizard: novinky týdne (týden 48)"
+ },
+ "preheader": {
+  "sv": "Kupévärme, tillsatsvakt, testa ditt system, spabad och nya batterier.",
+  "en": "Cabin pre-heating, backup-heater guard, test your system, spa and new batteries.",
+  "cs": "Předehřev auta, hlídání přídavného zdroje, test systému, vířivka a nové baterie."
+ },
+ "items": {
+  "sv": [
+   [
+    "Testa ditt system",
+    "En knapp som kontrollerar att det du valt (batteri, Thermia-värmepump, laddbox och spabad) gör som EnergyWizard ber. Motorns egen styrning pausas medan provet körs."
+   ],
+   [
+    "Kupévärme som passar ditt liv",
+    "Håll bilen varm en vald tid efter sluttiden, två tider per dag med olika tider varje veckodag, och start som räknas ut efter hur kall bilen är. EnergyWizard lär sig hur många minuter per grad varje bil behöver. Fungerar även utan laddkabel."
+   ],
+   [
+    "Tillsatsen syns och larmar",
+    "När värmepumpen kör på tillsats (elpatron) syns det i realtid i appen och flödesbilden, du får en notis när den slår på, och rumsåterkopplingen har fått en vakt mot den."
+   ],
+   [
+    "Spabad: Gecko får mer kärlek",
+    "Temperatur och styrning fungerar även när spabadet hittats automatiskt eller har omdöpta entiteter. EnergyWizard lär sig när ni badar och föreslår badtider, och du får en notis när badet rapporterar ett nytt fel."
+   ],
+   [
+    "Fler batterier och pumpar",
+    "Sigenergy (Remote EMS) och Emaldo finns som förslag i guiden, och NIBE S735 går att koppla via pumpens lokala API. Sigenergy och Emaldo är inte provade på riktig utrustning än: har du en, hör gärna av dig."
+   ],
+   [
+    "Kort och knappar i Home Assistant",
+    "Nya kort för energiflödet och bilen, med knappar för Auto, Ladda nu och Pausa. Installeras via HACS."
+   ],
+   [
+    "Rättat",
+    "Det automatiska laddschemat skriver inte längre över din egen laddnivå med 100 %. Färre falska \"batteriet följer inte\"-notiser. En motor som hänger sig syns nu. Varmvattenraden i Översikten visar verkligt antal dagar."
+   ]
+  ],
+  "en": [
+   [
+    "Test your system",
+    "A button that checks that what you've chosen (battery, Thermia heat pump, charger and spa) does what EnergyWizard asks. The engine's own control is paused while the test runs."
+   ],
+   [
+    "Car pre-heating that fits your life",
+    "Keep the car warm for a chosen time after the end time, two times per day with different times each weekday, and a start time worked out from how cold the car is. EnergyWizard learns how many minutes per degree each car needs. Works without the charging cable too."
+   ],
+   [
+    "The backup heater shows and alerts",
+    "When the heat pump runs on its backup heater (electric element) you see it live in the app and the flow view, you get a notification when it switches on, and the room feedback has a guard against it."
+   ],
+   [
+    "Spa: more love for Gecko",
+    "Temperature and control work even when the spa was found automatically or its entities were renamed. EnergyWizard learns when you bathe and suggests bathing times, and you get a notification when the spa reports a new fault."
+   ],
+   [
+    "More batteries and pumps",
+    "Sigenergy (Remote EMS) and Emaldo are suggested in the guide, and the NIBE S735 can be connected through the pump's local API. Sigenergy and Emaldo are not tested on real equipment yet: if you have one, please get in touch."
+   ],
+   [
+    "Cards and buttons in Home Assistant",
+    "New cards for the energy flow and the car, with buttons for Auto, Charge now and Pause. Installed through HACS."
+   ],
+   [
+    "Fixed",
+    "The automatic charging schedule no longer overwrites your own charge level with 100%. Fewer false \"battery not following\" notices. A hung engine is now visible. The hot-water line in the Overview shows the real number of days."
+   ]
+  ],
+  "cs": [
+   [
+    "Otestujte svůj systém",
+    "Tlačítko, které zkontroluje, že to, co jste vybrali (baterie, tepelné čerpadlo Thermia, wallbox a vířivka), dělá, co EnergyWizard požaduje. Vlastní řízení motoru se během testu pozastaví."
+   ],
+   [
+    "Předehřev auta, který sedí vašemu životu",
+    "Udržujte auto teplé zvolenou dobu po skončení, dvě časy denně s jinými časy každý den v týdnu a start vypočtený podle toho, jak je auto studené. EnergyWizard se učí, kolik minut na stupeň každé auto potřebuje. Funguje i bez nabíjecího kabelu."
+   ],
+   [
+    "Přídavný zdroj je vidět a hlásí se",
+    "Když tepelné čerpadlo běží na přídavný zdroj (elektrická patrona), uvidíte to živě v aplikaci a v přehledu toků, dostanete oznámení při zapnutí a zpětná vazba z místností má proti němu hlídač."
+   ],
+   [
+    "Vířivka: Gecko dostává více péče",
+    "Teplota a ovládání fungují, i když byla vířivka nalezena automaticky nebo mají entity přejmenované názvy. EnergyWizard se učí, kdy se koupete, a navrhuje časy koupání, a dostanete oznámení, když vířivka ohlásí novou závadu."
+   ],
+   [
+    "Další baterie a čerpadla",
+    "Sigenergy (Remote EMS) a Emaldo jsou navrženy v průvodci a NIBE S735 lze připojit přes místní API čerpadla. Sigenergy a Emaldo zatím nejsou vyzkoušeny na skutečném zařízení: máte-li některé, ozvěte se."
+   ],
+   [
+    "Karty a tlačítka v Home Assistant",
+    "Nové karty pro tok energie a auto, s tlačítky Auto, Nabít hned a Pauza. Instalují se přes HACS."
+   ],
+   [
+    "Opraveno",
+    "Automatický plán nabíjení už nepřepisuje vaši vlastní úroveň nabití na 100 %. Méně planých oznámení „baterie neposlouchá“. Zaseknutý motor je nyní vidět. Řádek o teplé vodě v přehledu ukazuje skutečný počet dnů."
+   ]
+  ]
+ }
+}
