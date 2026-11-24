@@ -209,4 +209,5 @@ def test_skicka_felsokningsinfo_bara_for_agaren_och_ger_referens(monkeypatch):
     assert asyncio.run(mod.api_support_send(MagicMock())) == {"ok": True, "ref": "EW-ABCDE"}
     monkeypatch.setattr(telemetry, "send_support_bundle", lambda text, cfg=None: (_ for _ in ()).throw(RuntimeError("samlaren nere")))
     r = asyncio.run(mod.api_support_send(MagicMock()))
-    assert r.status_code == 502 and b"samlaren nere" in r.body
+    assert r.status_code == 502
+    assert json.loads(r.body) == {"error": "Kunde inte skicka felsökningsinfon"}
