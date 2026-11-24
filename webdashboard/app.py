@@ -1593,6 +1593,68 @@ async def api_economy():
             "money": savings.money_periods(money, today), "timing": savings.summarize_periods(timing, today)}
 
 
+def _solar_payback_settings():
+    """Inställningarna för solcellernas återbetalning (smartbox/solar_payback.py). Sparas i /data/energywizard.json."""
+    st = ew_settings.get("solar_payback")
+    return st if isinstance(st, dict) else {}
+
+
+@app.get("/api/solar-payback")
+async def api_solar_payback(request: Request):
+    """Solcellernas nytta månad för månad, per år och totalt, med återbetalning (#599, #602).
+    Inskrivna månader går före EnergyWizards egna mätvärden. Beräkningen och formlerna finns i smartbox/solar_payback.py."""
+    import solar_payback
+    from datetime import datetime
+    role, _ = AUTH.session(request)
+    today = datetime.now(installation_timezone()).date()
+    with ENGINE.begin() as c:
+        out = solar_payback.build(c, _solar_payback_settings(), today)
+    out.update(ok=True, owner=(role == "owner"), csv_columns=solar_payback.CSV_COLUMNS)
+    return out
+
+
+@app.post("/api/solar-payback/settings")
+async def api_solar_payback_settings(request: Request):
+    import solar_payback
+    role, _ = AUTH.session(request)
+    if role != "owner":
+        return JSONResponse({"detail": "Bara ägaren kan ändra solcellernas uppgifter"}, status_code=403)
+    clean, errors = solar_payback.validate_settings(await request.json())
+    if errors:
+        return JSONResponse({"detail": errors[0], "errors": errors}, status_code=400)
+    st = dict(_solar_payback_settings())
+    st.update(clean)
+    ew_settings.update(solar_payback=st)
+    return {"ok": True}
+
+
+@app.post("/api/solar-payback/history")
+async def api_solar_payback_history(request: Request):
+    """Läser in månader ur mallens CSV. replace=true ersätter allt inskrivet, annars läggs/ersätts bara månaderna i filen."""
+    import solar_payback
+    role, _ = AUTH.session(request)
+    if role != "owner":
+        return JSONResponse({"detail": "Bara ägaren kan läsa in månader"}, status_code=403)
+    body = await request.json()
+    text_in = str(body.get("csv") or "")
+    if len(text_in) > 400_000:
+        return JSONResponse({"detail": "Filen är för stor"}, status_code=400)
+    rows, errors = solar_payback.parse_history_csv(text_in)
+    if body.get("preview"):
+        return {"ok": True, "preview": True, "rows": len(rows), "errors": errors,
+                "first": rows[0]["manad"] if rows else None, "last": rows[-1]["manad"] if rows else None}
+    if not rows:
+        return JSONResponse({"detail": errors[0] if errors else "Inga månader att läsa in", "errors": errors}, status_code=400)
+    st = dict(_solar_payback_settings())
+    old = [] if body.get("replace") else [r for r in (st.get("history") or []) if r.get("manad") not in {x["manad"] for x in rows}]
+    merged = sorted(old + rows, key=lambda r: r["manad"])
+    if len(merged) > solar_payback.MAX_HISTORY:
+        return JSONResponse({"detail": "För många månader"}, status_code=400)
+    st["history"] = merged
+    ew_settings.update(solar_payback=st)
+    return {"ok": True, "rows": len(rows), "errors": errors, "total": len(merged)}
+
+
 @app.get("/api/savings")
 async def api_savings():
     """Besparingskortet: per dag de senaste ~40 dygnen + Idag / 7 dagar / Månad. Samma formel

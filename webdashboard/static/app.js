@@ -777,6 +777,7 @@ async function renderSolceller() {
       ${statTile("📈 Prognos nu", fmt(d.solar_forecast_w != null ? d.solar_forecast_w / 1000 : null, 2, " kW"))}
       ${statTile("🚫 Exportgräns", d.solar_limit_pct != null ? d.solar_limit_pct.toFixed(0) + " %" : "Ingen", d.ai_limit ? "automatiken begränsar (minuspris)" : "")}
     </div>
+    <div class="card" id="solarpayback" style="margin-bottom:16px"><h2>💰 Återbetalning</h2><div class="note">Laddar…</div></div>
     ${d.battery_soc != null ? `<div class="card" style="margin-bottom:16px">
       <h2>🔋 Husbatteri</h2>
       ${barRow("Laddning", d.battery_soc, d.battery_soc.toFixed(0) + "%")}
@@ -805,6 +806,7 @@ async function renderSolceller() {
     <div class="card"><h2>Elpris</h2><div class="note">Styr när exportbegränsningen slår till (minuspris)</div><div id="solarpricechart" style="height:220px;margin-top:10px"></div></div>`);
   if (d && d.price_24h) lineChart("solarpricechart", d.price_24h, { step: "end" });
   if (d) {
+    renderSolarPayback();
     renderSolarForecastSettings();
     renderSolarOrder();
     const rangeEl = document.getElementById("solarlimit"), valEl = document.getElementById("solarlimitval");
@@ -813,6 +815,103 @@ async function renderSolceller() {
     document.getElementById("solarauto").onchange = (e) => postAction("api/energy-action/auto", { value: e.target.checked }).then(renderSolceller);
     document.getElementById("solarnotify").onchange = (e) => postAction("api/energy-action/notify", { value: e.target.checked });
   }
+}
+
+// #599, #602: solcellernas nytta och återbetalning, månad för månad, år för år och totalt (smartbox/solar_payback.py)
+const SPB_KR = (v) => v == null ? "–" : Math.round(v).toLocaleString("sv-SE") + " kr";
+const SPB_N = (v, d) => v == null ? "–" : v.toLocaleString("sv-SE", { minimumFractionDigits: d || 0, maximumFractionDigits: d || 0 });
+async function renderSolarPayback() {
+  const box = document.getElementById("solarpayback"); if (!box) return;
+  let d; try { d = await api("api/solar-payback"); } catch (e) { if (box.isConnected) box.innerHTML = `<h2>💰 Återbetalning</h2><div class="note">${esc(e.message)}</div>`; return; }
+  if (!box.isConnected) return;
+  const sm = d.summary, hasData = d.months.length > 0 && d.investment_kr;
+  const inp = (id, label, val, attrs) => `<label for="${id}" style="display:block;margin-top:8px">${label}</label><input id="${id}" value="${esc(val == null ? "" : val)}" ${attrs || ""} style="max-width:260px">`;
+  const form = !d.owner ? "" : `<details style="margin-top:14px" ${hasData ? "" : "open"}><summary>Uppgifter om anläggningen</summary>
+      <div class="note" style="margin-top:8px">Kostnaden är det du betalade, efter eventuellt stöd. Startdatum är dagen anläggningen togs i drift. Nätnyttan hittar du på nätbolagets faktura som ersättning för såld el. Skattereduktionen för såld överskottsel gällde till och med 2025-12-31, och EnergyWizard räknar den inte efter slutdatumet.</div>
+      ${inp("spbinv", "Anläggningens kostnad (kr)", d.investment_kr, 'inputmode="decimal"')}
+      ${inp("spbstart", "Startdatum (ÅÅÅÅ-MM-DD)", d.start_date, 'placeholder="2023-02-14"')}
+      ${inp("spbnn", "Nätnytta för såld el (öre per kWh)", d.natnytta_ore != null ? d.natnytta_ore : 0, 'inputmode="decimal"')}
+      ${inp("spbtax", "Skattereduktion (öre per kWh)", d.tax_credit_ore, 'inputmode="decimal"')}
+      ${inp("spblast", "Skattereduktion t.o.m. (ÅÅÅÅ-MM-DD)", d.tax_credit_last_date, 'placeholder="2025-12-31"')}
+      <button class="icobtn" id="spbsave" style="margin-top:12px">Spara uppgifter</button></details>
+    <details style="margin-top:10px"><summary>Läs in månader (innan EnergyWizard började mäta, eller för att rätta en månad)</summary>
+      <div class="note" style="margin-top:8px">Ladda ner mallen, fyll i en rad per månad med uppgifterna från fakturorna och växelriktaren, och läs in filen. Månader du skriver in går före EnergyWizards egna mätvärden. Du kan också klistra in raderna direkt nedan.</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;align-items:center"><button class="icobtn" id="spbtemplate">⬇️ Ladda ner mall</button>
+        <input type="file" id="spbfile" accept=".csv,.txt,text/csv,text/plain"></div>
+      <textarea id="spbcsv" rows="6" style="width:100%;margin-top:8px;font-family:monospace;font-size:.8rem" placeholder="manad;producerat_kwh;salt_kwh;kopt_kwh;kopt_pris_ore;salj_pris_ore;energiskatt_ore;overforing_ore;natnytta_ore;skattereduktion_ore"></textarea>
+      <div class="note" id="spbmsg" style="margin-top:6px"></div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px"><button class="icobtn" id="spbcheck">Kontrollera</button><button class="icobtn" id="spbload">Läs in</button>
+        <label style="display:flex;gap:6px;align-items:center;font-size:.85rem"><input type="checkbox" id="spbreplace"> Ersätt alla tidigare inskrivna månader</label></div></details>`;
+  if (!hasData) {
+    box.innerHTML = `<h2>💰 Återbetalning</h2><div class="note">Här ser du hur mycket solcellerna sparat och tjänat, månad för månad, år för år och totalt, och hur lång tid som återstår tills anläggningen är betald. Fyll i vad anläggningen kostade och när den startade. EnergyWizard räknar med sina egna mätvärden från och med nu. För tiden innan kan du läsa in månadsuppgifter.</div>${form}`;
+  } else {
+    const cal = d.calibration && d.calibration.active ? `<div class="note" style="margin-top:6px"><span>Kalibrerad mot</span> <span data-noi18n>${d.calibration.months}</span> <span>inskrivna månader</span> <span data-noi18n>(</span><span>produktion</span> <span data-noi18n>×${SPB_N(d.calibration.produced_factor, 2)},</span> <span>såld el</span> <span data-noi18n>×${SPB_N(d.calibration.sold_factor, 2)})</span>, <span>eftersom mätarna avviker några procent från växelriktaren och nätägaren</span>.</div>` : "";
+    const kv = (label, value) => `<span style="white-space:nowrap"><span>${label}</span> <span data-noi18n>${value}</span></span>`;
+    const row = (title, benefit, parts) => `<div style="padding:7px 0;border-top:1px solid var(--line)"><div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:2px 12px"><span>${title}</span><b data-noi18n>${SPB_KR(benefit)}</b></div>
+      <div class="note" style="margin-top:2px;line-height:1.5">${parts.join(" · ")}</div></div>`;
+    const src = (m) => `<span>${m.source === "history" ? "Inskriven" : "Uppmätt"}</span>` + (m.open ? ` <span>(pågår)</span>` : "") + (m.scaled ? ` <span>lucka uppskalad</span>` : "");
+    box.innerHTML = `<h2>💰 Återbetalning</h2>
+      <div class="grid" style="margin:10px 0 12px">
+        ${statTile("💰 Nytta hittills", SPB_KR(sm.total_kr), `<span data-noi18n>${SPB_N(sm.months)}</span> <span>månader sedan</span> <span data-noi18n>${esc(d.start_date || "")}</span>`)}
+        ${statTile("📊 Återbetalt", sm.paid_back_pct != null ? SPB_N(sm.paid_back_pct, 1) + " %" : "–", `<span>av kostnaden</span> <span data-noi18n>${SPB_KR(sm.investment_kr)}</span>`)}
+        ${statTile("⏳ Kvar att tjäna in", SPB_KR(sm.remaining_kr), "kostnaden minus nyttan hittills")}
+        ${statTile("📅 Tid kvar", sm.years_left != null ? SPB_N(sm.years_left, 1) + " år" : "–", sm.last12_kr != null ? `<span>med nyttan senaste 12 månaderna</span> <span data-noi18n>(${SPB_KR(sm.last12_kr)})</span>` : "behöver ett helt år")}
+      </div>
+      ${barRow("Återbetalt", sm.paid_back_pct, `<span style="white-space:nowrap" data-noi18n>${SPB_N(sm.paid_back_pct, 1)} %</span>`)}
+      <div id="spbchart" style="height:240px;margin-top:12px"></div>
+      <h3 style="margin:14px 0 6px;font-size:1rem">Per år</h3>
+      ${sm.years.map((y) => row(`<b data-noi18n>${esc(y.year)}</b>${y.months < 12 ? ` <small><span data-noi18n>(${y.months}</span> <span>månader</span><span data-noi18n>)</span></small>` : ""}`, y.benefit_kr,
+        [kv("Producerat", SPB_N(y.produced_kwh) + " kWh"), kv("Sålt", SPB_N(y.sold_kwh) + " kWh"), kv("Egenanvänt", SPB_N(y.own_kwh) + " kWh" + (y.own_pct != null ? ` (${SPB_N(y.own_pct)} %)` : "")),
+          kv("Besparing", SPB_KR(y.saving_kr)), kv("Intäkt", SPB_KR(y.income_kr)), kv("Skattereduktion", SPB_KR(y.tax_credit_kr))])).join("")}
+      <details style="margin-top:12px"><summary>Månad för månad</summary><div style="max-height:460px;overflow-y:auto">
+        ${d.months.slice().reverse().map((m) => row(`<b data-noi18n>${esc(m.month)}</b> <small>${src(m)}</small>`, m.benefit_kr,
+          [kv("Producerat", SPB_N(m.produced_kwh) + " kWh"), kv("Sålt", SPB_N(m.sold_kwh) + " kWh"), kv("Egenanvänt", SPB_N(m.own_kwh) + " kWh"),
+            kv("Besparing", SPB_KR(m.saving_kr)), kv("Intäkt", SPB_KR(m.income_kr)), kv("Skattereduktion", SPB_KR(m.tax_credit_kr))])).join("")}</div></details>
+      ${cal}
+      <div class="note" style="margin-top:8px;line-height:1.5">Nytta = besparing på egenanvänd el + intäkt för såld el (med nätnytta) + skattereduktion. Fasta avgifter och effektavgift räknas inte, eftersom du betalar dem med eller utan solceller. Egenanvänd el är producerat minus sålt. Egna mätvärden värderas minut för minut med dina elpris- och avgiftsinställningar, så håll dem aktuella. Färdiga månader sparas och ändras inte när du ändrar inställningarna.</div>
+      ${form}`;
+    const el = document.getElementById("spbchart");
+    if (el && d.months.length && window.echarts) {
+      const chart = echarts.init(el, null, { renderer: "svg" });
+      const css = getComputedStyle(document.documentElement), good = css.getPropertyValue("--acc").trim() || "#22d3a0", blue = css.getPropertyValue("--acc2").trim() || "#38bdf8";
+      const closed = sm.series;
+      chart.setOption({
+        grid: { left: 48, right: 56, top: 28, bottom: 30 }, legend: { top: 0, textStyle: { color: "#93a0b8" }, data: ["Nytta per månad", "Hittills"] },
+        tooltip: { trigger: "axis", valueFormatter: (v) => Math.round(v).toLocaleString("sv-SE") + " kr" },
+        xAxis: { type: "category", data: closed.map((r) => r.month), axisLabel: { color: "#93a0b8" } },
+        yAxis: [{ type: "value", axisLabel: { color: "#93a0b8" }, splitLine: { lineStyle: { color: "rgba(255,255,255,.08)" } } }, { type: "value", max: Math.ceil(sm.investment_kr * 1.05), axisLabel: { color: "#93a0b8" }, splitLine: { show: false } }],
+        series: [{ name: "Nytta per månad", type: "bar", data: closed.map((r) => r.benefit_kr), itemStyle: { color: good, borderRadius: [3, 3, 0, 0] }, barMaxWidth: 14 },
+          { name: "Hittills", type: "line", yAxisIndex: 1, data: closed.map((r) => r.cumulative_kr), showSymbol: false, lineStyle: { color: blue, width: 2 },
+            markLine: { silent: true, symbol: "none", lineStyle: { color: "#f5a524", type: "dashed" }, data: [{ yAxis: sm.investment_kr, name: "Kostnad" }], label: { formatter: "Kostnad", color: "#f5a524", position: "insideEndTop" } } }],
+      });
+      new ResizeObserver(() => chart.resize()).observe(el);
+    }
+  }
+  if (!d.owner) return;
+  const val = (id) => box.querySelector("#" + id).value;
+  const save = box.querySelector("#spbsave");
+  if (save) save.onclick = async () => {
+    try { await postJSON("api/solar-payback/settings", { investment_kr: val("spbinv"), start_date: val("spbstart"), natnytta_ore: val("spbnn"), tax_credit_ore: val("spbtax"), tax_credit_last_date: val("spblast") });
+      toast("Sparat"); renderSolarPayback(); } catch (e) { toast(e.message); }
+  };
+  const msg = box.querySelector("#spbmsg");
+  const send = async (preview) => {
+    const csv = val("spbcsv");
+    if (!csv.trim()) { msg.textContent = "Välj en fil eller klistra in raderna först."; return; }
+    try {
+      const r = await postJSON("api/solar-payback/history", { csv, preview, replace: box.querySelector("#spbreplace").checked });
+      const errs = (r.errors || []).slice(0, 5).join(" · ");
+      msg.textContent = (preview ? `${r.rows} månader kan läsas in (${r.first} till ${r.last}).` : `Läste in ${r.rows} månader.`) + (errs ? " " + errs : "");
+      if (!preview) renderSolarPayback();
+    } catch (e) { msg.textContent = e.message; }
+  };
+  box.querySelector("#spbcheck").onclick = () => send(true);
+  box.querySelector("#spbload").onclick = () => send(false);
+  box.querySelector("#spbfile").onchange = (ev) => { const f = ev.target.files[0]; if (!f) return; const rd = new FileReader(); rd.onload = () => { box.querySelector("#spbcsv").value = String(rd.result); send(true); }; rd.readAsText(f); };
+  box.querySelector("#spbtemplate").onclick = () => {
+    const blob = new Blob(["﻿" + d.csv_columns.join(";") + "\n2026-05;2190;1498,29;891,94;150;39,16;45;29,29;2,1;0\n"], { type: "text/csv" });
+    const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "solceller_manader.csv"; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  };
 }
 
 async function renderSolarOrder() {                      // #430: i vilken ordning överskottet går till lasterna
