@@ -165,6 +165,7 @@ PAGES = [
     {"id": "historik", "name": "Historik", "icon": "📈", "built": True},
     {"id": "installningar", "name": "Inställningar", "icon": "⚙️", "built": True},
     {"id": "aviseringar", "name": "Aviseringar", "icon": "🔔", "built": True},
+    {"id": "nyheter", "name": "Nyheter", "icon": "📰", "built": True},
     {"id": "system", "name": "System", "icon": "🛠️", "built": True},
     {"id": "logg", "name": "Logg", "icon": "📜", "built": True},
 ]
@@ -2033,6 +2034,53 @@ def _system_test_tests():
     except Exception:
         return []
     return system_test.config_tests(hc, bs)
+
+
+# ---- Veckobrevet (news_signup.py): valfritt fält i installationsguiden och under System, bara ägaren ----
+def _news_guard(request: Request):
+    role, _ = AUTH.session(request)
+    return JSONResponse({"detail": "Bara ägaren"}, status_code=403) if role != "owner" else None
+
+
+@app.get("/api/news/issues")
+async def api_news_issues(request: Request, lang: str = "sv"):
+    """Fliken Nyheter: de utskickade veckobreven. Publikt innehåll, så alla inloggade roller får se det."""
+    role, _ = AUTH.session(request)
+    if role is None:
+        return JSONResponse({"detail": "Inte inloggad"}, status_code=401)
+    import news_feed
+    return {"ok": True, "issues": news_feed.issues(lang)}
+
+
+@app.get("/api/news")
+async def api_news_state(request: Request):
+    if (bad := _news_guard(request)) is not None:
+        return bad
+    import news_signup
+    return {"ok": True, **news_signup.state(refresh=True)}
+
+
+@app.post("/api/news/subscribe")
+async def api_news_subscribe(request: Request):
+    if (bad := _news_guard(request)) is not None:
+        return bad
+    import news_signup
+    body = await request.json()
+    try:
+        return {"ok": True, **news_signup.subscribe((body or {}).get("email"), (body or {}).get("lang"))}
+    except news_signup.NewsError as e:
+        return JSONResponse({"detail": str(e)}, status_code=400)
+
+
+@app.post("/api/news/cancel")
+async def api_news_cancel(request: Request):
+    if (bad := _news_guard(request)) is not None:
+        return bad
+    import news_signup
+    try:
+        return {"ok": True, **news_signup.cancel()}
+    except news_signup.NewsError as e:
+        return JSONResponse({"detail": str(e)}, status_code=502)
 
 
 @app.get("/api/system_test")

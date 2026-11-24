@@ -1274,6 +1274,55 @@ def support_send(request: Request):
         raise HTTPException(502, f"Kunde inte skicka felsökningsinfon: {e}"[:300])
 
 
+# ---- Veckobrevet (news_signup.py): valfri anmälan med e-post, bara ägaren ----
+@app.get("/api/news/issues")
+def news_issues(request: Request, lang: str = "sv"):
+    """Fliken Nyheter: de utskickade veckobreven. Publikt innehåll, så alla inloggade roller får se det."""
+    if not _ok(request):
+        raise HTTPException(401, "Inte inloggad")
+    import news_feed
+    return {"ok": True, "issues": news_feed.issues(lang)}
+
+
+@app.get("/api/news")
+def news_state(request: Request):
+    if _role(request) != "owner":
+        raise HTTPException(403, "Bara ägaren")
+    import news_signup
+    return {"ok": True, **news_signup.state(refresh=True)}
+
+
+@app.post("/api/news/subscribe")
+async def news_subscribe(request: Request):
+    if _role(request) != "owner":
+        raise HTTPException(403, "Bara ägaren")
+    import news_signup
+    body = await request.json()
+    try:
+        return {"ok": True, **news_signup.subscribe((body or {}).get("email"), (body or {}).get("lang"))}
+    except news_signup.NewsError as e:
+        raise HTTPException(400, str(e))
+
+
+@app.post("/api/news/cancel")
+def news_cancel(request: Request):
+    if _role(request) != "owner":
+        raise HTTPException(403, "Bara ägaren")
+    import news_signup
+    try:
+        return {"ok": True, **news_signup.cancel()}
+    except news_signup.NewsError as e:
+        raise HTTPException(502, str(e))
+
+
+@app.post("/api/news/dismiss")
+def news_dismiss(request: Request):
+    if _role(request) != "owner":
+        raise HTTPException(403, "Bara ägaren")
+    import news_signup
+    return {"ok": True, **news_signup.dismiss()}
+
+
 @app.get("/api/journal/download")
 def journal_download(request: Request, days: float = 2):
     if _role(request) != "owner":

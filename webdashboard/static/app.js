@@ -2104,6 +2104,52 @@ async function renderVarmepump() {
   };
 }
 
+// ---- Nyheter (2026-11-24, Emil): veckobreven som en egen flik för alla roller (api/news/issues, samma text som i mejlet) ----
+async function renderNyheter() {
+  const main = document.getElementById("main");
+  main.innerHTML = `<div class="placeholder">Laddar…</div>`;
+  let d;
+  try { d = await api("api/news/issues?lang=" + ((window.I18N && I18N.lang) || "sv")); }
+  catch (e) { main.innerHTML = `<div class="card"><h2 style="margin:0 0 8px">Nyheter</h2><div class="note"><span>Kunde inte hämta nyheterna just nu.</span></div></div>`; return; }
+  const issues = d.issues || [];
+  const cards = issues.length ? issues.map((i) => `<div class="card" style="margin-bottom:16px" data-noi18n><h2 style="margin:0 0 4px">${esc(I18N.tr("Vecka"))} ${esc(String(i.id).split("-w")[1] || "")}${i.period ? ` · ${esc(i.period)}` : ""}</h2>
+      ${i.versions ? `<div class="note" style="margin-bottom:10px">${esc(I18N.tr("version"))} ${esc(i.versions)}</div>` : ""}
+      ${(i.items || []).map(([t, x]) => `<div style="margin:10px 0"><b>${esc(t)}</b><div class="note" style="margin-top:2px">${esc(x)}</div></div>`).join("")}</div>`).join("")
+    : `<div class="card"><h2 style="margin:0 0 8px">Nyheter</h2><div class="note"><span>Inga veckobrev ännu. Det första kommer på en torsdag kl 11.</span></div></div>`;
+  main.innerHTML = `<div id="newscard-top"></div>${cards}`;
+  newsCard(document.getElementById("newscard-top"), {});
+}
+
+// ---- Veckobrevet (2026-11-24, Emil): valfri e-post för nyheterna, i installationsguiden och under System (smartbox/news_signup.py) ----
+async function newsCard(host, opts) {
+  if (!host) return;
+  opts = opts || {};
+  let st;
+  try { st = await api("api/news"); } catch (e) { host.innerHTML = ""; return; }
+  if (opts.guide && (st.status !== "none")) { host.innerHTML = ""; return; }                // redan anmäld: inget extra steg i guiden
+  const em = esc(st.email || "");
+  const body = st.status === "confirmed"
+    ? `<div class="note"><span>Du får veckobrevet till</span> <b data-noi18n>${em}</b> <span>varje torsdag kl 11.</span></div><div style="margin-top:8px"><button class="icobtn" id="newscancel">Avsluta prenumerationen</button></div>`
+    : st.status === "pending"
+      ? `<div class="note"><span>Vi har skickat ett mejl till</span> <b data-noi18n>${em}</b><span>. Klicka på länken i mejlet för att bekräfta. Hittar du det inte, titta i skräpposten.</span></div><div style="margin-top:8px"><button class="icobtn" id="newscancel">Ändra adress</button></div>`
+      : `<div class="note" style="margin-bottom:8px"><span>En kort sammanfattning av nyheterna i EnergyWizard, varje torsdag kl 11. Du skriver bara in din e-postadress och bekräftar via ett mejl. Du kan avsluta när du vill med länken i varje brev.</span></div>
+         <div style="display:flex;gap:8px;flex-wrap:wrap"><input id="newsmail" type="email" inputmode="email" autocomplete="email" placeholder="din@epost.se" style="flex:1;min-width:200px"><button class="icobtn" id="newssub">Anmäl</button></div>
+         <div class="note" style="margin-top:8px"><span>Personuppgiftsansvarig är EnergyWizards skapare. Adressen används bara för veckobrevet, lämnas inte vidare och raderas när du avslutar. Den kopplas inte till telemetrin.</span></div>`;
+  host.innerHTML = `<div class="card" style="margin-bottom:16px"><h2 style="margin:0 0 8px">${opts.guide ? "Valfritt: få nyheterna via e-post" : "Veckobrev med nyheter"}</h2>${body}<div id="newsmsg" class="note" style="margin-top:6px;color:var(--bad)"></div></div>`;
+  const msg = (t) => { const m = document.getElementById("newsmsg"); if (m) m.textContent = window.I18N ? I18N.tr(t) : t; };
+  const sub = document.getElementById("newssub");
+  if (sub) sub.onclick = async () => {
+    sub.disabled = true;
+    try { await postJSON("api/news/subscribe", { email: (document.getElementById("newsmail") || {}).value || "", lang: (window.I18N && I18N.lang) || "sv" }); newsCard(host, opts); }
+    catch (e) { msg(e.message || "Kunde inte anmäla."); sub.disabled = false; }
+  };
+  const cancel = document.getElementById("newscancel");
+  if (cancel) cancel.onclick = async () => {
+    cancel.disabled = true;
+    try { await postJSON("api/news/cancel", {}); newsCard(host, opts); } catch (e) { msg(e.message || "Kunde inte avsluta."); cancel.disabled = false; }
+  };
+}
+
 // ---- "Testa ditt system" (smartbox/system_test.py, system_check.py): erbjuds som sista steg efter installationsguiden och under System ----
 let sysTestTimer = null;
 const SYS_ICON = { ok: "✅", warn: "⚠️", fail: "❌" };
@@ -2359,8 +2405,8 @@ function installsCard(d) {
 
 async function loadUpdates(force) {
   const main = document.getElementById("main");
-  main.innerHTML = '<div id="systest"></div><div id="imageupdates"></div><div id="watchtowerupdates"></div>';
-  await Promise.all([systemTestCard(document.getElementById("systest")), loadImageUpdates(false), loadWatchtowerUpdates(force)]);
+  main.innerHTML = '<div id="newscard"></div><div id="systest"></div><div id="imageupdates"></div><div id="watchtowerupdates"></div>';
+  await Promise.all([newsCard(document.getElementById("newscard")), systemTestCard(document.getElementById("systest")), loadImageUpdates(false), loadWatchtowerUpdates(force)]);
 }
 
 async function loadImageUpdates(force) {
@@ -2911,6 +2957,10 @@ async function generateConfig(save) {
       let sg = document.getElementById("systest-guide");
       if (!sg) { sg = document.createElement("div"); sg.id = "systest-guide"; sg.style.marginTop = "14px"; msg.insertAdjacentElement("afterend", sg); }
       systemTestCard(sg, { guide: true });
+      // Veckobrevet läggs direkt under rutan med sparat-meddelandet, ovanför testet (nya element hamnar närmast meddelandet)
+      let ng = document.getElementById("news-guide");
+      if (!ng) { ng = document.createElement("div"); ng.id = "news-guide"; ng.style.marginTop = "14px"; msg.insertAdjacentElement("afterend", ng); }
+      newsCard(ng, { guide: true });
     }
     return;
   }
@@ -2934,6 +2984,8 @@ function openPage(id) {
     renderOversikt();
   } else if (id === "varmepump") {
     renderVarmepump();
+  } else if (id === "nyheter") {
+    renderNyheter();
   } else if (id === "system") {
     renderSystem();
   } else if (id === "installationer") {

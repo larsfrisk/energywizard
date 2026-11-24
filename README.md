@@ -207,6 +207,14 @@ Skickas en gång per dygn och vid start, till `https://energywizzard.profitalgos
 Aldrig: namn, adress, plats, IP-adresser i innehållet, andra mätvärden, elpriser, avgifter eller historik. Se `smartbox/telemetry.py`
 för exakt vad som skickas och `telemetry-collector/` för mottagaren.
 
+
+## Veckobrev (valfritt)
+
+Vill du få en kort sammanfattning av nyheterna i EnergyWizard varje torsdag kl 11 kan du skriva in din e-postadress i appen (första sidan eller
+Inställningar › Appen) eller i installationsguiden. Du bekräftar via ett mejl och kan avsluta med länken i varje brev. Adressen används bara
+till veckobrevet, lämnas inte vidare, raderas när du avslutar och kopplas inte till telemetrin. Personuppgiftsansvarig är EnergyWizards skapare.
+Se [newsletter/README.md](newsletter/README.md).
+
 ## 🌍 Översätt
 
 Webben och mobilappen finns på svenska och engelska. Språket väljs i startguiden och kan bytas
