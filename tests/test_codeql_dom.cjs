@@ -1,5 +1,8 @@
 const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');
-const preview = fs.readFileSync('ha-cards/preview.html', 'utf8').match(/<script>([\s\S]*?)<\/script>/)[1];
+const previewHtml = fs.readFileSync('ha-cards/preview.html', 'utf8');
+const scriptStart = previewHtml.indexOf('<script>');
+assert.notEqual(scriptStart, -1);
+const preview = previewHtml.slice(scriptStart + '<script>'.length, previewHtml.lastIndexOf('</script>'));
 for (const [query, tag] of [
   ['', 'energywizard-house-card'],
   ['?card=house', 'energywizard-house-card'],
