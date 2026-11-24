@@ -3128,5 +3128,6 @@
  "🔥 Driftläge, senaste 24 timmarna": "🔥 Operating mode, last 24 hours",
  "Håll varm": "Keep warm",
  "Håll varm efter tiden": "Keep warm after the time",
- "Värmer igen när bilen svalnat, och slutar när bilen flyttas från huset. Fungerar även utan kabel. Starttiden räknas ur hur kall bilen är.": "Heats again when the car has cooled, and stops when the car leaves the house. Works without the cable too. The start time is worked out from how cold the car is."
+ "Värmer igen när bilen svalnat, och slutar när bilen flyttas från huset. Fungerar även utan kabel. Starttiden räknas ur hur kall bilen är.": "Heats again when the car has cooled, and stops when the car leaves the house. Works without the cable too. The start time is worked out from how cold the car is.",
+ "Kopierat - tryck Spara värmen": "Copied - press Save heating"
 }

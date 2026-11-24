@@ -2,6 +2,9 @@
 
 ❤️ EnergyWizard är gratis och öppet. Om det sparar pengar hemma hos dig kan du hålla det så med en sponsring (runt 10 USD i månaden räcker långt): https://github.com/sponsors/murre87
 
+## 1.2.178 (2026-11-24)
+- **Kupévärme med två tider per dag och olika tider varje veckodag**, som laddschemat. Till exempel morgon kl 06:45 och hemresa från jobbet kl 16:30, och en annan tid på onsdagar. I webben under Elbil och i appen under Planen finns sju rader med två tider vardera (på/av och klockslag), en knapp "Samma som måndag alla dagar", och temperatur och "Håll varm" som gäller bilen. Hålltiden räknas från varje tid. Befintliga inställningar flyttas över automatiskt: den gamla tiden gäller som första tid alla dagar (#598).
+
 ## 1.2.177 (2026-11-24)
 - **Håll varm fungerar även utan laddkabel.** En urdragen kabel avslutar inte längre hålltiden, så värmen kan hållas medan du hämtar bilen. Hålltiden avslutas bara när bilen flyttas från huset.
 - **Kupévärmen räknar ut när den ska starta så att bilen är varm vid din tid.** Förut en fast tid ur utetemperaturen. Nu lär sig EnergyWizard hur många minuter per grad varje bil behöver (ur bilens egna värmepass i loggen) och räknar på hur kall bilen är just då, så en kall bil startar tidigare än en ljummen. Bilens kupétemperatur kan vara gammal, så den kapas till högst 5 grader över utetemperaturen. Har bilen för få mätbara värmepass används den gamla grundmodellen. Loggen visar hur lång tid som behövs och varför (#598).

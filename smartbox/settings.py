@@ -303,7 +303,8 @@ def _migrate_schedule_car_id(cur, table_name):
 
 def get_climate_schedule(car_ids=None):
     """Hämtar klimatschemat från databasen - en rad per bil i installationen (car_ids), inga fasta bilnamn."""
-    schedule = {c: {'enabled': False, 'target_time': '07:00', 'target_temp': 21.0, 'hold_min': 0} for c in (car_ids or [])}
+    import car_climate_schedule as _cc
+    schedule = {c: {'enabled': False, 'target_time': '07:00', 'target_temp': 21.0, 'hold_min': 0, 'week': _cc.default_week()} for c in (car_ids or [])}
     try:
         with get_db() as conn:
             with conn.cursor() as cur:
@@ -317,6 +318,7 @@ def get_climate_schedule(car_ids=None):
                 """)
                 cur.execute("ALTER TABLE climate_schedule ADD COLUMN IF NOT EXISTS hold_min INTEGER DEFAULT 0")
                 _migrate_schedule_car_id(cur, "climate_schedule")
+                _ensure_climate_week_table(cur)
             conn.commit()
             df = pd.read_sql("SELECT * FROM climate_schedule", conn)
             for _, row in df.iterrows():
@@ -328,9 +330,35 @@ def get_climate_schedule(car_ids=None):
                         'target_temp': float(row['target_temp']),
                         'hold_min': int(row['hold_min']) if 'hold_min' in row and row['hold_min'] == row['hold_min'] and row['hold_min'] is not None else 0
                     }
+                    # Äldre installationer har bara en tid per bil: den gäller först alla dagar som första tiden
+                    schedule[car]['week'] = _cc.default_week(bool(row['enabled']), schedule[car]['target_time'])
+            with conn.cursor() as cur:
+                cur.execute("SELECT car_id, day, slot, enabled, target_time FROM climate_schedule_week")
+                for car, day, slot, en, tm in cur.fetchall():
+                    if car in schedule and 0 <= day < 7 and 0 <= slot < 2:
+                        if not schedule[car].get('_week_saved'):
+                            schedule[car]['week'] = _cc.default_week()
+                            schedule[car]['_week_saved'] = True
+                        schedule[car]['week'][day][slot] = {'enabled': bool(en), 'time': tm.strftime('%H:%M')}
+            for v in schedule.values():
+                v.pop('_week_saved', None)
+                v['enabled'] = _cc.week_enabled(v['week'])
     except Exception as e:
         print(f"❌ Kunde inte ladda klimatschema: {e}")
     return schedule
+
+
+def _ensure_climate_week_table(cur):
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS climate_schedule_week (
+            car_id TEXT NOT NULL,
+            day SMALLINT NOT NULL,
+            slot SMALLINT NOT NULL,
+            enabled BOOLEAN DEFAULT FALSE,
+            target_time TIME,
+            PRIMARY KEY (car_id, day, slot)
+        )
+    """)
 
 def _empty_week():
     return {i: {'enabled': False, 'target_time': '07:00', 'target_soc': 100, 'panic_mode': False} for i in range(7)}
@@ -442,7 +470,7 @@ def save_ev_schedule_day(car_id, day_of_week, target_time, target_soc, enabled, 
     except Exception as e:
         print(f"❌ Fel vid auto-schema för {car_id}: {e}")
 
-def save_climate_schedule_db(car_id, enabled, target_time, target_temp, hold_min=0):
+def save_climate_schedule_db(car_id, enabled, target_time, target_temp, hold_min=0, week=None):
     """Sparar klimatschemat för en elbil."""
     try:
         with get_db() as conn:
@@ -463,6 +491,15 @@ def save_climate_schedule_db(car_id, enabled, target_time, target_temp, hold_min
                     ON CONFLICT (car_id) DO UPDATE SET target_time = EXCLUDED.target_time, target_temp = EXCLUDED.target_temp,
                         enabled = EXCLUDED.enabled, hold_min = EXCLUDED.hold_min
                 """, (car_id, target_time, target_temp, enabled, int(hold_min or 0)))
+                import car_climate_schedule as _cc
+                wk = week if week is not None else _cc.default_week(enabled, str(target_time)[:5])
+                _ensure_climate_week_table(cur)
+                for d, day in enumerate(wk):
+                    for k, sl in enumerate(day):
+                        cur.execute("""
+                            INSERT INTO climate_schedule_week (car_id, day, slot, enabled, target_time) VALUES (%s, %s, %s, %s, %s)
+                            ON CONFLICT (car_id, day, slot) DO UPDATE SET enabled = EXCLUDED.enabled, target_time = EXCLUDED.target_time
+                        """, (car_id, d, k, bool(sl["enabled"]), sl["time"]))
             conn.commit()
         return True
     except Exception as e:

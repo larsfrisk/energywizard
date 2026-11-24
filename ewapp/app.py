@@ -1171,13 +1171,16 @@ async def set_climate_schedule(request: Request):
     if not CARS[car].get("climate"):
         raise HTTPException(409, "Ingen värme vald för bilen - välj bilens klimatentitet i installationen")
     try:
-        row = cc.normalize(b.get("enabled"), b.get("time"), b.get("temp"), b.get("hold_min"))
+        week = cc.normalize_week(b["week"]) if b.get("week") is not None else None      # två tider per dag (#598)
+        first = next((s for day in (week or []) for s in day if s["enabled"]), None)
+        row = cc.normalize(cc.week_enabled(week) if week is not None else b.get("enabled"),
+                           first["time"] if first else b.get("time"), b.get("temp"), b.get("hold_min"))
     except ValueError as e:
         raise HTTPException(400, str(e)) from None
-    if not settings.save_climate_schedule_db(car, row["enabled"], row["time"], row["temp"], row["hold_min"]):
+    if not settings.save_climate_schedule_db(car, row["enabled"], row["time"], row["temp"], row["hold_min"], week):
         raise HTTPException(502, "Kunde inte spara värmeschemat")
     logact(request, f"Kupévärme {car}: {'på' if row['enabled'] else 'av'} {row['time']} {row['temp']} °C, håll {row['hold_min']} min")
-    return {"ok": True, **row}
+    return {"ok": True, **row, "week": week if week is not None else cc.default_week(row["enabled"], row["time"])}
 
 
 # -- Grafer ----------------------------------------------------------------------------------------------------------------

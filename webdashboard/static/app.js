@@ -588,18 +588,23 @@ async function renderElbil() {
   const heatCard = (c) => {
     const h = heat && heat[c.id];
     if (!h || !h.has_climate) return "";
+    const wk = h.week || [];
     return `<div class="card" style="margin-top:12px;padding:12px">
       <div class="note">Kupévärme</div>
-      <div class="note" style="margin:6px 0 8px">Varje dag, varm till klockan när bilen är hemma eller inkopplad.</div>
-      <div style="display:flex;align-items:center;gap:8px">
-        <label class="switch" style="flex:none"><input type="checkbox" class="cl-en" data-car="${c.id}" ${h.enabled ? "checked" : ""}><span class="slider"></span></label>
-        <input type="text" inputmode="numeric" maxlength="5" placeholder="TT:MM" autocomplete="off" class="cl-t hhmm" data-car="${c.id}" value="${esc(h.time)}" style="flex:0 0 5.6em;width:5.6em;min-width:0;text-align:center">
-        <input type="number" class="cl-c" data-car="${c.id}" min="15" max="28" step="0.5" value="${esc(h.temp)}" style="width:72px"> <span>°C</span>
-      </div>
+      <div class="note" style="margin:6px 0 8px">Varm till klockan, upp till två tider per dag och olika varje dag (till exempel morgon och hemresa). Bilen ska vara hemma eller inkopplad.</div>
+      ${WD.map((d, i) => `<div class="clrow" style="display:flex;align-items:center;gap:6px;padding:4px 0;border-top:1px solid var(--line);flex-wrap:wrap">
+        <span style="width:34px;font-weight:600">${d}</span>
+        ${[0, 1].map((k) => { const x = (wk[i] || [])[k] || { enabled: false, time: "07:00" }; return `<label class="switch" style="flex:none"><input type="checkbox" class="cl-en" data-car="${c.id}" data-day="${i}" data-k="${k}" ${x.enabled ? "checked" : ""}><span class="slider"></span></label>
+        <input type="text" inputmode="numeric" maxlength="5" placeholder="TT:MM" autocomplete="off" class="cl-t hhmm" data-car="${c.id}" data-day="${i}" data-k="${k}" value="${esc(x.time)}" style="flex:0 0 5.2em;width:5.2em;min-width:0;text-align:center">`; }).join("")}
+      </div>`).join("")}
+      <div style="display:flex;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap"><span>Temperatur</span>
+        <input type="number" class="cl-c" data-car="${c.id}" min="15" max="28" step="0.5" value="${esc(h.temp)}" style="width:72px"> <span>°C</span></div>
       <div style="display:flex;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap"><span>Håll varm efter tiden</span>
         <input type="number" class="cl-h" data-car="${c.id}" min="0" max="360" step="5" value="${esc(h.hold_min || 0)}" style="width:72px"> <span>min</span></div>
       <div class="note" style="margin-top:4px">0 = av. Värmer igen när bilen hunnit svalna, och slutar när bilen flyttas från huset. Fungerar även utan laddkabel. Starttiden räknas ut ur hur kall bilen är och hur snabbt den brukar värmas.</div>
-      <button class="icobtn cl-save" data-car="${c.id}" style="margin-top:8px">Spara värmen</button>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px">
+        <button class="icobtn cl-save" data-car="${c.id}">Spara värmen</button>
+        <button class="icobtn cl-all" data-car="${c.id}" title="Måndagens rad gäller alla dagar">Samma som måndag alla dagar</button></div>
     </div>`;
   };
   const d = await loadPage("api/car", (d) => `
@@ -702,10 +707,19 @@ async function renderElbil() {
     const car = b.dataset.car;
     postAction("api/schedule", { car, days: [0, 1, 2, 3, 4, 5, 6], ...rowOf(car, 0) }, "Måndagens schema gäller nu alla dagar").then(renderElbil);
   });
+  const climWeek = (car) => WD.map((_, day) => [0, 1].map((k) => ({
+    enabled: document.querySelector(`.cl-en[data-car="${car}"][data-day="${day}"][data-k="${k}"]`).checked,
+    time: document.querySelector(`.cl-t[data-car="${car}"][data-day="${day}"][data-k="${k}"]`).value })));
+  document.querySelectorAll(".cl-all").forEach(b => b.onclick = () => {              // måndagens två tider gäller alla dagar
+    const car = b.dataset.car;
+    WD.forEach((_, day) => [0, 1].forEach((k) => {
+      document.querySelector(`.cl-en[data-car="${car}"][data-day="${day}"][data-k="${k}"]`).checked = document.querySelector(`.cl-en[data-car="${car}"][data-day="0"][data-k="${k}"]`).checked;
+      document.querySelector(`.cl-t[data-car="${car}"][data-day="${day}"][data-k="${k}"]`).value = document.querySelector(`.cl-t[data-car="${car}"][data-day="0"][data-k="${k}"]`).value; }));
+    toast("Kopierat - tryck Spara värmen");
+  });
   document.querySelectorAll(".cl-save").forEach(b => b.onclick = async () => {
     const car = b.dataset.car;
-    const body = { car, enabled: document.querySelector(`.cl-en[data-car="${car}"]`).checked,
-      time: document.querySelector(`.cl-t[data-car="${car}"]`).value,
+    const body = { car, week: climWeek(car),
       temp: parseFloat(document.querySelector(`.cl-c[data-car="${car}"]`).value),
       hold_min: parseInt(document.querySelector(`.cl-h[data-car="${car}"]`).value || "0", 10) };
     try { await postJSON("api/schedule/climate", body); toast("Värmeschemat sparat"); }

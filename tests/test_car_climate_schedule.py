@@ -30,5 +30,8 @@ def test_avvisar_temperatur_som_inte_ar_ett_tal():
 
 def test_vy_visar_om_bilen_har_klimat():
     row = {"enabled": True, "target_time": "06:45", "target_temp": 20}
-    assert cc.view(row, True) == {"enabled": True, "time": "06:45", "temp": 20.0, "hold_min": 0, "has_climate": True}
+    v = cc.view(row, True)
+    week = v.pop("week")
+    assert v == {"enabled": True, "time": "06:45", "temp": 20.0, "hold_min": 0, "has_climate": True}
+    assert len(week) == 7 and week[3][0] == {"enabled": True, "time": "06:45"} and week[3][1]["enabled"] is False
     assert cc.view(None, False)["has_climate"] is False

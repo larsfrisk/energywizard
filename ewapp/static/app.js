@@ -64,7 +64,7 @@ function showLogin(msg) {
   $("#lf").onsubmit = async (e) => { e.preventDefault(); try { await api("login", { user: $("#un").value, password: $("#pw").value }); start(); } catch (er) { showLogin(er.message); } };
 }
 const ER = () => (ROLE === "owner" && VIEWAS) ? VIEWAS : ROLE;                    // effektiv roll: ägaren kan förhandsgranska Elins vy och gästläget
-const CAN = { family: ["battery", "theme", "ser", "refreshsoc", "installapp", "tab", "swap", "power", "start", "stop", "auto", "heat_on", "heat_off", "access", "cardata", "lights", "trip", "sch", "schcar", "schtime", "schclock", "clim", "climclock", "rooms", "greet", "log", "health", "settings", "hp", "hr", "bigchart", "bigrange", "planall", "planview", "histview", "solarsheet", "insights", "peaks", "closesheet", "nowsheet"],
+const CAN = { family: ["battery", "theme", "ser", "refreshsoc", "installapp", "tab", "swap", "power", "start", "stop", "auto", "heat_on", "heat_off", "access", "cardata", "lights", "trip", "sch", "schcar", "schtime", "schclock", "clim", "climclock", "climall", "rooms", "greet", "log", "health", "settings", "hp", "hr", "bigchart", "bigrange", "planall", "planview", "histview", "solarsheet", "insights", "peaks", "closesheet", "nowsheet"],
               guest: ["theme", "ser", "tab", "health", "settings", "swap", "schcar", "cardata", "rooms", "greet", "log", "report", "hp", "hr", "bigchart", "bigrange", "planall", "planview", "histview", "solarsheet", "insights", "peaks", "closesheet", "nowsheet"] };
 const can = (a) => ER() === "owner" || (ROLE === "owner" && a === "viewas") || (CAN[ER()] || []).includes(a);   // ägaren kan alltid byta tillbaka från förhandsvisningen
 const TABS = { owner: ["hem", "bil", "hus", "plan", "historik"], family: ["hem", "bil", "plan"], guest: ["hem", "bil", "hus", "plan", "historik"] };
@@ -414,8 +414,10 @@ function schemaInner() {
   if (!s) return `<div class="note" style="text-align:center">Inget laddschema för den här bilen.</div>`;
   const hx = CLIM && CLIM[schCar];
   const heat = hx && hx.has_climate ? `<section class="card" style="margin-top:12px"><h4>Kupévärme</h4>
-    <div class="note">Varje dag, varm till klockan när bilen är hemma eller inkopplad.</div>
-    <div class="card srow"><b>På</b><button class="sw ${hx.enabled ? "on" : ""}" data-a="clim" data-f="enabled" aria-label="Kupévärme på/av"></button><button class="tm" data-a="climclock" aria-label="Varm kl"><span>${hx.time}</span></button><div class="step"><button data-a="clim" data-f="t-">−</button><span>${hx.temp}°</span><button data-a="clim" data-f="t+">+</button></div></div>
+    <div class="note">Varm till klockan, upp till två tider per dag och olika varje dag (till exempel morgon och hemresa). Bilen ska vara hemma eller inkopplad.</div>
+    ${DAYS.map((d, i) => `<div class="card srow"><b>${d}</b>${[0, 1].map((k) => { const x = hx.week[i][k]; return `<button class="sw ${x.enabled ? "on" : ""}" data-a="clim" data-f="en" data-d="${i}" data-k="${k}" aria-label="${d} tid ${k + 1} på/av"></button><button class="tm" data-a="climclock" data-d="${i}" data-k="${k}" aria-label="${d} varm kl, tid ${k + 1}"><span>${x.time}</span></button>`; }).join("")}</div>`).join("")}
+    <div class="crow" style="margin-top:8px"><button class="mini" data-a="climall">Samma som måndag alla dagar</button></div>
+    <div class="card srow"><b>Temperatur</b><span class="note" style="flex:1"></span><div class="step"><button data-a="clim" data-f="t-">−</button><span>${hx.temp}°</span><button data-a="clim" data-f="t+">+</button></div></div>
     <div class="card srow"><b>Håll varm</b><span class="note" style="flex:1">${hx.hold_min ? "efter tiden" : "av"}</span><div class="step"><button data-a="clim" data-f="h-">−</button><span>${hx.hold_min ? hx.hold_min + " min" : "av"}</span><button data-a="clim" data-f="h+">+</button></div></div>
     <div class="note">Värmer igen när bilen svalnat, och slutar när bilen flyttas från huset. Fungerar även utan kabel. Starttiden räknas ur hur kall bilen är.</div></section>` : "";
   return `<div class="seg">${_cs.map((c) => `<button data-a="schcar" data-v="${esc(c.key)}" class="${schCar === c.key ? "on" : ""}">${esc(c.name)}</button>`).join("")}</div>
@@ -910,17 +912,17 @@ function schClockSheet(d) {
     if (v === "ok") { SCH[schCar][d].time = `${pad2(h)}:${pad2(m)}`; closeSheet(); schedSave(schCar, d); } else { [h, m] = clockStep(v, h, m); draw(); } };
 }
 async function schedSave(car, day) { const x = SCH[car][day]; try { await api("schedule", { car, day, enabled: x.enabled, time: x.time, soc: x.soc }); toast("Sparat"); } catch (e) { toast(e.message); } }
-function climClockSheet() {
-  const x = CLIM && CLIM[schCar]; if (!x) return;
+function climClockSheet(d, k) {
+  const x = CLIM && CLIM[schCar] && CLIM[schCar].week[d][k]; if (!x) return;
   let [h, m] = String(x.time).split(":").map(Number);
-  const draw = () => sheet(`<h3>Kupévärme – varm kl</h3>${clockHTML(h, m)}<button class="big" data-v="ok">Klar</button>`);
+  const draw = () => sheet(`<h3>Kupévärme ${DAYS[d]} – varm kl</h3>${clockHTML(h, m)}<button class="big" data-v="ok">Klar</button>`);
   draw();
-  $("#sheet").onclick = (e) => { const b = e.target.closest("[data-v]"); if (!b) { if (e.target.id === "sheet") closeSheet(); return; } const v = b.dataset.v;
-    if (v === "ok") { x.time = `${pad2(h)}:${pad2(m)}`; closeSheet(); render(); climSave(); } else { [h, m] = clockStep(v, h, m); draw(); } };
+  $("#sheet").onclick = (e) => { const bt = e.target.closest("[data-v]"); if (!bt) { if (e.target.id === "sheet") closeSheet(); return; } const v = bt.dataset.v;
+    if (v === "ok") { x.time = `${pad2(h)}:${pad2(m)}`; x.enabled = true; closeSheet(); render(); climSave(); } else { [h, m] = clockStep(v, h, m); draw(); } };
 }
 async function climSave() {
   const x = CLIM && CLIM[schCar]; if (!x) return;
-  try { await api("schedule/climate", { car: schCar, enabled: x.enabled, time: x.time, temp: x.temp, hold_min: x.hold_min || 0 }); toast("Sparat"); }
+  try { await api("schedule/climate", { car: schCar, week: x.week, temp: x.temp, hold_min: x.hold_min || 0 }); toast("Sparat"); }
   catch (e) { toast(e.message); }
 }
 document.addEventListener("click", async (e) => {
@@ -964,8 +966,9 @@ document.addEventListener("click", async (e) => {
   if (a === "theme") { cycleTheme(); return; }
   if (a === "ser") { const [ck, ix] = v.split(":"); const h = hiddenSer(ck), n = +ix; LS.set("ew_hide_" + ck, (h.includes(n) ? h.filter((x) => x !== n) : [...h, n]).join(",")); render(); return; }
   if (a === "schclock") { schClockSheet(+b.dataset.d); return; }
-  if (a === "climclock") { climClockSheet(); return; }
-  if (a === "clim") { const x = CLIM && CLIM[schCar]; if (!x) return; const f = b.dataset.f; buzz(8); if (f === "enabled") x.enabled = !x.enabled; else if (f === "t+") x.temp = Math.min(28, Math.round((Number(x.temp) + 1) * 10) / 10); else if (f === "t-") x.temp = Math.max(15, Math.round((Number(x.temp) - 1) * 10) / 10); else if (f === "h+") x.hold_min = Math.min(360, (Number(x.hold_min) || 0) + 15); else if (f === "h-") x.hold_min = Math.max(0, (Number(x.hold_min) || 0) - 15); render(); return climSave(); }
+  if (a === "climclock") { climClockSheet(+b.dataset.d, +b.dataset.k); return; }
+  if (a === "climall") { const x = CLIM && CLIM[schCar]; if (!x) return; buzz(8); x.week = x.week.map(() => JSON.parse(JSON.stringify(x.week[0]))); render(); return climSave(); }
+  if (a === "clim") { const x = CLIM && CLIM[schCar]; if (!x) return; const f = b.dataset.f; buzz(8); if (f === "en") { const sl = x.week[+b.dataset.d][+b.dataset.k]; sl.enabled = !sl.enabled; } else if (f === "t+") x.temp = Math.min(28, Math.round((Number(x.temp) + 1) * 10) / 10); else if (f === "t-") x.temp = Math.max(15, Math.round((Number(x.temp) - 1) * 10) / 10); else if (f === "h+") x.hold_min = Math.min(360, (Number(x.hold_min) || 0) + 15); else if (f === "h-") x.hold_min = Math.max(0, (Number(x.hold_min) || 0) - 15); render(); return climSave(); }
   if (a === "lights") { buzz(25); try { const r = await api("lights", { action: v }); toast(r.msg); LJ = await api("lights"); render(); } catch (er) { toast(er.message); } return; }
   if (a === "viewas") { VIEWAS = v; LS.set("ew_viewas", v); grAt = 0; closeSheet(); loadGreeting(); return; }
   if (a === "trip") return tripSheet(c);

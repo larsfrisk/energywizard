@@ -1693,11 +1693,10 @@ while True:
                 if not is_connected and not is_home: return
                 if away_mode_enabled: return 
                 try:
-                    target_time = datetime.strptime(sched['target_time'], "%H:%M").time()
-                    target_dt = datetime.combine(now.date(), target_time).replace(tzinfo=SWE_TZ)
-                    if now.hour > 12 and target_dt.hour < 12: 
-                        target_dt += timedelta(days=1)
-                    
+                    # Nästa påslagna tid i veckoschemat (två tider per dag, olika varje dag, #598)
+                    target_dt = car_climate_schedule.next_target(sched.get('week') or car_climate_schedule.default_week(True, sched['target_time']), now)
+                    if target_dt is None:
+                        return
                     c_state = c_data.get("climate_state") if c_data else "off"
                     c_temp = c_data.get("climate_temp") if c_data else None
                     # Tiden i förväg lärs ur bilens egna värmepass och räknas på hur kall bilen är nu (#598)
@@ -1710,7 +1709,7 @@ while True:
                     c_temp = c_temp if c_temp is not None else 0.0
                     if 0 <= mins_until <= preheat_window_mins:
                         if c_state == "off" and (c_temp is None or c_temp < sched['target_temp']):
-                            print(f"🚗🔥 {car_id}: startar värmen {mins_until:.0f} min före {sched['target_time']} "
+                            print(f"🚗🔥 {car_id}: startar värmen {mins_until:.0f} min före {target_dt:%H:%M} "
                                   f"(behöver ca {preheat_window_mins:.0f} min, {_pre_why})")
                             homeassistant.set_car_climate(climate_entity, "heat_cool", sched['target_temp'])
                         elif c_state != "off" and c_temp is not None and c_temp >= sched['target_temp']:
@@ -1725,8 +1724,12 @@ while True:
                 try:
                     c_state = c_data.get("climate_state") if c_data else "off"
                     c_temp = c_data.get("climate_temp") if c_data else None
+                    _ht = car_climate_schedule.hold_target(
+                        sched.get('week') or car_climate_schedule.default_week(True, sched['target_time']), now, int(sched['hold_min']))
+                    if _ht is None:
+                        return
                     act, why = car_climate_schedule.hold_step(
-                        _climate_hold.setdefault(car_id, {}), now, sched['target_time'], int(sched['hold_min']),
+                        _climate_hold.setdefault(car_id, {}), now, _ht, int(sched['hold_min']),
                         float(sched['target_temp']), c_state, c_temp, charger_connected(charger_data), dist_to_home > 0.5)
                     if why:
                         print(f"🚗🔥 {car_id}: {why}")
