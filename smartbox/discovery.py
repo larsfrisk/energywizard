@@ -364,6 +364,25 @@ def _split_battery_power(ents) -> dict:
     return {"power_charge": chg, "power_discharge": dis} if chg and dis else {}
 
 
+_SOC_NAME = re.compile(r"battery|batteri|state of charge|soc\b|laddniv", re.I)
+_AUX_BATTERY = re.compile(r"12 ?v\b|auxiliary|\baux\b|car battery|starter|startbatteri|hjälpbatteri", re.I)
+_TRACTION_BATTERY = re.compile(r"ev battery|traction|high.?voltage|\bhv\b|state of charge|battery level|battery_level|laddniv|\bsoc\b", re.I)
+
+
+def _car_soc_sensor(ents):
+    """Bilens laddnivå (%) ur enhetens entiteter. Många bilintegrationer har två batterier: traktionsbatteriet och 12 V-batteriet
+    (Kia/Hyundai: "Car battery level" är 12 V, "EV battery level" är laddnivån; #596). 12 V-batteriet väljs bara om inget annat finns,
+    och namn som tydligt är traktionsbatteriet går före allmänna "battery"."""
+    cand = [x for x in ents if x["e"].startswith("sensor.") and x.get("u") == "%"
+            and (x.get("dc") == "battery" or _has(x.get("n"), _SOC_NAME))]
+    if not cand:
+        return None
+    def rank(x):
+        name = f"{x.get('n') or ''} {x['e']}"
+        return (1 if _has(name, _AUX_BATTERY) else 0, 0 if _has(name, _TRACTION_BATTERY) else 1)
+    return min(cand, key=rank)         # min är stabil: oförändrat val när allt är lika
+
+
 def _battery_control_preset(ents, all_ents=None):
     """Känner igen batteristyrning från wills106/homeassistant-solax-modbus och föreslår hela
     lägesmappningen (drivers/battery_generic.py). Lägesnamnen är integrationens egna (plugin_solax.py /
@@ -745,8 +764,7 @@ def discover_house(entities: list[dict] | None = None) -> dict:
     cars = []
     car_device_ids = set()
     for device_id, ents in by_device.items():
-        battery = next((x for x in ents if x["e"].startswith("sensor.") and x.get("u") == "%"
-                         and (x.get("dc") == "battery" or _has(x.get("n"), re.compile(r"battery|batteri|state of charge|soc\b|laddniv", re.I)))), None)
+        battery = _car_soc_sensor(ents)
         if not battery:
             continue
         maker = ents[0].get("m") or ""

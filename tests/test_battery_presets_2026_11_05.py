@@ -182,3 +182,20 @@ def test_emaldo_laddar_med_slot_fönster():
     dom, svc, data = calls[0]
     assert (dom, svc) == ("emaldo", "set_slot_range") and data["action"] == "charge-100"
     assert len(data["start_time"]) == 5 and data["start_time"][3:] in ("00", "15", "30", "45") and ":" in data["end_time"]
+
+
+def test_bil_med_12v_batteri_väljer_traktionsbatteriet():
+    """#596: Kia/Hyundai har både 12 V-batteri ("Car battery level") och laddnivå ("EV battery level")."""
+    ents = [E("sensor.ioniq_car_battery_level", "Car battery level", d="car1", m="Hyundai", dc="battery", u="%"),
+            E("sensor.ioniq_ev_battery_level", "EV battery level", d="car1", m="Hyundai", dc="battery", u="%"),
+            E("device_tracker.ioniq", "Location", d="car1", m="Hyundai")]
+    assert discover_house(ents)["cars"][0]["soc_entity"] == "sensor.ioniq_ev_battery_level"
+    ents.reverse()
+    assert discover_house(ents)["cars"][0]["soc_entity"] == "sensor.ioniq_ev_battery_level"
+    only12v = [E("sensor.x_car_battery_level", "Car battery level", d="car2", m="Hyundai", dc="battery", u="%"),
+               E("device_tracker.x", "Location", d="car2", m="Hyundai")]
+    assert discover_house(only12v)["cars"][0]["soc_entity"] == "sensor.x_car_battery_level"      # inget annat finns
+    plain = [E("sensor.p_battery", "Battery", d="car3", m="Peugeot", dc="battery", u="%"),
+             E("sensor.p_12v", "12V battery", d="car3", m="Peugeot", dc="battery", u="%"),
+             E("device_tracker.p", "Location", d="car3", m="Peugeot")]
+    assert discover_house(plain)["cars"][0]["soc_entity"] == "sensor.p_battery"

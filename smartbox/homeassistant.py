@@ -295,6 +295,20 @@ def update_states():
         return False
 
 
+
+def _fail(text: str, err) -> None:
+    """Fångat undantag i en skrivfunktion: nätverksfel mot HA (nere, omstart, ogiltig adress, timeout) är drift, inte ett
+    programfel - ⚠️ så att de inte blir GitHub-ärenden (#588-#595: ConnectionError och InvalidURL i toggle_spa_plug,
+    set_gecko_*, set_solaredge_limit). Övriga fel förblir ❌."""
+    try:
+        net = isinstance(err, (requests.ConnectionError, requests.Timeout, requests.exceptions.InvalidURL,
+                               requests.exceptions.InvalidSchema, requests.exceptions.MissingSchema,
+                               requests.exceptions.ChunkedEncodingError, ConnectionError, TimeoutError))   # HTTPError (401/500) är OSError, men inte drift
+    except Exception:
+        net = False
+    print(f"{'⚠️' if net else '❌'} {text}")
+
+
 def _get_raw_state(entity_id):
     """Hämtar rå-strängen från en sensor utan att konvertera den till siffror."""
     # Tom cache: hämta - men inte om HA nyss inte svarade. Annars försöker varje enskild avläsning igen och väntar ut sin
@@ -455,7 +469,7 @@ def _read_easee_charger(entities: dict, charger_id: str | None = None):
             "phases":          _get_raw_state(entities.get("phases")) or _PHASE_STATE.get(charger_id)   # per laddbox
         }
     except Exception as e:
-        print(f"❌ HA: Fel vid läsning av laddare: {e}")        
+        _fail(f"HA: Fel vid läsning av laddare: {e}", e)
         return None
 
 
@@ -572,7 +586,7 @@ def read_power_meter():
             return None
         return {"net_power_w": net, "l1_a": cur[0], "l2_a": cur[1], "l3_a": cur[2], **phase_power}
     except Exception as ex:
-        print(f"❌ Fel vid läsning av elmätaren: {ex}")
+        _fail(f"Fel vid läsning av elmätaren: {ex}", ex)
         return None
 
 
@@ -686,7 +700,7 @@ def set_gecko_economy(enable: bool, entity: str | None = None):
         print(f"🛁 Spabad: Economy Mode {'AKTIVERAT' if enable else 'AVAKTIVERAT'}")
         return True
     except Exception as e:
-        print(f"❌ Spabad: Fel vid ändring av Economy Mode: {e}")
+        _fail(f"Spabad: Fel vid ändring av Economy Mode: {e}", e)
         return False
 
 def set_gecko_target(temp: float, entity: str | None = None):
@@ -705,7 +719,7 @@ def set_gecko_target(temp: float, entity: str | None = None):
         print(f"🛁 Spabad: Måltemperatur satt till {temp}°C")
         return True
     except Exception as e:
-        print(f"❌ Spabad: Fel vid sättning av temp: {e}")
+        _fail(f"Spabad: Fel vid sättning av temp: {e}", e)
         return False
 
 def set_ev_dynamic_limit(charger_id: str, ampere: int, reason: str = None):
@@ -731,7 +745,7 @@ def set_ev_dynamic_limit(charger_id: str, ampere: int, reason: str = None):
         print(f"❌ Easee: Fick 500 Server Error. Är Laddar-ID '{charger_id}' korrekt? Lägg in EASEE_CHARGER_ID=ditt_id i .env filen! Felet var: {e}")
         return False
     except Exception as e:
-        print(f"❌ Easee: Fel vid sättning av strömgräns: {e}")
+        _fail(f"Easee: Fel vid sättning av strömgräns: {e}", e)
         return False
 
 def set_easee_phases(charger_id: str, phases: int):
@@ -752,7 +766,7 @@ def set_easee_phases(charger_id: str, phases: int):
         print(f"⚡ Easee ({charger_id}): Fasläge satt till {phases}-fas (tjänst, {mode}).")
         return True
     except Exception as e:
-        print(f"❌ Easee ({charger_id}): Fel vid sättning av fasläge: {e}")
+        _fail(f"Easee ({charger_id}): Fel vid sättning av fasläge: {e}", e)
         return False
 
 def turn_on_charger(charger_id: str, entity_id: str | None = None):
@@ -772,7 +786,7 @@ def turn_on_charger(charger_id: str, entity_id: str | None = None):
         print(f"⚡ Easee ({charger_id}): Skickade 'turn_on' för att tvinga igång laddningen.")
         return True
     except Exception as e:
-        print(f"❌ Easee ({charger_id}): Fel vid turn_on: {e}")
+        _fail(f"Easee ({charger_id}): Fel vid turn_on: {e}", e)
         return False
 
 def turn_off_charger(charger_id: str, entity_id: str | None = None):
@@ -792,7 +806,7 @@ def turn_off_charger(charger_id: str, entity_id: str | None = None):
         print(f"⚡ Easee ({charger_id}): Skickade 'turn_off' för att stoppa laddningen.")
         return True
     except Exception as e:
-        print(f"❌ Easee ({charger_id}): Fel vid turn_off: {e}")
+        _fail(f"Easee ({charger_id}): Fel vid turn_off: {e}", e)
         return False
 
 def get_solaredge_limit(entity: str | None = None):
@@ -813,7 +827,7 @@ def set_solaredge_limit(limit: int, entity: str | None = None):
         print(f"☀️ SolarEdge: Active Power Limit satt till {limit} %")
         return True
     except Exception as e:
-        print(f"❌ SolarEdge: Fel vid sättning av limit: {e}")
+        _fail(f"SolarEdge: Fel vid sättning av limit: {e}", e)
         return False
 
 def press_button(entity_id: str, timeout: float = 5):
@@ -829,7 +843,7 @@ def press_button(entity_id: str, timeout: float = 5):
         print(f"ℹ️ {entity_id}: tryckt, svaret från bilens moln dröjer")
         return False
     except Exception as e:
-        print(f"❌ Kunde inte trycka på {entity_id}: {e}")
+        _fail(f"Kunde inte trycka på {entity_id}: {e}", e)
         return False
 
 CAR_CLIMATE_TIMEOUT_S = 60       # #190: HA väcker bilen och svarar först när den tagit emot kommandot (15-40 s)
@@ -887,7 +901,7 @@ def set_car_climate(entity_id: str, hvac_mode: str, temperature: float = None):
         print(f"🚗 Klimat: {entity_id} satt till {hvac_mode} ({temperature}°C)")
         return True
     except Exception as e:
-        print(f"❌ Fel vid inställning av bilklimat: {e}")
+        _fail(f"Fel vid inställning av bilklimat: {e}", e)
         return False
 
 
@@ -906,7 +920,7 @@ def turn_on_lights(entity_ids: list):
         print(f"💡 Tände lampor: {', '.join(entity_ids)}")
         return True
     except Exception as e:
-        print(f"❌ Fel vid tändning av lampor i HA: {e}")
+        _fail(f"Fel vid tändning av lampor i HA: {e}", e)
         return False
 
 def toggle_spa_plug(turn_on: bool, entity: str | None = None):
@@ -928,7 +942,7 @@ def toggle_spa_plug(turn_on: bool, entity: str | None = None):
         r.raise_for_status()
         return True
     except Exception as e:
-        print(f"❌ Fel vid styrning av spabadets plugg: {e}")
+        _fail(f"Fel vid styrning av spabadets plugg: {e}", e)
         return False
 
 
@@ -947,7 +961,7 @@ def set_climate_temperature(entity_id: str, target_c: float) -> bool:
         r.raise_for_status()
         return True
     except Exception as e:
-        print(f"❌ Fel vid climate.set_temperature på {entity_id}: {e}")
+        _fail(f"Fel vid climate.set_temperature på {entity_id}: {e}", e)
         return False
 
 
@@ -968,7 +982,7 @@ def set_switch(entity_id: str, turn_on: bool) -> bool:
         r.raise_for_status()
         return True
     except Exception as e:
-        print(f"❌ Fel vid switch.{service} på {entity_id}: {e}")
+        _fail(f"Fel vid switch.{service} på {entity_id}: {e}", e)
         return False
 
 
@@ -997,7 +1011,7 @@ def call_service(domain: str, service: str, data: dict) -> bool:
         r.raise_for_status()
         return True
     except Exception as e:
-        print(f"❌ Fel vid {domain}.{service}: {e}")
+        _fail(f"Fel vid {domain}.{service}: {e}", e)
         return False
 
 
@@ -1058,7 +1072,7 @@ def _call_service(entity_id: str, service: str, payload: dict) -> bool:
                 print(f"⚠️ {service} på {entity_id}: HA svarade inte än (HTTP {status}) - försöker igen")
                 time.sleep(2)
                 continue
-            print(f"❌ Fel vid {service} på {entity_id}: {e}")
+            _fail(f"Fel vid {service} på {entity_id}: {e}", e)
             return False
         except requests.RequestException as e:
             if attempt == 1:
@@ -1070,10 +1084,10 @@ def _call_service(entity_id: str, service: str, payload: dict) -> bool:
                 # igenom (#568): står entiteten redan på värdet var det ingen tappad styrsignal.
                 print(f"⚠️ {service} på {entity_id}: svaret dröjde men värdet gick igenom")
                 return True
-            print(f"❌ Fel vid {service} på {entity_id}: {e}")
+            _fail(f"Fel vid {service} på {entity_id}: {e}", e)
             return False
         except Exception as e:
-            print(f"❌ Fel vid {service} på {entity_id}: {e}")
+            _fail(f"Fel vid {service} på {entity_id}: {e}", e)
             return False
     return False
 
@@ -1269,11 +1283,11 @@ def get_own_base_url(retries: int = 0, wait_s: float = 5.0) -> str | None:
             transient = e
         except requests.HTTPError as e:
             if e.response is None or e.response.status_code < 500:
-                print(f"❌ Kunde inte läsa HA:s egen internal_url/external_url: {e}")
+                _fail(f"Kunde inte läsa HA:s egen internal_url/external_url: {e}", e)
                 return None
             transient = e
         except Exception as e:
-            print(f"❌ Kunde inte läsa HA:s egen internal_url/external_url: {e}")
+            _fail(f"Kunde inte läsa HA:s egen internal_url/external_url: {e}", e)
             return None
         if attempt < retries:
             _t.sleep(wait_s)
@@ -1297,7 +1311,7 @@ def send_persistent_notification(notification_id: str, title: str, message: str)
         r.raise_for_status()
         return True
     except Exception as e:
-        print(f"❌ Fel vid persistent_notification.create: {e}")
+        _fail(f"Fel vid persistent_notification.create: {e}", e)
         return False
 
 

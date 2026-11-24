@@ -2,6 +2,10 @@
 
 ❤️ EnergyWizard är gratis och öppet. Om det sparar pengar hemma hos dig kan du hålla det så med en sponsring (runt 10 USD i månaden räcker långt): https://github.com/sponsors/murre87
 
+## 1.2.175 (2026-11-24)
+- **Bilens laddnivå: 12 V-batteriet väljs inte längre före traktionsbatteriet.** Kia och Hyundai har både "Car battery level" (12 V) och "EV battery level" (laddnivån), och guiden kunde ta fel. Namn som 12 V, auxiliary och car battery går sist, och namn som EV battery eller state of charge går först (#596).
+- **Nätverksfel mot Home Assistant i styrfunktionerna är varningar, inte fel.** När HA var nere, startade om eller hade en ogiltig adress skrevs ❌ för spabadets plugg, Gecko-temperatur, SolarEdge-gräns m.fl., och varje sådant blev ett automatiskt GitHub-ärende (#588-#595). Nu är det ⚠️. HTTP-fel som 401 och 500 är fortfarande fel.
+
 ## 1.2.174 (2026-11-23)
 - **Emaldo-förinställning (ny, ej provad på riktigt batteri).** Installationsguiden känner igen Emaldo-batterier via `wertigpar/ha-emaldo` och föreslår styrning med integrationens 15-minuterspass (`emaldo.set_slot_range`, ladda mot 100 % eller ladda ur), omskrivet var femte minut. Slutar EnergyWizard skriva tar batteriets eget schema över efter högst 30 minuter. Batterieffektens tecken (plus = urladdning) och nätmätaren (`power_store_grid_power`, inte husets last) väljs rätt. Börja i skuggläge. Tack till testaren i #580.
 
