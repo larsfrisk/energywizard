@@ -21,6 +21,7 @@ const cases = [
   ['Ändra', 'Change', 'Změnit'],
   ['Bilar i house_config.yaml', 'Cars in house_config.yaml', 'Auta v souboru house_config.yaml'],
   ['Bilar hittade i Home Assistant', 'Cars found in Home Assistant', 'Auta nalezená v Home Assistantu'],
+  ['Uppskattat elstöd denna månad', 'Estimated electricity support this month', 'Odhad podpory na elektřinu v tomto měsíci'],
   ['solvärme', 'solar heating', 'solární ohřev'],
   ['pumpen går', 'pump running', 'čerpadlo běží'],
   ['Ladda en bil som inte är din på den här laddboxen', 'Charge someone else’s car on this charger', 'Nabíjet na této nabíječce cizí auto'],
@@ -153,6 +154,15 @@ function checkScreenshotCards(lang,tr) {
   cars = [];
   await carsContext.mountConfiguredCars();
   assert.match(panel.innerHTML, /Inga bilar är konfigurerade/);
+
+  const supportContext = vm.createContext({});
+  vm.runInContext(web.split('\n').find(line => line.startsWith('function fmt(')), supportContext);
+  vm.runInContext(web.slice(web.indexOf('function electricitySupportHtml('), web.indexOf('async function renderEkonomi(')), supportContext);
+  const estimate = supportContext.electricitySupportHtml({available: true, estimate_kr: 225, spot_average: 1.75, imported_kwh: 1000, coverage: 0.8});
+  assert.match(estimate, /225\.00 kr/);
+  assert.match(estimate, /80\.0 %/);
+  assert.match(estimate, /Luckor i nätimporten/);
+  assert.match(supportContext.electricitySupportHtml({available: true, estimate_kr: null}), /kan inte beräknas/);
 
   const catalogs = ['en', 'cs'].map(lang => JSON.parse(fs.readFileSync(`smartbox/i18n/${lang}.json`, 'utf8')));
   for (const key of Object.keys(catalogs[0])) assert.ok(key in catalogs[1], `Missing Czech key: ${key}`);

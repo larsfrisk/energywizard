@@ -989,6 +989,18 @@ async function renderSolarForecastSettings() {
 }
 
 let econPeriod = "today";
+
+function electricitySupportHtml(d) {
+  if (!d.available) return '<div class="note">Elstödet kan inte beräknas just nu.</div>';
+  const amount = d.estimate_kr == null ? "" : `<div><b>${fmt(d.estimate_kr, 2, " kr")}</b></div>`;
+  const partial = d.imported_kwh != null && d.coverage < 1
+    ? `<div class="note"><span>Mättäckning</span> <span data-noi18n>${fmt(d.coverage * 100, 1, " %")}</span>. <span>Luckor i nätimporten har inte räknats upp.</span></div>` : "";
+  return `${amount}
+    <div class="note"><span>Spotmedel hittills utan moms</span> <span data-noi18n>${fmt(d.spot_average, 3, " kr/kWh")}</span></div>
+    <div class="note"><span>Uppmätt nätimport</span> <span data-noi18n>${fmt(d.imported_kwh, 1, " kWh")}</span></div>
+    ${partial}${d.estimate_kr == null ? '<div class="note">Elstödet kan inte beräknas just nu.</div>' : ""}`;
+}
+
 async function renderEkonomi() {
   const d = await loadPage("api/economy", (d) => {
     const m = d.money[econPeriod], t = d.timing[econPeriod] || {}, sym = d.symbol || "kr";
@@ -1013,6 +1025,13 @@ async function renderEkonomi() {
       ${statTile("💰 Netto", money(m.net), "köpt minus sålt")}
       ${statTile("🎯 Sparat genom tajmning", t.saved_kr != null ? (t.saved_kr >= 0 ? "+" : "") + money(t.saved_kr) : "–", t.pct != null ? `${t.pct.toFixed(0)} % billigare än ett vanligt hushåll` : "")}
     </div>
+    ${d.electricity_support_area ? `<div class="card" style="margin-bottom:16px">
+      <h2><span>Uppskattat elstöd denna månad</span> · <span data-noi18n>${esc(d.electricity_support_area)}</span></h2>
+      <div class="note"><span>En uppskattning enligt regeringens förslag. Eventuellt stöd betalas ut separat.</span>
+        <span>Spotpriser från</span> <a href="https://www.elprisetjustnu.se/elpris-api" target="_blank" rel="noopener">Elpriset just nu</a>.</div>
+      <div id="electricity-support-result" aria-live="polite" style="margin-top:8px"></div>
+      <button class="icobtn" id="electricity-support-calculate" style="margin-top:8px">Beräkna elstöd</button>
+    </div>` : ""}
     <div class="card" style="margin-bottom:16px"><h2>💸 Kostnad per dag</h2>
       <div class="note">Köpt el inklusive moms, nätavgift och skatt, minus såld el. Senaste 31 dagarna.</div>
       <div id="econcostbars" style="height:220px;margin-top:10px"></div></div>
@@ -1027,6 +1046,19 @@ async function renderEkonomi() {
     <div class="note" style="margin-top:10px">Beloppen räknas minut för minut med dina inställningar under Inställningar → Elpris och avgifter (${esc(label)}).</div>`;
   });
   if (!d) return;
+  const supportButton = document.getElementById("electricity-support-calculate");
+  if (supportButton) supportButton.onclick = async () => {
+    const result = document.getElementById("electricity-support-result");
+    supportButton.disabled = true;
+    result.textContent = "Laddar…";
+    try {
+      result.innerHTML = electricitySupportHtml(await api("api/economy/electricity-support"));
+    } catch (_) {
+      result.textContent = "Elstödet kan inte beräknas just nu.";
+    } finally {
+      supportButton.disabled = false;
+    }
+  };
   document.querySelectorAll("[data-econ]").forEach((b) => b.onclick = () => { econPeriod = b.dataset.econ; renderEkonomi(); });
   if (d.price_24h) lineChart("econpricechart", d.price_24h, { step: "end" });
   costBars("econcostbars", d.money_days || [], d.symbol || "kr");

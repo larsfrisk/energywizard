@@ -1579,18 +1579,40 @@ async def api_economy():
         price_24h = _price_24h(c)
         import savings
         import nordpool
+        from electricity_support import eligible_area
         from datetime import datetime
-        today = datetime.now(installation_timezone()).date().isoformat()
+        now = datetime.now(installation_timezone())
+        today = now.date().isoformat()
         money = savings.money_rows(c, days=40)
         timing = savings.daily_rows(c, days=40)
     span = savings.price_span(today_prices)
     spot, buy = span["spot"], span["buy"]
+    settings = nordpool.cost_settings()
     return {"ok": True, "price": _n(row.get("price")), "price_min": spot["min"],
             "price_avg": spot["avg"], "price_max": spot["max"],
             "price_buy_min": buy["min"], "price_buy_avg": buy["avg"], "price_buy_max": buy["max"],
             "price_24h": price_24h,
-            "symbol": nordpool.cost_settings()["symbol"], "money_days": money[-31:],
+            "symbol": settings["symbol"], "money_days": money[-31:],
+            "electricity_support_area": eligible_area(settings, now),
             "money": savings.money_periods(money, today), "timing": savings.summarize_periods(timing, today)}
+
+
+@app.get("/api/economy/electricity-support")
+def api_electricity_support():
+    from datetime import datetime, timezone
+    import electricity_support
+    import nordpool
+
+    now = datetime.now(timezone.utc)
+    area = electricity_support.eligible_area(nordpool.cost_settings(), now)
+    if area is None:
+        return {"available": False}
+    start, end = electricity_support.month_to_date(now)
+    with ENGINE.connect() as conn:
+        imported, coverage = electricity_support.grid_import(conn, start, end)
+    average = electricity_support.spot_average(area, start, end)
+    return {"available": True, "spot_average": average, "imported_kwh": imported,
+            "coverage": coverage, "estimate_kr": electricity_support.estimate_kr(average, imported)}
 
 
 def _solar_payback_settings():

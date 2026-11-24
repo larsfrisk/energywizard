@@ -45,3 +45,33 @@ def test_ingen_modulattribut_pa_funktionen_local_sql():
     """local_sql är funktionen: ingenting ska anropa attribut på den (det var felet)."""
     for f in ("webdashboard/app.py", "ewapp/app.py", "smartbox/main.py"):
         assert "local_sql.installation_timezone" not in (ROOT / f).read_text(encoding="utf-8"), f
+
+
+def test_electricity_support_uses_one_window_and_leaves_bill_totals_separate(monkeypatch):
+    import electricity_support
+
+    mod = _app()
+    engine = MagicMock()
+    monkeypatch.setattr(mod, "ENGINE", engine)
+    monkeypatch.setattr(electricity_support, "eligible_area", lambda *a: None)
+    assert mod.api_electricity_support() == {"available": False}
+    engine.connect.assert_not_called()
+
+    windows = {}
+
+    def grid_import(conn, start, end):
+        windows["import"] = (start, end)
+        return 6000, 0.8
+
+    def spot_average(area, start, end):
+        assert area == "SE4"
+        windows["spot"] = (start, end)
+        return 1.75
+
+    monkeypatch.setattr(electricity_support, "eligible_area", lambda *a: "SE4")
+    monkeypatch.setattr(electricity_support, "grid_import", grid_import)
+    monkeypatch.setattr(electricity_support, "spot_average", spot_average)
+    assert mod.api_electricity_support() == {
+        "available": True, "spot_average": 1.75, "imported_kwh": 6000, "coverage": 0.8, "estimate_kr": 1125,
+    }
+    assert windows["import"] == windows["spot"]
