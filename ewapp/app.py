@@ -1270,8 +1270,8 @@ def support_send(request: Request):
         with ENGINE.connect() as c:
             text = ew_journal.export_text(c, 2)
         return {"ok": True, "ref": telemetry.send_support_bundle(text, hc)}
-    except Exception as e:
-        raise HTTPException(502, f"Kunde inte skicka felsökningsinfon: {e}"[:300])
+    except Exception:
+        raise HTTPException(502, "Kunde inte skicka felsökningsinfon") from None
 
 
 # ---- Veckobrevet (news_signup.py): valfri anmälan med e-post, bara ägaren ----
@@ -1301,7 +1301,7 @@ async def news_subscribe(request: Request):
     try:
         return {"ok": True, **news_signup.subscribe((body or {}).get("email"), (body or {}).get("lang"))}
     except news_signup.NewsError as e:
-        raise HTTPException(400, str(e))
+        raise HTTPException(400, news_signup.public_error_message(e)) from None
 
 
 @app.post("/api/news/cancel")
@@ -1312,7 +1312,7 @@ def news_cancel(request: Request):
     try:
         return {"ok": True, **news_signup.cancel()}
     except news_signup.NewsError as e:
-        raise HTTPException(502, str(e))
+        raise HTTPException(502, news_signup.public_error_message(e)) from None
 
 
 @app.post("/api/news/dismiss")

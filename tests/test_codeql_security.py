@@ -1,5 +1,6 @@
 """Behavioral regressions for repository code-scanning remediation."""
 import asyncio
+from contextlib import nullcontext
 import importlib.util
 import json
 import os
@@ -132,6 +133,58 @@ def test_public_errors_never_echo_unknown_exception_details(apps, monkeypatch):
     assert private not in json.dumps(asyncio.run(web.price_entities()))
 
 
+def test_support_send_hides_internal_errors(apps, monkeypatch):
+    import ew_journal
+    import telemetry
+
+    ew, web = apps
+    request = Request()
+    message = 'Kunde inte skicka felsökningsinfon'
+    engine = SimpleNamespace(connect=lambda: nullcontext())
+    monkeypatch.setattr(ew, 'ENGINE', engine)
+    monkeypatch.setattr(web, 'ENGINE', engine)
+    monkeypatch.setattr(ew, '_role', lambda request: 'owner')
+    monkeypatch.setattr(web.AUTH, 'session', lambda request: ('owner', 'owner'))
+    monkeypatch.setattr(web.house_config, 'load_house_config', lambda path: {})
+    monkeypatch.setattr(ew_journal, 'export_text', lambda conn, days: 'sanitized log')
+
+    def fail(*args):
+        raise RuntimeError('private support transport details')
+
+    monkeypatch.setattr(telemetry, 'send_support_bundle', fail)
+    response = asyncio.run(web.api_support_send(request))
+    assert response.status_code == 502 and json.loads(response.body) == {'error': message}
+    with pytest.raises(HTTPException) as error:
+        ew.support_send(request)
+    assert error.value.status_code == 502 and error.value.detail == message
+
+
+@pytest.mark.parametrize('operation,status', [('subscribe', 400), ('cancel', 502)])
+@pytest.mark.parametrize('detail,expected', [
+    ('Kunde inte nå servern just nu. Försök igen om en stund.',
+     'Kunde inte nå servern just nu. Försök igen om en stund.'),
+    ('private newsletter transport details', 'Kunde inte uppdatera nyhetsbrevet.'),
+])
+def test_news_routes_return_only_public_messages(apps, monkeypatch, operation, status, detail, expected):
+    import news_signup
+
+    ew, web = apps
+    request = Request()
+    monkeypatch.setattr(ew, '_role', lambda request: 'owner')
+    monkeypatch.setattr(web.AUTH, 'session', lambda request: ('owner', 'owner'))
+
+    def fail(*args):
+        raise news_signup.NewsError(detail)
+
+    monkeypatch.setattr(news_signup, operation, fail)
+    response = asyncio.run(getattr(web, 'api_news_' + operation)(request))
+    assert response.status_code == status and json.loads(response.body) == {'detail': expected}
+    with pytest.raises(HTTPException) as error:
+        if operation == 'subscribe':
+            asyncio.run(ew.news_subscribe(request))
+        else:
+            ew.news_cancel(request)
+    assert error.value.status_code == status and error.value.detail == expected
 def test_setup_rejects_oversized_entity_without_changing_valid_mapping(apps):
     _, web = apps
     oversized = '_' * 200_000

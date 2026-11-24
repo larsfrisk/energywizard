@@ -38,8 +38,11 @@ const attrs = { v: 1, ts: new Date().toISOString(), unit: q.get("unit") || "kr",
 const win = (a, b, k) => [start + a * 900, start + b * 900, k];
 attrs.cars = [{ id: "nissan", name: "Nissan Leaf", soc: 64, w: 0, on: false, win: [win(48, 56, 3.7)] },
               { id: "tesla", name: "Tesla Model Y", soc: 52, w: 2100, on: true, win: [win(0, 4, 2.1), win(52, 60, 7.4)] }];
-const kind = q.get("card") || "house";
-const el = document.createElement("energywizard-" + kind + "-card"); el.id = "c"; document.getElementById("w").appendChild(el);
+const kind = q.get("card");
+const tag = kind === "heat" ? "energywizard-heat-card"
+  : kind === "car" ? "energywizard-car-card"
+  : "energywizard-house-card";
+const el = document.createElement(tag); el.id = "c"; document.getElementById("w").appendChild(el);
 el.setConfig({ tab: q.get("tab") || "now", language: q.get("lang") || "sv", title: q.get("title") || undefined });
 const states = q.get("missing") ? {} : { "sensor.energywizard_kort": { state: "billigt", last_updated: "x", attributes: attrs } };
 if (!q.get("missing") && q.get("controls") !== "0") {
