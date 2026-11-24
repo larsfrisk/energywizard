@@ -2563,9 +2563,28 @@ async function loadWatchtowerUpdates(force) {
 
 let _discovered = null;
 
+async function mountConfiguredCars() {
+  const panel = document.getElementById("configuredCars");
+  if (!panel) return;
+  try {
+    const { cars } = await api("api/house-config/cars", { cache: "no-store" });
+    panel.innerHTML = cars.length ? cars.map(car => `
+      <div class="note" style="margin-top:8px;overflow-wrap:anywhere">
+        <b data-noi18n>${esc(car.id ?? "–")}</b> · <span data-noi18n>${esc(car.driver ?? "–")}</span> · <span data-noi18n>${esc(car.battery_kwh == null ? "–" : car.battery_kwh + " kWh")}</span><br>
+        <span>SOC</span> <code data-noi18n>${esc(car.soc ?? "–")}</code> · <span>Kabel</span> <code data-noi18n>${esc(car.plugged_in ?? "–")}</code> · <span>Klimat</span> <code data-noi18n>${esc(car.climate ?? "–")}</code>
+      </div>`).join("") : '<div class="note">Inga bilar är konfigurerade.</div>';
+  } catch (_) {
+    panel.textContent = "Kunde inte läsa bilar från house_config.yaml.";
+  }
+}
+
 async function renderInstallningar() {
   const main = document.getElementById("main");
   main.innerHTML = `
+    <div class="card" style="margin-bottom:16px">
+      <h2>🚗 <span>Bilar i house_config.yaml</span></h2>
+      <div id="configuredCars" class="note" aria-live="polite">Laddar…</div>
+    </div>
     <div class="card" style="margin-bottom:16px">
       <div style="font-size:1.1rem;font-weight:700">⚙️ Entitetsväljare</div>
       <div class="note" style="margin-top:4px">Skannar ditt Home Assistant efter värmepump, bilar, solceller, batteri, spa och laddare. Kryssa i det som stämmer och tryck <b>Spara och starta</b>.</div>
@@ -2672,6 +2691,7 @@ async function renderInstallningar() {
     </div>
     <div id="modbusScanResults"></div>
     <div id="discoverResults"></div>`;
+  mountConfiguredCars();
   document.getElementById("scanbtn").onclick = runDiscovery;
   // #168: senaste skanningen ligger sparad på servern och visas alltid när man kommer tillbaka (även efter att man
   // sparat, och även när Home Assistant-appen startat en ny session)
@@ -2836,7 +2856,7 @@ async function runDiscovery(ev, cached) {
 
   let html = "";
 
-  html += `<div class="card" style="margin-bottom:16px"><h2>🚗 Bilar (${d.cars.length})</h2>`;
+  html += `<div class="card" style="margin-bottom:16px"><h2>🚗 <span>Bilar hittade i Home Assistant</span> (${d.cars.length})</h2>`;
   d.cars.forEach((c, i) => {
     html += `<div class="note" style="margin:10px 0;padding:10px;border:1px solid var(--line);border-radius:10px">
       <label><input type="checkbox" class="car-pick" data-i="${i}" checked> <b data-noi18n>${esc(c.device_name)}</b></label> ${driverTag(c)}<br>
@@ -3051,6 +3071,7 @@ async function generateConfig(save) {
     const j = await rs.json().catch(() => ({}));
     msg.textContent = rs.ok ? j.message : ("Kunde inte spara: " + (j.error || rs.status));
     if (rs.ok) {
+      mountConfiguredCars();
       postJSON("api/discover/form", wizardForm()).catch(() => {});      // #173: valen visas igen nästa gång
       // Sista steget i guiden: erbjud systemtestet när installationen och alla val är sparade
       let sg = document.getElementById("systest-guide");

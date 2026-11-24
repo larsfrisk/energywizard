@@ -2757,6 +2757,32 @@ async def api_house_config_status(request: Request):
     return {"writable": role == "owner" and _config_writable()}
 
 
+@app.get("/api/house-config/cars")
+async def api_configured_cars(request: Request):
+    if AUTH.session(request)[0] != "owner":
+        return JSONResponse({"error": "Bara ägaren"}, status_code=403)
+    try:
+        configured = house_config.load_house_config(HOUSE_CONFIG_FILE).get("evs") or []
+        if not isinstance(configured, list):
+            raise ValueError("evs must be a list")
+        cars = []
+        for car in configured:
+            entities = car.get("entities") or {}
+            cars.append({
+                "id": car.get("id"),
+                "driver": car.get("driver"),
+                "battery_kwh": car.get("battery_kwh"),
+                "soc": entities.get("soc"),
+                "plugged_in": entities.get("plugged_in"),
+                "climate": entities.get("climate"),
+            })
+    except FileNotFoundError:
+        cars = []
+    except Exception:
+        return JSONResponse({"error": "Kunde inte läsa bilar från house_config.yaml."}, status_code=500)
+    return {"cars": cars}
+
+
 @app.post("/api/save-house-config")
 async def api_save_house_config(request: Request):
     role, _ = AUTH.session(request)
