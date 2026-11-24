@@ -80,8 +80,8 @@ def hold_window(now, target_hhmm, hold_min):
 def hold_step(state, now, target_hhmm, hold_min, target_temp, c_state, c_temp, is_connected, away):
     """Håll bilen varm efter sluttiden (#598). state är en dict per bil som anroparen behåller mellan varven.
     Returnerar (åtgärd, förklaring): "on" värm, "off" stäng av eller None. Hålltiden avslutas för dagen när bilen
-    flyttats (borta från huset) eller när kabeln dragits ur efter att den varit inkopplad - då har föraren hämtat
-    bilen. Efter det rör vi inte värmen igen förrän nästa sluttid."""
+    flyttats (borta från huset). En urdragen kabel avslutar INTE hålltiden (värmen ska fungera även utan kabel).
+    Efter det rör vi inte värmen igen förrän nästa sluttid."""
     start = hold_window(now, target_hhmm, hold_min)
     if start is None:
         return None, None
@@ -91,9 +91,7 @@ def hold_step(state, now, target_hhmm, hold_min, target_temp, c_state, c_temp, i
         state["key"] = key
     if state.get("ended"):
         return None, None
-    if is_connected:
-        state["was_connected"] = True
-    if away or (state.get("was_connected") and not is_connected):
+    if away:
         state["ended"] = True
         return None, "Hålltiden avslutad: bilen är hämtad"
     if c_temp is None:

@@ -48,6 +48,7 @@ import system_test         # "Testa ditt system": kontrollerar att batteriet gö
 import ev_schedule_auto    # nivå för automatiskt skapade laddscheman (#576)
 import spa_bath_learn      # logg över badtillfällen och förslag på badtider
 import aux_heat_watch    # tillsats (elpatron) i värmepumpen -> notis
+import car_preheat           # tid i förväg för bilvärmen, lärd ur bilens värmepass (#598)
 import car_climate_schedule   # kupévärme: normalisering och hålltid efter sluttiden (#598)
 import spa_error_watch     # nytt fel från spabadet (Gecko: error-sensorn) -> notis
 import spa_filter          # #447: filtercykeln vilar på dyr el, skugga tills control är true
@@ -1697,13 +1698,20 @@ while True:
                     if now.hour > 12 and target_dt.hour < 12: 
                         target_dt += timedelta(days=1)
                     
-                    preheat_window_mins = learning.estimate_preheat_minutes(outdoor_temp)
-                    mins_until = (target_dt - now).total_seconds() / 60.0
                     c_state = c_data.get("climate_state") if c_data else "off"
-                    c_temp = c_data.get("climate_temp") if c_data else 0.0
-                    
+                    c_temp = c_data.get("climate_temp") if c_data else None
+                    # Tiden i förväg lärs ur bilens egna värmepass och räknas på hur kall bilen är nu (#598)
+                    try:
+                        preheat_window_mins, _pre_why = car_preheat.minutes(logger.get_db, car_id, outdoor_temp, c_temp,
+                                                                              float(sched['target_temp']))
+                    except Exception as _pe:
+                        preheat_window_mins, _pre_why = learning.estimate_preheat_minutes(outdoor_temp), f"grundmodell ({_pe})"
+                    mins_until = (target_dt - now).total_seconds() / 60.0
+                    c_temp = c_temp if c_temp is not None else 0.0
                     if 0 <= mins_until <= preheat_window_mins:
                         if c_state == "off" and (c_temp is None or c_temp < sched['target_temp']):
+                            print(f"🚗🔥 {car_id}: startar värmen {mins_until:.0f} min före {sched['target_time']} "
+                                  f"(behöver ca {preheat_window_mins:.0f} min, {_pre_why})")
                             homeassistant.set_car_climate(climate_entity, "heat_cool", sched['target_temp'])
                         elif c_state != "off" and c_temp is not None and c_temp >= sched['target_temp']:
                             homeassistant.set_car_climate(climate_entity, "off")

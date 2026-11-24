@@ -598,7 +598,7 @@ async function renderElbil() {
       </div>
       <div style="display:flex;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap"><span>Håll varm efter tiden</span>
         <input type="number" class="cl-h" data-car="${c.id}" min="0" max="360" step="5" value="${esc(h.hold_min || 0)}" style="width:72px"> <span>min</span></div>
-      <div class="note" style="margin-top:4px">0 = av. Värmer igen när bilen hunnit svalna, och slutar när du hämtat bilen (kabeln dras ur eller bilen flyttas).</div>
+      <div class="note" style="margin-top:4px">0 = av. Värmer igen när bilen hunnit svalna, och slutar när bilen flyttas från huset. Fungerar även utan laddkabel. Starttiden räknas ut ur hur kall bilen är och hur snabbt den brukar värmas.</div>
       <button class="icobtn cl-save" data-car="${c.id}" style="margin-top:8px">Spara värmen</button>
     </div>`;
   };

@@ -2,6 +2,10 @@
 
 ❤️ EnergyWizard är gratis och öppet. Om det sparar pengar hemma hos dig kan du hålla det så med en sponsring (runt 10 USD i månaden räcker långt): https://github.com/sponsors/murre87
 
+## 1.2.177 (2026-11-24)
+- **Håll varm fungerar även utan laddkabel.** En urdragen kabel avslutar inte längre hålltiden, så värmen kan hållas medan du hämtar bilen. Hålltiden avslutas bara när bilen flyttas från huset.
+- **Kupévärmen räknar ut när den ska starta så att bilen är varm vid din tid.** Förut en fast tid ur utetemperaturen. Nu lär sig EnergyWizard hur många minuter per grad varje bil behöver (ur bilens egna värmepass i loggen) och räknar på hur kall bilen är just då, så en kall bil startar tidigare än en ljummen. Bilens kupétemperatur kan vara gammal, så den kapas till högst 5 grader över utetemperaturen. Har bilen för få mätbara värmepass används den gamla grundmodellen. Loggen visar hur lång tid som behövs och varför (#598).
+
 ## 1.2.176 (2026-11-24)
 - **Håll bilen varm en vald tid efter sluttiden (kupévärme).** Ny inställning per bil, "Håll varm efter tiden" (0 minuter till 6 timmar, av som standard), i webben under Elbil och i appen under Planen. Är bilen varm kl 06:45 men du kommer kl 07:10 värmer EnergyWizard igen när kupén svalnat mer än en grad under måltemperaturen, och stänger av den när den är varm. Hålltiden avslutas när du hämtat bilen: när laddkabeln dras ur efter att den varit inkopplad, eller när bilen flyttas från huset. Bilar som aldrig kopplas in avslutas inte av en signal utan håller på hela tiden. En sovande bil kan visa gammal kupétemperatur, då startar inte värmen igen (#598).
 

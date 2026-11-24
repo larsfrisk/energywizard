@@ -49,23 +49,23 @@ def test_värmer_igen_när_kupén_svalnat_och_stänger_när_varm():
     assert step(st, at(7, 16), "heat_cool", 19.0) == (None, None)
 
 
-def test_avslutas_när_kabeln_dras_ur_och_förblir_avslutad():
+def test_urdragen_kabel_avslutar_inte_hålltiden():
     st = {}
     assert step(st, at(7, 0), "off", 16.0, conn=True)[0] == "on"
-    act, why = step(st, at(7, 10), "off", 16.0, conn=False)    # föraren drog ur kabeln
-    assert act is None and "hämtad" in why
-    assert step(st, at(7, 12), "off", 12.0, conn=True) == (None, None)   # inkopplad igen: rör inte
+    assert step(st, at(7, 10), "off", 16.0, conn=False)[0] == "on"     # kabeln ur: värmen hålls ändå (föraren kan sitta kvar)
+    assert not st.get("ended")
 
 
-def test_avslutas_när_bilen_flyttas():
+def test_avslutas_när_bilen_flyttas_och_förblir_avslutad():
     st = {}
     act, why = step(st, at(7, 10), "off", 16.0, away=True)
     assert act is None and "hämtad" in why
+    assert step(st, at(7, 12), "off", 12.0, away=False) == (None, None)    # tillbaka hem samma morgon: rör inte
 
 
 def test_utan_kabel_hela_tiden_håller_den_på():
     st = {}
-    assert step(st, at(7, 10), "off", 16.0, conn=False)[0] == "on"       # aldrig inkopplad: ingen utsignal att vänta på
+    assert step(st, at(7, 10), "off", 16.0, conn=False)[0] == "on"
 
 
 def test_nästa_dag_börjar_om():
