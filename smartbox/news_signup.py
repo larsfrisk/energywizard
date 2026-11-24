@@ -10,10 +10,19 @@ import ew_settings
 import telemetry
 
 KEY = "news_signup"
+_INVALID_EMAIL = "Skriv en giltig e-postadress."
+_UNREACHABLE = "Kunde inte nå servern just nu. Försök igen om en stund."
+_RATE_LIMITED = "Vänta några minuter innan du ber om ett nytt bekräftelsemejl."
+_SEND_FAILED = "Kunde inte skicka bekräftelsemejlet. Försök igen senare."
+_PUBLIC_ERRORS = {message: message for message in (_INVALID_EMAIL, _UNREACHABLE, _RATE_LIMITED, _SEND_FAILED)}
 
 
 class NewsError(Exception):
     """Ett fel med en text som går att visa för användaren."""
+
+
+def public_error_message(error: NewsError) -> str:
+    return _PUBLIC_ERRORS.get(str(error), "Kunde inte uppdatera nyhetsbrevet.")
 
 
 def valid_email(e) -> bool:
@@ -58,17 +67,17 @@ def state(refresh: bool = False) -> dict:
 def subscribe(email: str, lang: str) -> dict:
     email = str(email or "").strip().lower()
     if not valid_email(email):
-        raise NewsError("Skriv en giltig e-postadress.")
+        raise NewsError(_INVALID_EMAIL)
     try:
         r = requests.post(f"{telemetry.ENDPOINT}/news/subscribe", json={"email": email, "lang": str(lang or "en")[:2]}, timeout=15)
     except Exception:
-        raise NewsError("Kunde inte nå servern just nu. Försök igen om en stund.")
+        raise NewsError(_UNREACHABLE)
     if r.status_code == 429:
-        raise NewsError("Vänta några minuter innan du ber om ett nytt bekräftelsemejl.")
+        raise NewsError(_RATE_LIMITED)
     if r.status_code == 400:
-        raise NewsError("Skriv en giltig e-postadress.")
+        raise NewsError(_INVALID_EMAIL)
     if not r.ok:
-        raise NewsError("Kunde inte skicka bekräftelsemejlet. Försök igen senare.")
+        raise NewsError(_SEND_FAILED)
     j = r.json() or {}
     if j.get("already"):                                # redan anmäld och bekräftad: ingen ny hemlighet, ingen nytt mejl
         ew_settings.update(**{KEY: {"email": email, "status": "confirmed", "dismissed": True}})
@@ -83,7 +92,7 @@ def cancel() -> dict:
         try:
             requests.post(f"{telemetry.ENDPOINT}/news/cancel", json={"t": d["token"]}, timeout=10)
         except Exception:
-            raise NewsError("Kunde inte nå servern just nu. Försök igen om en stund.")
+            raise NewsError(_UNREACHABLE)
     ew_settings.update(**{KEY: {"dismissed": True}})
     return {"status": "none", "email": None}
 

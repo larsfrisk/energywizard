@@ -739,8 +739,8 @@ async def api_support_send(request: Request):
         with ENGINE.connect() as c:
             text = ew_journal.export_text(c, 2)
         return {"ok": True, "ref": telemetry.send_support_bundle(text, cfg)}
-    except Exception as e:
-        return JSONResponse({"error": f"Kunde inte skicka felsökningsinfon: {e}"[:300]}, status_code=502)
+    except Exception:
+        return JSONResponse({"error": "Kunde inte skicka felsökningsinfon"}, status_code=502)
 
 
 @app.get("/api/journal/download")
@@ -2131,7 +2131,7 @@ async def api_news_subscribe(request: Request):
     try:
         return {"ok": True, **news_signup.subscribe((body or {}).get("email"), (body or {}).get("lang"))}
     except news_signup.NewsError as e:
-        return JSONResponse({"detail": str(e)}, status_code=400)
+        return JSONResponse({"detail": news_signup.public_error_message(e)}, status_code=400)
 
 
 @app.post("/api/news/cancel")
@@ -2142,7 +2142,7 @@ async def api_news_cancel(request: Request):
     try:
         return {"ok": True, **news_signup.cancel()}
     except news_signup.NewsError as e:
-        return JSONResponse({"detail": str(e)}, status_code=502)
+        return JSONResponse({"detail": news_signup.public_error_message(e)}, status_code=502)
 
 
 @app.get("/api/system_test")
