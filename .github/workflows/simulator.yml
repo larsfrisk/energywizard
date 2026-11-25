@@ -26,7 +26,7 @@ jobs:
           repository: srcfl/device-simulator
           ref: a3030d3ff2d4b547d0aa596022ca85daa69904eb   # låst version (2026-11-06)
           path: devsim
-      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+      - uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7.1.0
         with:
           go-version: "1.27.4"
           cache-dependency-path: devsim/go.sum
