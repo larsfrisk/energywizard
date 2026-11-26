@@ -1070,7 +1070,7 @@ while True:
         # (standard 5 min) och kvartsloopen hann inte före den - laddning/håll föll tillbaka till växelriktarens läge.
         # Bara drivrutiner med keepalive_s (den självbegränsar); FTW:s vakthund sköts redan i kvartsstyrningen.
         if (battery_cfg["control"] == "styr" and getattr(battery_driver, "_keepalive", None)
-                and _battery.get("decision_rule") not in battery_control.SAFETY_RULES and not system_test.active()):
+                and _battery.get("decision_rule") not in battery_control.NO_KEEPALIVE_RULES and not system_test.active()):
             try:
                 battery_driver.refresh()
             except Exception as _bre:
@@ -2520,7 +2520,7 @@ while True:
                         gpm_actions["log"].append(f"🔋 (BATTERI): {_alpha}")
                         print(f"🔋 {_alpha}")
                     battery_driver.set_balancing(_bdec.get("rule") == "balance")
-                    if _bdec.get("rule") not in battery_control.SAFETY_RULES and not system_test.active():
+                    if _bdec.get("rule") not in battery_control.NO_KEEPALIVE_RULES and not system_test.active():
                         battery_driver.refresh()       # håller en pågående tvångsladdning vid liv (Solis RC m.fl.)
                     if not system_test.active() and battery_control.should_apply(    # pausas medan systemtestet pågår
                             _bdec, _battery["last"], _battery["at"], now, battery_cfg["min_change_minutes"]):

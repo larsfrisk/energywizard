@@ -37,6 +37,9 @@ FUSE_CAP_STEP_W = 100         # #399: minsta minskning som skrivs när säkrings
 POWER_DEADBAND_W = 200        # #194: mindre effektändringar inom samma läge skrivs inte
 MIN_CHANGE_INTERVAL = timedelta(minutes=5)     # lägesbyten sparsamt (flashminne), säkerhetsregler undantagna
 SAFETY_RULES = {"stale", "fuse", "fuse_cap", "peak", "soc_limit", "reserve"}
+# Håll vid liv (Solis RC Timeout m.fl.) hoppas över under säkerhetsregler - utom "reserve": det ger bara håll, och hållet
+# släpper annars efter timeouten så att batteriet laddar ur ändå (should_apply skriver inte om samma avsikt).
+NO_KEEPALIVE_RULES = SAFETY_RULES - {"reserve"}
 FUSE_MIN_W = 500
 FROZEN_AFTER_S = 600          # elmätaren visar exakt samma värde så här länge -> räknas som död
 
